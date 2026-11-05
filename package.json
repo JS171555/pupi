@@ -1,0 +1,35 @@
+{
+  "name": "pupi",
+  "version": "0.1.0",
+  "description": "Fundação modular do e-commerce petshop Pupi",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test --test-isolation=none tests/*.test.js",
+    "db:test": "node --test --test-isolation=none tests/database/*.test.js",
+    "check": "npm test && npm run db:test",
+    "verify:remote": "node --env-file-if-exists=.env scripts/verify-connection.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JS171555/pupi.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/JS171555/pupi/issues"
+  },
+  "homepage": "https://github.com/JS171555/pupi#readme",
+  "private": true,
+  "dependencies": {
+    "@supabase/supabase-js": "2.119.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.15",
+    "supabase": "2.83.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

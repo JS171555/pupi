@@ -1,0 +1,71 @@
+
+> pupi@0.1.0 check
+> npm test && npm run db:test
+
+
+> pupi@0.1.0 test
+> node --test --test-isolation=none tests/*.test.js
+
+✔ configuração pública exige origem segura e chave publishable (4.755993ms)
+✔ cliente usa configuração pública e consulta catálogo com campos e paginação delimitados (74.926868ms)
+✔ erros técnicos são traduzidos sem expor detalhes SQL ou tokens (1.214656ms)
+✔ validação de mídia rejeita SVG, arquivo vazio e imagem acima de 5 MiB (0.338ms)
+✔ serviço de mídia usa caminhos novos, não sobrescreve e assina por cinco minutos (2.702256ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 194.631274
+
+> pupi@0.1.0 db:test
+> node --test --test-isolation=none tests/database/*.test.js
+
+✔ as 15 tabelas da aplicação têm RLS habilitada (3033.021133ms)
+✔ funções SECURITY DEFINER não ficam no schema público nem executáveis por PUBLIC (6.06295ms)
+✔ todas as chaves estrangeiras públicas possuem índice com prefixo compatível (4.124591ms)
+✔ anônimo vê somente produtos publicados em categorias ativas (8.461343ms)
+✔ anônimo não lê perfis privados (3.742211ms)
+✔ clientes veem somente o próprio perfil, endereço, carrinho e função (9.907757ms)
+✔ metadata role=admin não promove conta recém-criada (1.132875ms)
+✔ cliente não altera a própria função (2.649652ms)
+✔ cliente não cria uma função administrativa (4.633479ms)
+✔ cliente edita nome e telefone, mas não identificadores protegidos (8.037761ms)
+✔ cliente não cria endereço para outro cliente (3.108077ms)
+✔ cliente não move endereço para outro titular (3.207767ms)
+✔ administrador consulta clientes e rascunhos sem poder conceder funções no app (6.419555ms)
+✔ cliente não altera preço de produto (5.441225ms)
+✔ administrador não altera estoque diretamente pela tabela (3.881753ms)
+✔ função de estoque recusa cliente (14.446831ms)
+✔ ajuste administrativo registra saldo, motivo e ator na mesma transação (5.322423ms)
+✔ ajuste que produziria estoque negativo falha e não deixa movimento (4.539061ms)
+✔ preços e promoções inválidos são rejeitados pelo banco (7.650021ms)
+✔ SKU duplicado e categoria inexistente são rejeitados (6.582334ms)
+✔ carrinho rejeita quantidade zero e inserção em carrinho de outro cliente (9.8675ms)
+✔ pedido usa preços do banco, reserva estoque e mantém pagamento pendente (18.266802ms)
+✔ repetir uma chave de idempotência não duplica pedido nem saída de estoque (7.847489ms)
+✔ reutilizar chave com conteúdo diferente é rejeitado (7.237404ms)
+✔ pedido rejeita endereço de outro cliente, item repetido, rascunho e falta de estoque (15.179776ms)
+✔ falha após início das gravações reverte pedido, itens e estoque (14.204471ms)
+✔ subtotal inconsistente e pedido vazio falham na validação diferida (3.260553ms)
+✔ histórico de produto e endereço não muda com alterações posteriores (14.669123ms)
+✔ itens históricos e totais do pedido são imutáveis (17.694984ms)
+✔ pedido não pode saltar de confirmado para entregue (11.277669ms)
+✔ cliente B não consulta pedido, itens ou entrega de A (19.953848ms)
+✔ checkout interno não é executável por cliente e não tem wrapper público (2.528491ms)
+✔ buckets privados configuram limite de 5 MiB e MIME types permitidos (0.78925ms)
+✔ anônimo vê apenas arquivo vinculado a produto publicado (5.284315ms)
+✔ cliente não envia nem remove imagens do catálogo (7.953936ms)
+✔ administrador pode enviar e remover imagem no caminho de um produto existente (8.501561ms)
+✔ upload fora do caminho permitido é bloqueado mesmo para administrador (2.65913ms)
+✔ logs e configurações não vazam para clientes; logs não são editáveis (6.172614ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3394.26307
