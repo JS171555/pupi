@@ -6,7 +6,7 @@ import { createCatalogRepository } from '../src/repositories/catalog.js';
 import { createMediaService, validateImage, MAX_IMAGE_BYTES } from '../src/services/media.js';
 import { AppError, toAppError, unwrap } from '../src/utils/errors.js';
 
-const config = { SUPABASE_URL: 'https://pupi.example.com', SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test' };
+const config = { SUPABASE_URL: 'https://loifqxmmnmhpwnwcvrak.supabase.co', SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_l9o3GMS9TrB0ZUG47GmApQ_CXYHuUiB' };
 
 test('configuração pública exige origem segura e chave publishable', () => {
   assert.equal(readPublicConfig(config).supabaseUrl, 'https://pupi.example.com');
