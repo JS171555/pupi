@@ -310,3 +310,80 @@ test('logs e configurações não vazam para clientes; logs não são editáveis
   await rejectsCode(() => as('authenticated', ADMIN,
     () => rows('delete from public.audit_logs')), '42501');
 });
+
+const addressPayload = { label: 'Trabalho', recipient: 'Pessoa A', postal_code: '01001000', street: 'Rua teste',
+  number: '10', complement: null, neighborhood: 'Centro', city: 'São Paulo', state: 'SP', is_default: true };
+const saveAddress = async (id, data, expected = null) => (await rows('select * from public.save_address($1,$2::jsonb,$3)',
+  [id, JSON.stringify(data), expected]))[0];
+
+test('cadastro registra aceite do aviso com timestamp do banco e ignora role em metadata', () => as('postgres', null, async () => {
+  const id = '00000000-0000-4000-8000-000000000004';
+  await rows(`insert into auth.users(id,raw_user_meta_data) values($1,
+    '{"full_name":"Pessoa teste","terms_accepted":true,"terms_version":"testing-v1","role":"admin","terms_accepted_at":"1900-01-01"}')`, [id]);
+  const profile = (await rows('select terms_accepted_at,terms_version from public.profiles where id=$1', [id]))[0];
+  assert.equal(profile.terms_version, 'testing-v1');
+  assert.ok(new Date(profile.terms_accepted_at).getFullYear() > 2020);
+  assert.equal((await rows('select role from public.user_roles where user_id=$1', [id]))[0].role, 'customer');
+}));
+
+test('OAuth não ganha aceite automático; aceite autenticado é idempotente e do próprio titular', () => as('authenticated', A, async () => {
+  assert.equal((await rows('select terms_accepted_at from public.profiles where id=$1', [A]))[0].terms_accepted_at, null);
+  await rows('select public.accept_test_notice()');
+  const accepted = (await rows('select terms_accepted_at from public.profiles where id=$1', [A]))[0].terms_accepted_at;
+  await rows('select public.accept_test_notice()');
+  assert.deepEqual((await rows('select terms_accepted_at from public.profiles where id=$1', [A]))[0].terms_accepted_at, accepted);
+  await setRole('authenticated', B);
+  assert.equal((await rows('select terms_accepted_at from public.profiles where id=$1', [B]))[0].terms_accepted_at, null);
+}));
+
+test('cliente não escreve timestamps ou versão de aceite diretamente', () => rejectsCode(() => as('authenticated', A,
+  () => rows("update public.profiles set terms_accepted_at=now(),terms_version='x' where id=$1", [A])), '42501'));
+
+test('RPC cria endereço com titular derivado da sessão, nunca do payload', () => as('authenticated', A, async () => {
+  const address = await saveAddress(null, addressPayload);
+  assert.equal(address.user_id, A); assert.equal(address.is_default, true);
+  assert.equal(address.country, 'BR');
+}));
+
+test('RPC recusa injeção de titular ou identificadores em endereço', () => rejectsCode(() => as('authenticated', A,
+  () => saveAddress(null, { ...addressPayload, user_id: B })), '22023'));
+
+test('RPC impede edição de endereço de outro cliente', () => rejectsCode(() => as('authenticated', A,
+  () => saveAddress(AB, addressPayload, new Date().toISOString())), 'P0002'));
+
+test('troca de endereço padrão é atômica e mantém somente um padrão', () => as('authenticated', A, async () => {
+  await rows('update public.addresses set is_default=true where id=$1', [AA]);
+  const created = await saveAddress(null, addressPayload);
+  const defaults = await rows('select id from public.addresses where is_default');
+  assert.deepEqual(defaults.map(r => r.id), [created.id]);
+}));
+
+test('falha na criação de novo padrão reverte o endereço padrão anterior', async () => {
+  await rejectsCode(() => as('authenticated', A, async () => {
+    await rows('update public.addresses set is_default=true where id=$1', [AA]);
+    await saveAddress(null, { ...addressPayload, state: 'XX' });
+  }), '23514');
+  assert.equal((await rows('select is_default from public.addresses where id=$1', [AA]))[0].is_default, false);
+});
+
+test('RPC rejeita edição com versão antiga sem sobrescrever o endereço', () => rejectsCode(() => as('authenticated', A,
+  () => saveAddress(AA, addressPayload, '2000-01-01T00:00:00Z')), '40001'));
+
+test('RPC atualiza endereço com versão correta e mantém identidade', () => as('authenticated', A, async () => {
+  const existing = (await rows('select updated_at from public.addresses where id=$1', [AA]))[0];
+  const result = await saveAddress(AA, addressPayload, existing.updated_at);
+  assert.equal(result.id, AA); assert.equal(result.label, 'Trabalho');
+}));
+
+test('gate administrativo consulta o papel real no banco', async () => {
+  for (const [id, expected] of [[A, false], [ADMIN, true]]) await as('authenticated', id, async () => {
+    assert.equal((await rows('select public.admin_access_status() as allowed'))[0].allowed, expected);
+  });
+});
+
+test('anônimo não executa RPCs de conta nem o gate administrativo', async () => {
+  for (const sql of ['select public.accept_test_notice()', 'select public.admin_access_status()',
+    "select public.save_address(null,'{}'::jsonb,null)"]) {
+    await rejectsCode(() => as('anon', null, () => rows(sql)), '42501');
+  }
+});

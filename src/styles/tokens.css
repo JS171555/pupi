@@ -1,0 +1,21 @@
+/* Gerado por scripts/design-tokens.js a partir de DESIGN.md. */
+:root {
+  --color-primary: #6D42B5;
+  --color-brand: #A78BFA;
+  --color-lavender: #DDD2FF;
+  --color-soft: #EDE5FF;
+  --color-background: #FAF8FF;
+  --color-surface: #FFFFFF;
+  --color-text: #302746;
+  --color-muted: #665D76;
+  --color-border: #D7D0E3;
+  --color-danger: #AA263D;
+  --color-success: #246448;
+  --color-warning: #805218;
+  --radius-default: 0.75rem;
+  --radius-card: 1.25rem;
+  --space-page-max: 68rem;
+  --space-section-gap: 1.5rem;
+  --font-display: Trebuchet MS, system-ui, sans-serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif;
+}

@@ -7,3 +7,5 @@ dist/
 supabase/.temp/
 supabase/.branches/
 coverage/
+test-results/
+playwright-report/

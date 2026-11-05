@@ -1,0 +1,144 @@
+Serviços e PostgreSQL
+
+> pupi@0.2.0 check
+> npm test && npm run db:test
+
+
+> pupi@0.2.0 test
+> node --test --test-isolation=none tests/*.test.js
+
+✔ cadastro valida senha, confirmação e aceite e normaliza nome/e-mail (5.093137ms)
+✔ cadastro não envia senha confirmada, função ou timestamp de aceite como autorização (0.506209ms)
+✔ callback de recuperação exige troca PKCE; parâmetro de rota sozinho não basta (0.960959ms)
+✔ troca de senha valida usuário antes de enviar a alteração (0.383001ms)
+✔ Google só é iniciado por chamada explícita e retorna para a origem do app (0.9377ms)
+✔ recuperação usa callback na origem controlada pelo app (0.267625ms)
+✔ mensagens de Auth não expõem detalhes e distinguem credenciais, expiração e limite (0.332405ms)
+✔ endereço valida CEP e UF e descarta campos fora do formulário (0.697576ms)
+✔ configuração pública exige origem segura e chave publishable (0.863539ms)
+✔ cliente usa configuração pública e consulta catálogo com campos e paginação delimitados (46.149601ms)
+✔ erros técnicos são traduzidos sem expor detalhes SQL ou tokens (0.641297ms)
+✔ validação de mídia rejeita SVG, arquivo vazio e imagem acima de 5 MiB (0.386152ms)
+✔ serviço de mídia usa caminhos novos, não sobrescreve e assina por cinco minutos (1.976906ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 137.396873
+
+> pupi@0.2.0 db:test
+> node --test --test-isolation=none tests/database/*.test.js
+
+✔ as 15 tabelas da aplicação têm RLS habilitada (3316.456949ms)
+✔ funções SECURITY DEFINER não ficam no schema público nem executáveis por PUBLIC (4.996275ms)
+✔ todas as chaves estrangeiras públicas possuem índice com prefixo compatível (5.583954ms)
+✔ anônimo vê somente produtos publicados em categorias ativas (7.187349ms)
+✔ anônimo não lê perfis privados (4.035408ms)
+✔ clientes veem somente o próprio perfil, endereço, carrinho e função (7.05629ms)
+✔ metadata role=admin não promove conta recém-criada (1.015325ms)
+✔ cliente não altera a própria função (1.934772ms)
+✔ cliente não cria uma função administrativa (2.857431ms)
+✔ cliente edita nome e telefone, mas não identificadores protegidos (6.899106ms)
+✔ cliente não cria endereço para outro cliente (2.841066ms)
+✔ cliente não move endereço para outro titular (2.453406ms)
+✔ administrador consulta clientes e rascunhos sem poder conceder funções no app (5.946327ms)
+✔ cliente não altera preço de produto (2.898876ms)
+✔ administrador não altera estoque diretamente pela tabela (1.952886ms)
+✔ função de estoque recusa cliente (5.780155ms)
+✔ ajuste administrativo registra saldo, motivo e ator na mesma transação (7.860353ms)
+✔ ajuste que produziria estoque negativo falha e não deixa movimento (4.41752ms)
+✔ preços e promoções inválidos são rejeitados pelo banco (5.697222ms)
+✔ SKU duplicado e categoria inexistente são rejeitados (9.170671ms)
+✔ carrinho rejeita quantidade zero e inserção em carrinho de outro cliente (7.785278ms)
+✔ pedido usa preços do banco, reserva estoque e mantém pagamento pendente (18.346257ms)
+✔ repetir uma chave de idempotência não duplica pedido nem saída de estoque (28.207657ms)
+✔ reutilizar chave com conteúdo diferente é rejeitado (6.509513ms)
+✔ pedido rejeita endereço de outro cliente, item repetido, rascunho e falta de estoque (11.068763ms)
+✔ falha após início das gravações reverte pedido, itens e estoque (8.43563ms)
+✔ subtotal inconsistente e pedido vazio falham na validação diferida (2.709124ms)
+✔ histórico de produto e endereço não muda com alterações posteriores (16.610861ms)
+✔ itens históricos e totais do pedido são imutáveis (11.87297ms)
+✔ pedido não pode saltar de confirmado para entregue (9.405715ms)
+✔ cliente B não consulta pedido, itens ou entrega de A (15.740959ms)
+✔ checkout interno não é executável por cliente e não tem wrapper público (1.858943ms)
+✔ buckets privados configuram limite de 5 MiB e MIME types permitidos (0.865982ms)
+✔ anônimo vê apenas arquivo vinculado a produto publicado (15.082219ms)
+✔ cliente não envia nem remove imagens do catálogo (7.281588ms)
+✔ administrador pode enviar e remover imagem no caminho de um produto existente (6.017946ms)
+✔ upload fora do caminho permitido é bloqueado mesmo para administrador (2.307183ms)
+✔ logs e configurações não vazam para clientes; logs não são editáveis (4.131757ms)
+✔ cadastro registra aceite do aviso com timestamp do banco e ignora role em metadata (4.362478ms)
+✔ OAuth não ganha aceite automático; aceite autenticado é idempotente e do próprio titular (5.821184ms)
+✔ cliente não escreve timestamps ou versão de aceite diretamente (1.853242ms)
+✔ RPC cria endereço com titular derivado da sessão, nunca do payload (6.102328ms)
+✔ RPC recusa injeção de titular ou identificadores em endereço (3.951699ms)
+✔ RPC impede edição de endereço de outro cliente (5.619381ms)
+✔ troca de endereço padrão é atômica e mantém somente um padrão (8.556613ms)
+✔ falha na criação de novo padrão reverte o endereço padrão anterior (4.376572ms)
+✔ RPC rejeita edição com versão antiga sem sobrescrever o endereço (1.844216ms)
+✔ RPC atualiza endereço com versão correta e mantém identidade (3.208965ms)
+✔ gate administrativo consulta o papel real no banco (3.930218ms)
+✔ anônimo não executa RPCs de conta nem o gate administrativo (2.300103ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 50
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3725.607381
+
+
+Chromium E2E
+
+> pupi@0.2.0 test:e2e
+> playwright test
+
+[WebServer] (node:8321) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:8334) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 15 tests using 1 worker
+
+(node:8360) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8360) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/e2e/account.spec.js:3:1 › login, perfil persistido e logout, com senha mascarada e sem promover metadata (2.8s)
+  ✓   2 tests/e2e/account.spec.js:53:1 › cadastro valida confirmação e aceite e aguarda confirmação por e-mail (1.9s)
+  ✓   3 tests/e2e/account.spec.js:82:1 › credenciais rejeitadas preservam e-mail e não expõem erro técnico (1.4s)
+  ✓   4 tests/e2e/account.spec.js:97:1 › recuperação informa envio neutro e exige link validado para nova senha (1.4s)
+  ✓   5 tests/e2e/account.spec.js:113:1 › Google não configurado mantém a alternativa de e-mail e senha (1.3s)
+  ✓   6 tests/e2e/account.spec.js:127:1 › endereço: criar, abrir select nativo, editar e excluir com confirmação (2.8s)
+  ✓   7 tests/e2e/account.spec.js:196:1 › falha de gravação preserva dados, impede envio duplicado e oferece recuperação (2.4s)
+  ✓   8 tests/e2e/account.spec.js:222:1 › alterações não salvas usam dialog acessível com Escape e restauração de foco (2.1s)
+  ✓   9 tests/e2e/account.spec.js:248:1 › cliente recebe acesso restrito; administrador é validado por RPC (1.8s)
+  ✓  10 tests/e2e/account.spec.js:270:1 › OAuth solicita aceite após sessão; pedidos vazios não contêm registros ilustrativos (1.8s)
+  ✓  11 tests/e2e/account.spec.js:293:1 › interface em 390px, teclado, foco, scrollbar e estado offline (1.6s)
+  ✓  12 tests/e2e/account.spec.js:325:1 › sessão expirada remove dados privados da tela e solicita novo login (1.7s)
+  ✓  13 tests/e2e/account.spec.js:349:1 › callback PKCE de recuperação permite trocar senha, limpa URL e encerra sessão (2.8s)
+  ✓  14 tests/e2e/account.spec.js:374:1 › link de pular conteúdo preserva rota, e nome malicioso não vira HTML (1.7s)
+  ✓  15 tests/e2e/account.spec.js:392:1 › pedido exibe itens, total e endereço históricos sem criar entrega inexistente (1.6s)
+
+  15 passed (34.1s)
+
+
+Build de produção
+
+> pupi@0.2.0 build
+> vite build
+
+vite v8.3.6 building client environment for production...
+transforming...
+✓ 1608 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   1.27 kB │ gzip:  0.65 kB
+dist/assets/index-Bz4812aa.css    8.51 kB │ gzip:  2.41 kB
+dist/assets/index-CpZVVbc8.js   254.99 kB │ gzip: 69.00 kB
+
+✓ built in 500ms

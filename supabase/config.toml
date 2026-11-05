@@ -152,7 +152,7 @@ enabled = true
 # in emails.
 site_url = "http://127.0.0.1:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://127.0.0.1:3000/auth/callback"]
+additional_redirect_urls = ["http://localhost:3000/?auth_callback=signup", "http://localhost:3000/?auth_callback=oauth", "http://localhost:3000/?auth_callback=recovery", "http://127.0.0.1:3000/?auth_callback=signup", "http://127.0.0.1:3000/?auth_callback=oauth", "http://127.0.0.1:3000/?auth_callback=recovery"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 900
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
