@@ -3,14 +3,16 @@ import { ValidationError } from '../modules/auth/validation.js';
 import { toAppError } from '../utils/errors.js';
 
 let sequence = 0;
-export function field({ name, label, type = 'text', value = '', required = false, hint = '', options, autocomplete, maxLength, inputmode }) {
+export function field({ name, label, type = 'text', value = '', required = false, hint = '', options, autocomplete, maxLength, inputmode, rows=5, accept, multiple=false }) {
   const id = `field-${++sequence}-${name}`;
   const attributes = { id, name, required, autocomplete, maxlength: maxLength, inputmode,
     'aria-describedby': `${id}-help ${id}-error` };
   let control;
-  if (options) {
+  if (type==='textarea') {
+    control=el('textarea',{...attributes,rows},value);
+  } else if (options) {
     control = el('select', attributes, options.map(([key, text]) => el('option', { value: key, selected: key === value }, text)));
-  } else control = el('input', { ...attributes, type, value: type === 'checkbox' ? 'accepted' : value, checked: type === 'checkbox' && value === true });
+  } else control = el('input', { ...attributes, type, value: type === 'checkbox' ? 'accepted' : value, checked: type === 'checkbox' && value === true, accept, multiple });
   const labelNode = el('label', { for: id }, [label, required ? el('span', { 'aria-hidden': 'true' }, ' *') : null]);
   const inputRow = el('div', { className: type === 'password' ? 'password-row' : 'control-row' }, control);
   if (type === 'password') {
@@ -24,7 +26,7 @@ export function field({ name, label, type = 'text', value = '', required = false
     reveal.setAttribute('aria-label', `Mostrar ${secretLabel}`); reveal.setAttribute('aria-pressed', 'false');
     inputRow.append(reveal);
   }
-  const wrapper = el('div', { className: type === 'checkbox' ? 'field checkbox-field' : 'field' },
+  const wrapper = el('div', { className: type === 'checkbox' ? 'field checkbox-field' : 'field','data-field':name },
     type === 'checkbox' ? [el('div', { className: 'checkbox-row' }, [control, labelNode])] : [labelNode, inputRow]);
   wrapper.append(el('small', { id: `${id}-help`, className: 'field-help' }, hint),
     el('span', { id: `${id}-error`, className: 'field-error' }));
@@ -34,7 +36,7 @@ export function formValues(form) {
   const data = {};
   for (const control of form.elements) {
     if (!control.name) continue;
-    data[control.name] = control.type === 'checkbox' ? control.checked : control.value;
+    data[control.name] = control.type==='file' ? Array.from(control.files || []) : control.type === 'checkbox' ? control.checked : control.value;
   }
   return data;
 }

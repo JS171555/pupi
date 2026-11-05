@@ -8,7 +8,7 @@ export function notify(message = '', tone = 'info') {
   root.setAttribute('role', tone === 'error' ? 'alert' : 'status');
 }
 
-export function confirmAction({ title, description, confirmLabel = 'Descartar alterações', danger = false, onConfirm = async () => {} }) {
+export function confirmAction({ title, description, confirmLabel = 'Descartar alterações', danger = false, intent, onConfirm = async () => {} }) {
   const previousFocus = document.activeElement;
   return new Promise(resolve => {
     let busy = false;
@@ -28,7 +28,7 @@ export function confirmAction({ title, description, confirmLabel = 'Descartar al
       try { await onConfirm(); close(true); }
       catch (error) { errorBox.textContent = toAppError(error).message; }
       finally { busy = false; cancel.disabled = false; confirm.disabled = false; dialog.removeAttribute('aria-busy'); }
-    }, danger ? 'danger' : 'primary');
+    }, danger ? 'danger' : intent || 'primary');
     dialog.append(el('h2', { id: 'dialog-title' }, title), el('p', { id: 'dialog-description' }, description),
       errorBox, el('div', { className: 'actions' }, [cancel, confirm]));
     dialog.addEventListener('cancel', event => { event.preventDefault(); if (!busy) close(false); });

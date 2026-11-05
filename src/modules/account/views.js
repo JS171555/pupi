@@ -100,7 +100,7 @@ export function ordersView({ items, hasMore, page, go }) {
   ]);
 }
 
-export function orderView(order) {
+export function orderView(order,options={}) {
   const address = order.address_snapshot;
   const items = el('ul', { className: 'record-list' }, order.items.map(item => el('li', { className: 'record-card' }, [
     el('h3', {}, item.product_name), el('p', { className: 'muted' }, `SKU ${item.product_sku} · ${item.quantity} × ${money(item.unit_price_cents)}`),
@@ -108,7 +108,7 @@ export function orderView(order) {
   ])));
   const timeline = el('ol', {}, order.events.map(event => el('li', {}, [el('strong', {}, statusLabel(event.status)),
     el('p', {}, event.description), el('small', { className: 'muted' }, date(event.occurred_at))])));
-  return el('section', { className: 'panel' }, [link('Voltar aos pedidos', '#/pedidos'),
+  return el('section', { className: 'panel' }, [link('Voltar aos pedidos', options.backHref||'#/pedidos'),
     heading(`Pedido #${order.order_number}`, `Registrado em ${date(order.created_at)}`),
     el('p', {}, ['Pedido: ', statusLabel(order.status), ' · Pagamento: ', statusLabel(order.payment_status)]), items,
     el('dl', { className: 'details-list' }, [el('dt', {}, 'Subtotal'), el('dd', {}, money(order.subtotal_cents)),

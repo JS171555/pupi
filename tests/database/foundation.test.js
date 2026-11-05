@@ -387,3 +387,112 @@ test('anônimo não executa RPCs de conta nem o gate administrativo', async () =
     await rejectsCode(() => as('anon', null, () => rows(sql)), '42501');
   }
 });
+
+const adminQuery=async(resource,options={})=>(await rows('select public.admin_query($1,$2::jsonb) as result',[resource,JSON.stringify(options)]))[0].result;
+const adminMutate=async(operation,id,data={},expected=null,key='70000000-0000-4000-8000-000000000001')=>(await rows(
+  'select public.admin_mutate($1,$2,$3::jsonb,$4,$5) as result',[operation,id,JSON.stringify(data),expected,key]))[0].result;
+const adminProduct={category_id:'10000000-0000-4000-8000-000000000001',sku:'ADMIN-NEW',slug:'admin-new',name:'Produto administrativo',price_cents:4990,minimum_stock:2,status:'draft',active:true};
+const adminCategory={name:'Nova categoria',slug:'nova-categoria',description:'Descrição',sort_order:0,active:true};
+
+test('todas as consultas e gravações administrativas recusam cliente',async()=>{
+  await rejectsCode(()=>as('authenticated',A,()=>adminQuery('dashboard')),'42501');
+  await rejectsCode(()=>as('authenticated',A,()=>adminMutate('product_save',null,adminProduct)),'42501');
+  await rejectsCode(()=>as('anon',null,()=>adminQuery('dashboard')),'42501');
+});
+test('recibos e fila de mídia permanecem privados',async()=>{
+  for(const table of ['private.admin_requests','private.media_cleanup_queue']) await rejectsCode(()=>as('authenticated',ADMIN,()=>rows(`select * from ${table}`)),'42501');
+});
+test('dashboard e paginação administrativa usam registros do banco',()=>as('authenticated',ADMIN,async()=>{
+  const summary=await adminQuery('dashboard');assert.equal(summary.products,4);assert.equal(summary.categories,2);assert.equal(summary.customers,3);assert.equal(summary.paid_total_cents,0);
+  const page=await adminQuery('products',{page:1,limit:2});assert.equal(page.items.length,2);assert.equal(page.total,4);assert.equal(page.hasMore,true);
+  const filtered=await adminQuery('products',{search:'SKU-A'});assert.equal(filtered.items.length,1);assert.equal(filtered.items[0].id,PA);
+}));
+test('produto: criar, editar, publicar e excluir sem histórico',()=>as('authenticated',ADMIN,async()=>{
+  const created=await adminMutate('product_save',null,adminProduct);assert.equal(created.stock_quantity,0);
+  const repeated=await adminMutate('product_save',null,adminProduct);assert.equal(repeated.id,created.id);
+  const published=await adminMutate('product_save',created.id,{status:'published'},created.updated_at,'70000000-0000-4000-8000-000000000002');
+  assert.equal(published.status,'published');
+  await setRole('anon',null);assert.equal((await rows('select id from public.products where id=$1',[created.id])).length,1);
+  await setRole('authenticated',ADMIN);
+  await adminMutate('product_remove',created.id,{},published.updated_at,'70000000-0000-4000-8000-000000000003');
+  assert.equal((await rows('select id from public.products where id=$1',[created.id])).length,0);
+}));
+test('RPC de produto não aceita estoque, preço inválido nem versão antiga',async()=>{
+  await rejectsCode(()=>as('authenticated',ADMIN,()=>adminMutate('product_save',null,{...adminProduct,stock_quantity:99})),'22023');
+  await rejectsCode(()=>as('authenticated',ADMIN,()=>adminMutate('product_save',null,{...adminProduct,price_cents:-1})),'23514');
+  await rejectsCode(()=>as('authenticated',ADMIN,()=>adminMutate('product_save',PA,{name:'Modificado'},'2000-01-01')),'40001');
+});
+test('categoria inativa não permite publicar novo produto',()=>rejectsCode(()=>as('authenticated',ADMIN,()=>adminMutate('product_save',null,{...adminProduct,category_id:'10000000-0000-4000-8000-000000000002',status:'published'})),'P0001'));
+test('produto com histórico não pode ser excluído, mas pode ser arquivado',async()=>{
+  await rejectsCode(()=>as('authenticated',ADMIN,async()=>{const product=await adminQuery('product',{id:PA});await adminMutate('product_remove',PA,{},product.updated_at); }),'P0001');
+  await as('authenticated',ADMIN,async()=>{const product=await adminQuery('product',{id:PA});const archived=await adminMutate('product_save',PA,{status:'archived'},product.updated_at);assert.equal(archived.status,'archived');});
+});
+test('categoria: CRUD e restrição quando possui produtos',async()=>{
+  await as('authenticated',ADMIN,async()=>{const created=await adminMutate('category_save',null,adminCategory);const updated=await adminMutate('category_save',created.id,{...adminCategory,name:'Alterada',active:false},created.updated_at,'70000000-0000-4000-8000-000000000002');assert.equal(updated.active,false);await adminMutate('category_remove',created.id,{},updated.updated_at,'70000000-0000-4000-8000-000000000003');});
+  await rejectsCode(()=>as('authenticated',ADMIN,async()=>{const category=await adminQuery('category',{id:adminProduct.category_id});await adminMutate('category_remove',category.id,{},category.updated_at); }),'P0001');
+});
+test('estoque administrativo é idempotente e detecta alteração do saldo',async()=>{
+  await as('authenticated',ADMIN,async()=>{const request={delta:3,reason:'Entrada conferida',expected_balance:10};const first=await adminMutate('stock_adjust',PA,request);const again=await adminMutate('stock_adjust',PA,request);assert.equal(first.balance,13);assert.deepEqual(again,first);assert.equal((await rows('select stock_quantity from public.products where id=$1',[PA]))[0].stock_quantity,13);assert.equal((await adminQuery('stock',{id:PA})).items.filter(i=>i.reason==='Entrada conferida').length,1);});
+  await rejectsCode(()=>as('authenticated',ADMIN,()=>adminMutate('stock_adjust',PA,{delta:1,reason:'Conflito',expected_balance:9})),'40001');
+});
+test('mesma chave não pode representar outro ajuste',()=>rejectsCode(()=>as('authenticated',ADMIN,async()=>{await adminMutate('stock_adjust',PA,{delta:1,reason:'Primeiro',expected_balance:10});await adminMutate('stock_adjust',PA,{delta:2,reason:'Segundo',expected_balance:10});}),'P0001'));
+test('cancelamento anterior ao envio repõe estoque uma vez e não altera pagamentos',()=>as('service_role',null,async()=>{
+  const id=await createOrder();await setRole('authenticated',ADMIN);const order=await adminQuery('order',{id});
+  const result=await adminMutate('order_update',id,{status:'cancelled'},order.updated_at);assert.equal(result.status,'cancelled');assert.equal(result.payment_status,'pending');assert.ok(result.stock_released_at);
+  await adminMutate('order_update',id,{status:'cancelled'},order.updated_at);
+  assert.equal((await rows('select stock_quantity from public.products where id=$1',[PA]))[0].stock_quantity,10);
+}));
+test('pedido pago exige fluxo de estorno antes de cancelar',()=>rejectsCode(()=>as('service_role',null,async()=>{
+  const id=await createOrder();await rows("update public.orders set payment_status='paid' where id=$1",[id]);await setRole('authenticated',ADMIN);const order=await adminQuery('order',{id});await adminMutate('order_update',id,{status:'cancelled'},order.updated_at);
+}),'P0001'));
+test('status administrativo mantém regras de transição e cria histórico manual de entrega',async()=>{
+  await rejectsCode(()=>as('service_role',null,async()=>{const id=await createOrder();await setRole('authenticated',ADMIN);const order=await adminQuery('order',{id});await adminMutate('order_update',id,{status:'delivered'},order.updated_at); }),'23514');
+  await as('service_role',null,async()=>{const id=await createOrder();await setRole('authenticated',ADMIN);let order=await adminQuery('order',{id});order=await adminMutate('order_update',id,{status:'preparing'},order.updated_at);order=await adminMutate('order_update',id,{status:'shipped',carrier:'Entrega local',tracking_code:'COD-TESTE',service_name:'Local',note:'Saída registrada pelo operador'},order.updated_at,'70000000-0000-4000-8000-000000000002');assert.equal(order.shipment.provider,'manual');assert.equal(order.shipment.status,'posted');assert.equal((await adminQuery('order',{id})).events.length,1);});
+});
+test('mídia exige upload e exclusão desvincula antes de remover arquivo',()=>as('authenticated',ADMIN,async()=>{
+  const path=`${PA}/90000000-0000-4000-8000-000000000002.jpg`;
+  const image=await adminMutate('image_link',PA,{path,alt_text:'Imagem confirmada'});
+  await adminMutate('image_update',image.id,{is_primary:true},null,'70000000-0000-4000-8000-000000000002');
+  await adminMutate('image_remove',image.id,{},null,'70000000-0000-4000-8000-000000000003');
+  const queue=await adminQuery('cleanup');assert.equal(queue.total,1);
+  await rows('delete from storage.objects where bucket_id=$1 and name=$2',['product-images',path]);
+  await adminMutate('cleanup_complete',queue.items[0].id,{},null,'70000000-0000-4000-8000-000000000004');assert.equal((await adminQuery('cleanup')).total,0);
+}));
+test('arquivo vinculado não pode entrar na limpeza e mídia inexistente não vira imagem',async()=>{
+  await rejectsCode(()=>as('authenticated',ADMIN,()=>adminMutate('cleanup_enqueue',null,{bucket:'product-images',path:`${PA}/90000000-0000-4000-8000-000000000001.jpg`})),'P0001');
+  await rejectsCode(()=>as('authenticated',ADMIN,()=>adminMutate('image_link',PA,{path:`${PA}/90000000-0000-4000-8000-000000000099.jpg`})),'P0001');
+});
+test('pasta sem vínculo é consultável e arquivo enfileirado não pode ser revinculado',async()=>{
+  const path=`${PA}/90000000-0000-4000-8000-000000000002.jpg`;
+  await as('authenticated',ADMIN,async()=>{
+    const files=await adminQuery('orphans',{id:PA,bucket:'product-images'});
+    assert.ok(files.items.some(file=>file.path===path));
+    assert.ok(!files.items.some(file=>file.path.endsWith('000000000001.jpg')));
+  });
+  await rejectsCode(()=>as('authenticated',ADMIN,async()=>{
+    await adminMutate('cleanup_enqueue',null,{bucket:'product-images',path});
+    await adminMutate('image_link',PA,{path},null,'70000000-0000-4000-8000-000000000002');
+  }),'P0001');
+});
+test('imagem de categoria usa Storage e sua troca enfileira o arquivo anterior',()=>as('authenticated',ADMIN,async()=>{
+  const id=adminProduct.category_id;let category=await adminQuery('category',{id});const first=`${id}/90000000-0000-4000-8000-000000000001.png`;
+  await rows("insert into storage.objects(bucket_id,name) values('category-images',$1)",[first]);category=await adminMutate('category_image',id,{path:first},category.updated_at);
+  await adminMutate('category_image',id,{path:null},category.updated_at,'70000000-0000-4000-8000-000000000002');assert.equal((await adminQuery('cleanup')).items[0].path,first);
+}));
+test('configurações têm validação, persistência e controle de versão',()=>as('authenticated',ADMIN,async()=>{
+  const values={store_name:'Pupi',contact_email:'loja@example.com',origin_postal_code:'01001000',low_stock_threshold:5};await adminMutate('settings_save',null,{values,expected:{}});
+  const settings=await adminQuery('settings');assert.equal(settings.length,4);assert.equal(settings.find(s=>s.key==='low_stock_threshold').value,5);
+}));
+test('configurações rejeitam segredo, versão antiga e tipo inválido',async()=>{
+  const valid={store_name:'Pupi',contact_email:'loja@example.com',origin_postal_code:'01001000',low_stock_threshold:5};
+  for(const values of [{...valid,secret_key:'forbidden'},{...valid,low_stock_threshold:-1},{...valid,contact_email:'invalido'}])
+    await rejectsCode(()=>as('authenticated',ADMIN,()=>adminMutate('settings_save',null,{values,expected:{}})),'22023');
+  await rejectsCode(()=>as('authenticated',ADMIN,async()=>{
+    await adminMutate('settings_save',null,{values:valid,expected:{}});
+    await adminMutate('settings_save',null,{values:{...valid,store_name:'Modificado'},expected:{store_name:'2000-01-01T00:00:00Z'}},null,'70000000-0000-4000-8000-000000000002');
+  }),'40001');
+});
+test('consulta administrativa de clientes inclui somente dados necessários e histórico',()=>as('authenticated',ADMIN,async()=>{
+  const list=await adminQuery('customers');assert.equal(list.total,3);assert.equal(list.items.length,3);
+  const detail=await adminQuery('customer',{id:A});assert.equal(detail.customer.id,A);assert.equal(detail.total,0);assert.equal(detail.customer.encrypted_password,undefined);
+}));

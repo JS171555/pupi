@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Pupi
-description: Área de conta de um petshop, com formulários simples para testes funcionais.
+description: Área de conta e administração de um petshop, com testes funcionais.
 colors:
   primary: "#6D42B5"
   brand: "#A78BFA"
@@ -45,9 +45,9 @@ components:
 
 ## Overview
 
-Público: clientes de petshop no Brasil. O trabalho principal nesta fase é criar e acessar uma conta e conferir dados e pedidos. Interface pt-BR, uso prioritário em celular, registro de produto. O briefing e `docs/security.md` definem as restrições; não há tela irmã anterior.
+Público: clientes de petshop no Brasil. Clientes criam e acessam a conta; administradores gerenciam catálogo, estoque e operação dos pedidos. Interface pt-BR, uso prioritário em celular, registro de produto. O briefing e `docs/security.md` definem as restrições; não há tela irmã anterior.
 
-A referência é uma ficha de atendimento acolhedora: nome da pessoa, dados legíveis, seções curtas. A assinatura é a palavra `pupi` acompanhada de uma patinha discreta. A Fase 2 não antecipa a loja, animações ou o acabamento da Fase 5. Evitar anúncios, estatísticas ilustrativas e aparência de dashboard de vendas.
+A referência é uma ficha de atendimento acolhedora: nome da pessoa, dados legíveis, seções curtas. A assinatura é a palavra `pupi` acompanhada de uma patinha discreta. A Fase 3 mantém o caráter funcional, sem antecipar animações ou o acabamento da Fase 5. O resumo administrativo usa indicadores reais, com significado explícito para pagamentos. Evitar anúncios e estatísticas ilustrativas.
 
 Fonte normativa dos tokens: frontmatter deste arquivo. `scripts/design-tokens.js` gera `src/styles/tokens.css`; componentes consomem apenas essas variáveis. `npm run design:check` detecta divergência. Não editar o arquivo CSS gerado à mão. Tema claro; modo de alto contraste usa cores de sistema.
 
@@ -73,11 +73,13 @@ Controles usam `rounded.DEFAULT`; painéis usam `rounded.card`. Ícones Lucide d
 
 ## Components
 
-`src/ui/forms.js` centraliza campos, erros, foco e estado ocupado. `src/ui/feedback.js` centraliza mensagens persistentes e dialog de confirmação. Botões: sólido primário, contorno neutro e perigo para exclusão definitiva de endereço. Estados hover, focus-visible, active, disabled e busy são compartilhados.
+`src/ui/forms.js` centraliza campos, erros, foco e estado ocupado. `src/ui/feedback.js` centraliza mensagens persistentes e dialog de confirmação. Botões: sólido primário, contorno neutro e perigo para exclusões definitivas e cancelamento de pedido; aviso para arquivar produto. Estados hover, focus-visible, active, disabled e busy são compartilhados.
 
-Seleção de UF usa select nativo: popup e interação pertencem ao sistema operacional. Não há date picker nem seleção de tabela. Listas de endereços e pedidos têm paginação explícita. Scrollbars globais usam os tokens de borda/superfície/texto, com fallback WebKit e cores de sistema em forced-colors.
+Seleção de UF usa select nativo: popup e interação pertencem ao sistema operacional. Não há date picker nem seleção de linhas em lote. Listas de endereços e pedidos têm paginação explícita. Scrollbars globais usam os tokens de borda/superfície/texto, com fallback WebKit e cores de sistema em forced-colors.
 
 Senhas são mascaradas com botão Mostrar/Ocultar e autocomplete apropriado. Formulários usam novalidate, mensagens associadas aos campos, foco no primeiro erro e prevenção de envio duplicado. Nenhum dado de cliente é renderizado como HTML.
+
+`src/ui/admin-list.js` centraliza busca, filtros, tabelas e paginação. Navegação administrativa em sete seções quebra linha, sem menu oculto. Listas de 20 registros preservam filtros e página; tabelas rolam dentro de uma região com dica, sem alargar a página. Imagens têm espaço reservado de 180px e fallback de prévia. Arquivos usam o seletor nativo; resultados parciais e fila de limpeza têm texto persistente. Textareas não alteram o layout por arraste.
 
 Conteúdo descreve operações reais. Não há dados de demonstração no aplicativo. O aviso de testes foi autorizado pelo usuário em 05/11/2026 e não se apresenta como documento jurídico de produção.
 

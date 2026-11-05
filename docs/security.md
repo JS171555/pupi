@@ -10,7 +10,7 @@ As tabelas em `public` têm RLS habilitada e GRANTs explícitos. `service_role` 
 | Funções de usuário | Sem acesso | Ler própria | Consultar | Atribuir/remover função |
 | Endereços | Sem acesso | Gerenciar próprios | Consultar | Gerenciar |
 | Carrinhos e itens | Sem acesso | Gerenciar próprios | Somente próprio carrinho | Gerenciar |
-| Pedidos, itens e entregas | Sem acesso | Ler próprios | Consultar | Criar e operar |
+| Pedidos, itens e entregas | Sem acesso | Ler próprios | Consultar, transições operacionais/entrega manual por RPC | Criar, pagamentos e integrações |
 | Configurações operacionais | Sem acesso | Sem acesso | Gerenciar chaves permitidas | Gerenciar |
 | Movimentos de estoque | Sem acesso | Sem acesso | Ler; criar por adjust_stock | Gravação transacional |
 | Auditoria | Sem acesso | Sem acesso | Ler | Gravação por triggers |
@@ -28,8 +28,16 @@ Não há função SECURITY DEFINER em `public`. Nenhuma autorização usa user_m
 
 ## Limites operacionais
 
-Alterações de estado e pagamento são reservadas ao backend. A interface administrativa e as integrações que as executarão ainda não existem. Cancelamento, reversão idempotente de estoque e webhooks de pagamento serão implementados no fluxo da Fase 4; mudar status isoladamente não é uma implementação de cancelamento comercial.
+A Fase 3 permite transições operacionais validadas por RPC administrativa. Cancelamento anterior ao envio repõe estoque uma vez; pagamento aprovado bloqueia cancelamento sem estorno. Integrações financeiras, estornos e webhooks ficam para a Fase 4. O painel não altera payment_status. Entregas nesta fase são registros manuais.
 
 Não há verificação estrita de `auth.sessions` no banco nesta fase. Como em Supabase, um JWT já emitido pode permanecer válido até expirar. A consulta de função no banco faz a revogação de administrador surtir efeito sem esperar um novo JWT. Para remoção de contas, definir revogação de sessão e retenção/anônimização antes de implementar exclusão de usuário; pedidos históricos impedem exclusão em cascata.
 
-O controle aqui presume schema `private` não exposto, credenciais de backend protegidas e uso do servidor Storage. Validações de HTTP, concorrência entre conexões e advisors do projeto definitivo permanecem na homologação.
+O controle aqui presume schema `private` não exposto, credenciais de backend protegidas e uso do servidor Storage. Testes de autorização rodam no PostgreSQL embarcado e no projeto hospedado; HTTP Storage e concorrência entre conexões reais precisam de homologação adicional.
+
+## Administração e mídia — Fase 3
+
+`private.admin_query` e `private.admin_mutate` são SECURITY DEFINER com search_path vazio e exigem admin em cada chamada. Wrappers públicos são SECURITY INVOKER. Helpers não são executáveis por PUBLIC; as tabelas privadas de recibos/fila têm RLS, sem grants de tabela para authenticated. Nenhum segredo vai ao navegador. Alterações administrativas recebem recibo por ator/operação/payload e chave UUID, com lock transacional para retentativa. Atualizações usam versão ou saldo esperado.
+
+A fila de mídia só aceita caminhos do catálogo sem vínculo, serializa vínculo/remoção pelo caminho e bloqueia novos vínculos enquanto a remoção estiver pendente. Arquivos são excluídos pela API Storage e a fila só é concluída quando o metadado não existir. URLs assinadas já emitidas podem permanecer válidas por até cinco minutos. As permissões administrativas diretas de catálogo da fundação continuam disponíveis ao admin confiável; o painel usa os contratos RPC. Uploads fora do painel precisam seguir a mesma disciplina de vínculos/limpeza.
+
+A primeira conta administrativa foi indicada explicitamente pelo usuário e conferida no Auth. Não existe promoção automática do primeiro usuário, nem autorização baseada em e-mail no código do aplicativo.

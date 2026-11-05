@@ -20,6 +20,12 @@ function validatePath(bucket, path) {
 
 export function createMediaService(client) {
   return {
+    async uploadAt(bucket,path,file) {
+      const extension=validateImage(file); validatePath(bucket,path);
+      if(!path.endsWith('.'+extension)) throw new AppError('INVALID_DATA','O formato da imagem não corresponde ao arquivo.');
+      await unwrap(client.storage.from(bucket).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'0'}));
+      return path;
+    },
     async upload(bucket, entityId, file) {
       const extension = validateImage(file);
       const path = `${entityId}/${crypto.randomUUID()}.${extension}`;

@@ -1,0 +1,22 @@
+import { unwrap } from '../utils/errors.js';
+const deadline=signal=>signal ? AbortSignal.any([signal,AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000);
+
+export function createAdminRepository(client) {
+  const attempts=new Map();
+  return {
+    clear() { attempts.clear(); },
+    query(resource,options={},signal) {
+      return unwrap(client.rpc('admin_query',{p_resource:resource,p_options:options}).abortSignal(deadline(signal)));
+    },
+    async mutate(operation,id,data={},expected=null,requestKey) {
+      const fingerprint=JSON.stringify([operation,id??null,data,expected]);
+      let key=requestKey || attempts.get(fingerprint);
+      if (!key) { key=crypto.randomUUID(); attempts.set(fingerprint,key); }
+      const result=await unwrap(client.rpc('admin_mutate',{
+        p_operation:operation,p_id:id??null,p_data:data,p_expected:expected,p_request_key:key,
+      }).abortSignal(deadline()));
+      attempts.delete(fingerprint);
+      return result;
+    },
+  };
+}

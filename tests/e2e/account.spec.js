@@ -136,7 +136,7 @@ test('cliente recebe acesso restrito; administrador é validado por RPC', async 
   await expect(page.getByRole('heading', { name: 'Acesso restrito' })).toBeVisible();
   api.role = 'admin'; await page.getByRole('link', { name: 'Voltar', exact: true }).click();
   await page.getByRole('link', { name: 'Administração' }).click();
-  await expect(page.getByRole('heading', { name: 'Acesso administrativo validado' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Resumo da loja' })).toBeVisible();
 });
 
 test('OAuth solicita aceite após sessão; pedidos vazios não contêm registros ilustrativos', async ({ page }) => {

@@ -50,6 +50,16 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
     }
     if (url.pathname === '/rest/v1/user_roles') return respond(object ? { role: data.role } : [{ role: data.role }]);
     if (url.pathname === '/rest/v1/rpc/admin_access_status') return respond(data.role === 'admin');
+    if (url.pathname === '/rest/v1/rpc/admin_query') {
+      if(data.role!=='admin')return respond({code:'42501',message:'denied'},403);
+      if(data.adminQuery){const result=await data.adminQuery(body);return respond(result.data,result.status||200);}
+      return respond({products:0,categories:0,customers:1,orders:data.orders.length,pending_orders:0,completed_orders:0,paid_orders:0,paid_total_cents:0,low_stock_count:0,low_stock:[],recent_orders:[]});
+    }
+    if (url.pathname === '/rest/v1/rpc/admin_mutate') {
+      if(data.role!=='admin')return respond({code:'42501',message:'denied'},403);
+      if(data.adminMutate){const result=await data.adminMutate(body);return respond(result.data,result.status||200);}
+      return respond({code:'P0001',message:'unsupported test mutation'},400);
+    }
     if (url.pathname === '/rest/v1/rpc/accept_test_notice') {
       data.profile.terms_accepted_at = created; data.profile.terms_version = 'testing-v1'; return respond(null);
     }

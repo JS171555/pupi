@@ -1,11 +1,27 @@
 {
   "profile": "product-admin",
-  "sourceRoots": ["src", "index.html"],
+  "sourceRoots": [
+    "src",
+    "index.html"
+  ],
   "locale": "pt-BR",
   "canonicalMap": "UX-CONTRACT.md",
-  "requiredCapabilities": ["Form", "Select/Listbox", "Scrollbar", "Toast", "CRUD"],
-  "ownership": { "Select/Listbox": "native" },
-  "requiredCommands": ["unit", "build", "design", "e2e"],
+  "requiredCapabilities": [
+    "Form",
+    "Select/Listbox",
+    "Scrollbar",
+    "Toast",
+    "CRUD"
+  ],
+  "ownership": {
+    "Select/Listbox": "native"
+  },
+  "requiredCommands": [
+    "unit",
+    "build",
+    "design",
+    "e2e"
+  ],
   "commands": {
     "unit": "npm run check",
     "build": "npm run build",
@@ -13,7 +29,7 @@
     "e2e": "npm run test:e2e"
   },
   "evidence": {
-    "crudFullFlow": "tests/e2e/account.spec.js",
-    "failurePaths": "tests/e2e/account.spec.js"
+    "crudFullFlow": "tests/e2e/admin.spec.js",
+    "failurePaths": "tests/e2e/admin.spec.js"
   }
 }

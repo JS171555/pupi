@@ -1,12 +1,12 @@
-# Pupi — conta e autenticação
+# Pupi — conta e administração
 
-Fase 2 do e-commerce petshop, preservando a fundação da Fase 1. O `index.html` permite testar cadastro, login por senha, login Google, recuperação de senha, perfil, endereços e consulta de pedidos. O front-end usa HTML/CSS/JavaScript modular e Vite.
+Fase 3 do e-commerce petshop. O `index.html` reúne a área de conta e um painel administrativo com resumo, produtos, categorias, imagens, estoque, pedidos, clientes e configurações. Front-end HTML/CSS/JavaScript modular com Vite.
 
-O projeto Supabase `pupi` está identificado, e a migration de contas foi aplicada. **A homologação de Google OAuth e entrega real de e-mails continua pendente de configuração e teste no navegador local.**
+As migrations de conta e administração estão aplicadas no Supabase Pupi. A conta administrativa indicada pelo usuário já tem acesso. A Fase 2 foi testada e aprovada pelo usuário; a Fase 3 tem testes automatizados e verificação SQL hospedada. Uploads reais pelo SDK devem ser homologados no navegador local.
 
 ## Abrir o front-end de testes
 
-Use a branch `codex/pupi-fase-2` e Node.js 24+:
+Use a branch `codex/pupi-fase-3` e Node.js 24+:
 
 ```sh
 npm ci
@@ -16,7 +16,7 @@ npm run dev
 
 Abra **http://localhost:3000**. No Windows, copie o arquivo pelo editor ou use `copy .env.example .env`. Não abra o index por file://. A [configuração da Fase 2](docs/phase-2-setup.md) explica redirects, Google Cloud, e-mails e as rotas de teste.
 
-Não há compra nem painel de gestão de catálogo nesta fase. Cadastro e dados de conta usam o backend conectado; nenhum sucesso é simulado na aplicação.
+Depois de entrar como administrador, abra **Administração** ou **http://localhost:3000/#/admin**. Veja o [roteiro da Fase 3](docs/phase-3-setup.md). Não há checkout nem integração financeira nesta fase; os registros de entrega são manuais. Nenhum sucesso é simulado na aplicação.
 
 ## Executar os testes
 
@@ -50,8 +50,9 @@ Este comando faz consultas anônimas reais ao catálogo e verifica a recusa de l
 - [Relatório da Fase 1 e pendências](docs/phase-1-report.md)
 - [Relatório da Fase 2](docs/phase-2-report.md)
 - [Execução e configuração da Fase 2](docs/phase-2-setup.md)
-- `supabase/migrations/20261105180946_pupi_foundation.sql`: única migration atômica, criada com a CLI.
-- `src/`: cliente Supabase, configuração pública, repositório de catálogo, mídia e erros.
+- [Relatório da Fase 3](docs/phase-3-report.md) e [roteiro administrativo](docs/phase-3-setup.md).
+- `supabase/migrations/`: fundação, contas e administração; migrations atômicas criadas com a CLI.
+- `src/`: configuração pública, cliente Supabase, módulos de conta/administração, repositórios e componentes compartilhados.
 - `tests/`: testes de serviços e de integridade/permissões no banco.
 
-O catálogo inicial fica vazio. Dados sintéticos existem somente nos testes. A Fase 3 depende de nova autorização.
+O catálogo inicial fica vazio. Dados sintéticos existem somente nos testes. A Fase 4 depende de nova autorização.

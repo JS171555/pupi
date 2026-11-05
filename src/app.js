@@ -9,17 +9,21 @@ import { el, link, button, heading, empty } from './ui/dom.js';
 import { notify, confirmAction } from './ui/feedback.js';
 import { isDirty, discardChanges } from './ui/forms.js';
 import { AppError, toAppError } from './utils/errors.js';
+import {createAdminRepository} from './repositories/admin.js';
+import {createAdminMediaService} from './services/admin-media.js';
+import {renderAdmin,resetPrivateAdminUI} from './modules/admin/router.js';
 import './styles/app.css';
+import './styles/admin.css';
 
 const main = document.querySelector('#main');
 const header = document.querySelector('#header');
 const status = document.querySelector('#connection-status');
 const state = { user: null, profile: null, role: null, busy: false, booting: true, generation: 0, controller: null,
   currentHash: location.hash || '#/entrar', recovery: false, destination: '/conta' };
-let client; let auth; let repository;
+let client; let auth; let repository;let adminRepository;let adminMedia;
 const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
 const busy = value => { state.busy = value; };
-function clearPrivateState() { state.user = null; state.profile = null; state.role = null; }
+function clearPrivateState() { state.user = null; state.profile = null; state.role = null;adminRepository?.clear();adminMedia?.clear();resetPrivateAdminUI(); }
 function clearRecovery() {
   state.recovery = false;
   try { sessionStorage.removeItem('pupi-password-recovery'); } catch { /* Sessão ainda pode ser concluída sem o marcador. */ }
@@ -170,14 +174,15 @@ async function render() {
       const id = route.split('/')[2];
       const data = /^[0-9a-f-]{36}$/i.test(id) ? await repository.getOrder(user.id, id, signal) : null;
       view = data ? orderView(data) : unavailable('Pedido indisponível', 'Este pedido não está disponível para sua conta.', '/pedidos');
-    } else if (route === '/admin') {
+    } else if (route === '/admin' || route.startsWith('/admin/')) {
       const allowed = await repository.adminAccess(signal);
       if (!allowed || role !== 'admin') {
         document.title = 'Acesso restrito | Pupi';
         view = unavailable('Acesso restrito', 'Esta área exige permissão de administrador.');
-      } else view = el('section', { className: 'panel' }, [heading('Acesso administrativo validado', 'Sua permissão foi confirmada pelo banco de dados.'),
-        empty('Painel previsto para a Fase 3', 'Esta fase valida autenticação e permissões. A gestão de produtos e pedidos será adicionada na próxima etapa.'),
-        link('Voltar para minha conta', '#/conta', { className: 'button button-secondary' })]);
+      } else view = await renderAdmin({
+        ...context,admin:adminRepository,media:adminMedia,route,params:address.searchParams,signal,
+        current:route+address.search,isBusy:()=>state.busy,canLeave,
+      });
     } else {
       document.title = 'Página não encontrada | Pupi';
       view = unavailable('Página não encontrada', 'Use a navegação para continuar.');
@@ -188,6 +193,9 @@ async function render() {
     if (error.code === 'SESSION_EXPIRED') {
       await auth.clearLocalSession().catch(() => {}); clearPrivateState(); clearRecovery();
       await go('/entrar', { force: true }); notify('Sua sessão expirou. Entre novamente.', 'error');
+    } else if(route.startsWith('/admin') && error.code==='FORBIDDEN') {
+      document.title='Acesso restrito | Pupi';
+      main.replaceChildren(unavailable('Acesso restrito','Sua conta não tem permissão para esta operação administrativa.'));
     } else failure(error, render);
   } finally {
     if (generation === state.generation) main.querySelector('h1')?.focus({ preventScroll: true });
@@ -220,6 +228,7 @@ async function start() {
     const config = readPublicConfig(__PUPI_CONFIG__);
     client = createPupiClient(__PUPI_CONFIG__, { auth: { detectSessionInUrl: false } });
     auth = createAuthService(client, location.origin, config); repository = createAccountRepository(client);
+    adminRepository=createAdminRepository(client);adminMedia=createAdminMediaService(client,adminRepository);
     try { state.recovery = sessionStorage.getItem('pupi-password-recovery') === 'active'; } catch { /* Marcador opcional. */ }
     const callbackUrl = new URL(location.href);
     const hasCallback = callbackUrl.searchParams.has('code') || callbackUrl.searchParams.has('error')
