@@ -47,9 +47,9 @@ async function createOrder({ user = A, address = AA, items = [{ product_id: PA, 
     [user, address, JSON.stringify(items), shipping, key]))[0].id;
 }
 
-test('as 15 tabelas da aplicação têm RLS habilitada', async () => {
+test('as 16 tabelas da aplicação têm RLS habilitada', async () => {
   const tables = await rows("select tablename,rowsecurity from pg_tables where schemaname='public'");
-  assert.equal(tables.length, 15);
+  assert.equal(tables.length, 16);
   assert.ok(tables.every(t => t.rowsecurity));
 });
 
@@ -273,7 +273,7 @@ test('checkout interno não é executável por cliente e não tem wrapper públi
 
 test('buckets privados configuram limite de 5 MiB e MIME types permitidos', async () => {
   const buckets = await rows('select public,file_size_limit,allowed_mime_types from storage.buckets');
-  assert.equal(buckets.length, 2);
+  assert.equal(buckets.length, 3);
   assert.ok(buckets.every(b => !b.public && b.file_size_limit === 5242880));
   assert.ok(buckets.every(b => b.allowed_mime_types.join(',') === 'image/jpeg,image/png,image/webp'));
 });
@@ -785,3 +785,83 @@ test('notificação repetida preserva conferência quando existem dois pagamento
  for(let repeat=0;repeat<2;repeat++)await rows("select public.service_record_order_payment($1,$2,'paid',now(),$3,$4::jsonb)",[key,id,ctx.total_cents,JSON.stringify({payment_id:id,status:'paid'})]);
  const saved=(await rows('select public.service_transparent_context($1,$2) as data',[A,order]))[0].data;assert.equal(saved.payment_review_required,true);assert.equal(saved.submission.result.status,'review');
 }));
+
+// Homepage banners share the canonical admin authorization, receipts and media cleanup.
+const bannerData={title:'Novidades para seu pet',sort_order:0,active:false};
+const mutateBanner=(op,id,data={},expected=null,key=crypto.randomUUID())=>adminMutate(op,id,data,expected,key);
+async function draftBanner(){return mutateBanner('banner_save',null,bannerData);}
+async function bannerAsset(banner,variant,number=1){
+  const path=`${banner.id}/80000000-0000-4000-8000-${String(number).padStart(12,'0')}.png`;
+  await rows("insert into storage.objects(bucket_id,name) values('banner-images',$1)",[path]);
+  return mutateBanner('banner_image',banner.id,{variant,path},banner.updated_at);
+}
+
+test('banners: recibo de criação evita duplicatas e lista tem paginação',()=>as('authenticated',ADMIN,async()=>{
+  const key=crypto.randomUUID();const one=await mutateBanner('banner_save',null,bannerData,null,key);
+  const repeated=await mutateBanner('banner_save',null,bannerData,null,key);assert.equal(one.id,repeated.id);
+  await mutateBanner('banner_save',null,{...bannerData,title:'Primeiro',sort_order:0});
+  await mutateBanner('banner_save',null,{...bannerData,title:'Último',sort_order:9});
+  const page=await adminQuery('banners',{limit:2});assert.equal(page.total,3);assert.equal(page.items.length,2);assert.ok(page.hasMore);
+  const filtered=await adminQuery('banners',{search:'Último'});assert.equal(filtered.items[0].sort_order,9);
+}));
+test('banners: rascunhos e uploads não vinculados ficam privados; publicados podem ser lidos',()=>as('authenticated',ADMIN,async()=>{
+  let banner=await draftBanner();const draft=await draftBanner();
+  banner=await bannerAsset(banner,'mobile',1);banner=await bannerAsset(banner,'desktop',2);
+  await rows("insert into storage.objects(bucket_id,name) values('banner-images',$1)",[`${draft.id}/80000000-0000-4000-8000-000000000003.png`]);
+  await setRole('anon',null);assert.equal(await count('public.home_banners'),0);
+  assert.equal((await rows("select * from storage.objects where bucket_id='banner-images'")).length,0);
+  await setRole('authenticated',ADMIN);
+  await mutateBanner('banner_save',banner.id,{...bannerData,active:true},banner.updated_at);
+  await setRole('anon',null);assert.equal(await count('public.home_banners'),1);
+  assert.equal((await rows("select * from storage.objects where bucket_id='banner-images'")).length,2);
+  await setRole('authenticated',A);assert.equal(await count('public.home_banners'),1);
+}));
+test('banners: cliente não cria banner nem executa RPC administrativa',async()=>{
+  await rejectsCode(()=>as('authenticated',A,()=>mutateBanner('banner_save',null,bannerData)),'42501');
+  await rejectsCode(()=>as('authenticated',A,()=>rows("insert into public.home_banners(title) values('Invasão')")),'42501');
+  await rejectsCode(()=>as('anon',null,()=>adminQuery('banners')),'42501');
+});
+test('banners: publicação exige as duas imagens',()=>assert.rejects(()=>as('authenticated',ADMIN,async()=>{
+  const banner=await bannerAsset(await draftBanner(),'mobile');
+  await mutateBanner('banner_save',banner.id,{...bannerData,active:true},banner.updated_at);
+}),error=>error.message==='banner_images_required'));
+test('banners: versão anterior não sobrescreve edição',()=>rejectsCode(()=>as('authenticated',ADMIN,async()=>{
+  const banner=await draftBanner();await mutateBanner('banner_save',banner.id,bannerData,'2000-01-01T00:00:00Z');
+}),'40001'));
+test('banners: imagem precisa existir no bucket e pertencer ao banner',async()=>{
+  await assert.rejects(()=>as('authenticated',ADMIN,async()=>{
+    const banner=await draftBanner();await mutateBanner('banner_image',banner.id,{variant:'desktop',path:`${banner.id}/80000000-0000-4000-8000-000000000001.png`},banner.updated_at);
+  }),error=>error.message==='media_not_uploaded');
+  await rejectsCode(()=>as('authenticated',ADMIN,async()=>{
+    const banner=await draftBanner();await mutateBanner('banner_image',banner.id,{variant:'mobile',path:'90000000-0000-4000-8000-000000000001/80000000-0000-4000-8000-000000000001.png'},banner.updated_at);
+  }),'22023');
+  await rejectsCode(()=>as('authenticated',A,()=>rows("insert into storage.objects(bucket_id,name) values('banner-images','90000000-0000-4000-8000-000000000001/80000000-0000-4000-8000-000000000001.png')")),'42501');
+});
+test('banners: substituição e exclusão enfileiram arquivos; Storage protege arquivos vinculados',()=>as('authenticated',ADMIN,async()=>{
+  let banner=await bannerAsset(await draftBanner(),'mobile',1);const previous=banner.mobile_path;
+  banner=await bannerAsset(banner,'mobile',2);banner=await bannerAsset(banner,'desktop',3);
+  let jobs=await adminQuery('cleanup');assert.equal(jobs.total,1);assert.equal(jobs.items[0].path,previous);
+  const linked=await rows("delete from storage.objects where bucket_id='banner-images' and name=$1 returning name",[banner.mobile_path]);assert.equal(linked.length,0);
+  const orphan=`${banner.id}/80000000-0000-4000-8000-000000000004.png`;
+  await rows("insert into storage.objects(bucket_id,name) values('banner-images',$1)",[orphan]);
+  const orphans=await adminQuery('orphans',{bucket:'banner-images',id:banner.id});assert.ok(orphans.items.some(item=>item.path===orphan));
+  await mutateBanner('banner_remove',banner.id,{},banner.updated_at);jobs=await adminQuery('cleanup');assert.equal(jobs.total,4);
+  for(const job of jobs.items){
+    const deleted=await rows("delete from storage.objects where bucket_id='banner-images' and name=$1 returning name",[job.path]);assert.equal(deleted.length,1);
+    await mutateBanner('cleanup_complete',job.id);
+  }
+  assert.equal((await adminQuery('cleanup')).total,0);assert.equal((await adminQuery('banners')).total,0);
+}));
+test('banners: arquivo na fila não pode ser vinculado novamente',()=>assert.rejects(()=>as('authenticated',ADMIN,async()=>{
+  let banner=await bannerAsset(await draftBanner(),'mobile',1);const path=banner.mobile_path;
+  banner=await bannerAsset(banner,'mobile',2);
+  await mutateBanner('banner_image',banner.id,{variant:'mobile',path},banner.updated_at);
+}),error=>error.message==='media_removal_pending'));
+test('banners: limite de publicação é validado no servidor',()=>assert.rejects(()=>as('postgres',null,async()=>{
+  for(let n=0;n<8;n++){
+    const id=crypto.randomUUID();const path=`${id}/${crypto.randomUUID()}.png`;
+    await rows('insert into public.home_banners(id,title,active,mobile_path,desktop_path) values($1,$2,true,$3,$3)',[id,'Publicado '+n,path]);
+  }
+  await setRole('authenticated',ADMIN);let banner=await bannerAsset(await draftBanner(),'mobile',1);banner=await bannerAsset(banner,'desktop',2);
+  await mutateBanner('banner_save',banner.id,{...bannerData,active:true},banner.updated_at);
+}),error=>error.message==='banner_limit'));

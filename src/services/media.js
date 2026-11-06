@@ -2,7 +2,7 @@ import { AppError, unwrap } from '../utils/errors.js';
 
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-const buckets = new Set(['product-images', 'category-images']);
+const buckets = new Set(['product-images', 'category-images', 'banner-images']);
 
 export function validateImage(file) {
   if (!file || !extensions[file.type] || !Number.isSafeInteger(file.size) || file.size < 1 || file.size > MAX_IMAGE_BYTES) {

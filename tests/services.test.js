@@ -103,3 +103,14 @@ test('serviço de mídia usa caminhos novos, não sobrescreve e assina por cinco
   assert.throws(() => media.remove('other-bucket', path), { code: 'INVALID_DATA' });
   await assert.rejects(() => media.upload('product-images', '../escape', { type: 'image/webp', size: 100 }), { code: 'INVALID_DATA' });
 });
+
+test('consulta pública de banners limita oito, ordena e pede somente publicados',async()=>{
+  let request;
+  const client=createPupiClient(config,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:async url=>{
+    request=new URL(url);return new Response('[]',{headers:{'Content-Type':'application/json'}});
+  }}});
+  await createCatalogRepository(client).listBanners();
+  assert.equal(request.pathname,'/rest/v1/home_banners');assert.equal(request.searchParams.get('limit'),'8');
+  assert.equal(request.searchParams.get('active'),'eq.true');assert.equal(request.searchParams.get('order'),'sort_order.asc,id.asc');
+  assert.equal(request.searchParams.get('select'),'id,title,mobile_path,desktop_path,sort_order');
+});

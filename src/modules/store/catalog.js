@@ -1,9 +1,31 @@
 import {el, link, heading, money} from '../../ui/dom.js';
 import {makeForm} from '../../ui/forms.js';
 import {AppError} from '../../utils/errors.js';
+import {bannerCarousel} from '../../ui/banner-carousel.js';
 import {createElement, PawPrint, ArrowUpRight, Sparkles, SlidersHorizontal} from 'lucide';
 
 const icon=definition=>createElement(definition,{'aria-hidden':'true','stroke-width':1.7});
+
+async function bannerUrls(media,item) {
+  const [mobile,desktop]=await Promise.all([media.signedUrl('banner-images',item.mobile_path),media.signedUrl('banner-images',item.desktop_path)]);
+  return {mobileUrl:mobile.signedUrl,desktopUrl:desktop.signedUrl};
+}
+async function homeBanners(repository,media,signal) {
+  const deadline=signal?AbortSignal.any([signal,AbortSignal.timeout(3500)]):AbortSignal.timeout(3500);
+  if(deadline.aborted)return [];
+  let stop;
+  const cancelled=new Promise(resolve=>{
+    stop=()=>resolve([]);deadline.addEventListener('abort',stop,{once:true});
+  });
+  const request=(async()=>{
+    const banners=await repository.listBanners(deadline);
+    return (await Promise.all(banners.map(async item=>{
+      try{return {...item,...await bannerUrls(media,item)};}catch{return null;}
+    }))).filter(Boolean);
+  })().catch(()=>[]);
+  try{return await Promise.race([request,cancelled]);}
+  finally{deadline.removeEventListener('abort',stop);}
+}
 
 async function primaryImages(repository, media, products) {
   if (!products.length) return new Map();
@@ -24,15 +46,16 @@ function productImage(image, name) {
   return node;
 }
 
-export async function storeCatalog(repository, params, go, media) {
+export async function storeCatalog(repository, params, go, media, {signal}={}) {
   const page = Math.max(1, Number.parseInt(params.get('pagina'), 10) || 1);
   const category = params.get('categoria') || '';
   const search = (params.get('busca') || '').slice(0,120);
   const sort = params.get('ordem') === 'name' ? 'name' : 'recent';
   const filter = ['featured', 'sale'].includes(params.get('filtro')) ? params.get('filtro') : '';
   const filtered=Boolean(category||search||filter||sort!=='recent');
-  const [categories, products] = await Promise.all([
-    repository.listCategories(), repository.listProducts({page, pageSize: 20, categoryId: category || undefined, search, sort, filter}),
+  const bannerRequest=!filtered&&page===1?homeBanners(repository,media,signal):Promise.resolve([]);
+  const [categories, products, slides] = await Promise.all([
+    repository.listCategories(), repository.listProducts({page, pageSize: 20, categoryId: category || undefined, search, sort, filter}),bannerRequest,
   ]);
   const select = el('select', {id:'store-category'}, [el('option',{value:''},'Todas as categorias'),
     ...categories.map(item=>el('option',{value:item.id,selected:item.id===category},item.name))]);
@@ -66,7 +89,7 @@ export async function storeCatalog(repository, params, go, media) {
     el('div',{className:'store-section-heading'},[el('h2',{},'Categorias')]),
     el('div',{className:'category-chips'},[link('Todas','#/loja',{className:`category-chip${!category?' is-active':''}`}),...categories.map(item=>link([icon(PawPrint),item.name],`#/loja?categoria=${encodeURIComponent(item.id)}`,{className:`category-chip${category===item.id?' is-active':''}`}))]),
   ]):null;
-  return el('section',{className:'store-page'},[heading('Loja'),categoryLinks,
+  return el('section',{className:'store-page'},[heading('Loja'),bannerCarousel(slides,{signal,refresh:item=>bannerUrls(media,item)}),categoryLinks,
     el('div',{id:'catalogo',className:'store-section-heading'},[el('h2',{},'Produtos'),el('p',{className:'muted',role:'status'},`${products.length} ${products.length===1?'produto':'produtos'} nesta página`)]),
     el('details',{className:'store-filters',open:window.matchMedia('(min-width: 48rem)').matches||Boolean(category||search||filter||sort!=='recent')},[el('summary',{},[icon(SlidersHorizontal),'Buscar e filtrar produtos']),form]),
     cards.length?el('ul',{className:'record-list product-grid'},cards):el('div',{className:'store-empty'},[icon(PawPrint),el('h3',{},filtered?'Nenhum produto encontrado':'Nenhum produto disponível'),filtered?el('p',{className:'muted'},'Tente outra busca ou veja todos os produtos.'):null,filtered?link('Ver todos os produtos','#/loja',{className:'button button-primary'}):null]),

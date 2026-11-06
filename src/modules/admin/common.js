@@ -5,7 +5,7 @@ import {confirmAction} from '../../ui/feedback.js';
 import {adminURL,filterBar,dataTable,listPager,adminLink} from '../../ui/admin-list.js';
 export {el,link,button,heading,empty,adminURL,filterBar,dataTable,listPager,adminLink};
 
-export const sections=[['Resumo','/admin'],['Produtos','/admin/produtos'],['Categorias','/admin/categorias'],['Estoque','/admin/estoque'],['Pedidos','/admin/pedidos'],['Clientes','/admin/clientes'],['Configurações','/admin/configuracoes']];
+export const sections=[['Resumo','/admin'],['Produtos','/admin/produtos'],['Categorias','/admin/categorias'],['Banners','/admin/banners'],['Estoque','/admin/estoque'],['Pedidos','/admin/pedidos'],['Clientes','/admin/clientes'],['Configurações','/admin/configuracoes']];
 export function adminShell(view,route) {
   return el('div',{className:'admin-shell'},[
     el('nav',{className:'admin-nav','aria-label':'Seções da administração'},sections.map(([label,path])=>link(label,`#${path}`,{'aria-current':(path==='/admin'?route===path:route.startsWith(path))?'page':undefined}))),view,

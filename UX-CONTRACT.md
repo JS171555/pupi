@@ -20,7 +20,8 @@ Clientes brasileiros, pt-BR, celular e desktop. Datas de conta em America/Sao_Pa
 | Search | src/ui/admin-list.js | UX-CONTRACT.md | explicit submit / clear | tests/e2e/admin.spec.js |
 | Table | src/ui/admin-list.js | DESIGN.md | horizontal scroll / no selection | tests/e2e/admin.spec.js |
 | Pagination | src/ui/admin-list.js | UX-CONTRACT.md | previous / next | tests/e2e/admin.spec.js |
-| File Upload | src/services/admin-media.js, src/modules/admin/media.js | docs/phase-3-setup.md | gallery / category / retry | tests/e2e/admin.spec.js |
+| File Upload | src/services/admin-media.js, src/modules/admin/media.js, src/services/banner-images.js | docs/banners.md | gallery / category / banner / retry | tests/e2e/admin.spec.js, tests/e2e/banners.spec.js |
+| Carousel | src/ui/banner-carousel.js | docs/banners.md | responsive / autoplay / static | tests/e2e/banners.spec.js |
 
 ## Fluxos
 
@@ -68,7 +69,7 @@ Atualizações de perfil e endereço comparam updated_at para evitar sobrescrita
 
 ## Administração — Fase 3
 
-Sete seções: Resumo, Produtos, Categorias, Estoque, Pedidos, Clientes e Configurações. Navegação visível e indicação aria-current. Rotas `/admin/**` validam a conta e o papel real no banco; todas as RPCs repetem a autorização. Clientes recebem 403. Não há promoção de conta pelo painel.
+Oito seções: Resumo, Produtos, Categorias, Banners, Estoque, Pedidos, Clientes e Configurações. Navegação visível e indicação aria-current. Rotas `/admin/**` validam a conta e o papel real no banco; todas as RPCs repetem a autorização. Clientes recebem 403. Não há promoção de conta pelo painel.
 
 Buscas são explícitas, com Aplicar filtros/Enter, proteção de composição IME e Limpar busca com restauração de foco. Busca/filtros reiniciam na página 1. Listas usam 20 registros, contagem, Anterior/Próxima e ordem determinística; URL preserva filtros e página. Busca de cliente é privada em memória e removida no logout. Tabelas são sem seleção, com cabeçalhos semânticos e região de rolagem horizontal no celular. Ordenação de produtos usa select nativo. Página vazia tem orientação própria; erro não vira lista vazia.
 
@@ -123,3 +124,11 @@ Busca de catálogo mantém filtros explícitos e oferece Limpar filtros e recupe
 A interface mantém títulos, rótulos, preços, dados, status, validações e instruções que mudam uma decisão. Foram retirados hero promocional, sobrelinhas repetidas, descrições genéricas de página, dicas laterais de endereço e frases decorativas. Conteúdo legal, requisitos de senha, limitações financeiras/fiscais e recuperação de erro permanecem disponíveis.
 
 Ações mostram apenas uma patinha dentro do botão, após 200ms, preservando nome acessível, dimensões e prevenção de duplicação. Formulários e diálogos não exibem um segundo indicador embaixo. `buttonLoading` compartilha a mesma instância por botão com limpeza por consumidor. O carregamento da página sem ação usa uma patinha com `aria-label`; o SDK de pagamento mantém o próprio indicador e o Pupi não o duplica. O botão de carregamento do pagamento permanece até o formulário ficar pronto.
+
+## Banners da loja
+
+Solicitação do proprietário: upload administrativo de versões mobile e desktop, com troca automática na página inicial. Contrato de dados e permissões: `docs/banners.md` e migração `pupi_home_banners`. A raiz abre `/loja`; o catálogo sem filtros na primeira página apresenta os banners publicados. A consulta opcional tem prazo limitado e sua falha não impede compras.
+
+Novo banner salva um rascunho e abre a etapa de imagens. Editar reutiliza o formulário, validações associadas, prévias, aviso de alterações não salvas e loading dentro do botão. A versão mobile é 1:1; desktop é 3:1. Publicar exige ambas. Salvar retorna à lista; Ocultar preserva arquivos; Excluir pede confirmação e retorna à lista, com recuperação da limpeza física quando pendente. Busca e paginação seguem `admin-list.js`.
+
+O carrossel reserva a geometria final, troca a cada seis segundos e oferece controles de 44px, rótulos em pt-BR e atualização acessível apenas em mudanças manuais. Pausa explícita persiste durante a rota; foco, ponteiro, aba oculta e saída do viewport suspendem o avanço. Movimento reduzido começa pausado e evita o fade. Uma imagem fica estática. Eventos, observador e temporizador são encerrados pelo AbortSignal da rota. Falhas de imagem recebem uma renovação de URL e depois são ignoradas; falha total oculta o carrossel.

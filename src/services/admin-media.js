@@ -15,9 +15,10 @@ export function createAdminMediaService(client,repository) {
   const media=createMediaService(client);const pending=new Map();
   return {
     clear() {pending.clear();},
-    async upload(bucket,id,file,expected=null) {
+    async upload(bucket,id,file,expected=null,variant) {
       await validateImageBytes(file);
-      const fingerprint=JSON.stringify([bucket,id,file.name,file.size,file.lastModified]);
+      if(bucket==='banner-images'&&!['mobile','desktop'].includes(variant))throw new AppError('INVALID_DATA','Escolha a versão do banner.');
+      const fingerprint=JSON.stringify([bucket,id,file.name,file.size,file.lastModified,variant]);
       let task=pending.get(fingerprint);
       if(!task){const extension=validateImage(file);task={path:`${id}/${crypto.randomUUID()}.${extension}`,uploaded:false,key:crypto.randomUUID(),expected};pending.set(fingerprint,task);}
       if(!task.uploaded) {
@@ -30,8 +31,8 @@ export function createAdminMediaService(client,repository) {
         }
       }
       // Se a resposta do banco se perder, a retentativa usa o mesmo arquivo e a mesma chave.
-      const result=await repository.mutate(bucket==='product-images'?'image_link':'category_image',id,
-        bucket==='product-images'?{path:task.path,alt_text:file.name.slice(0,300)}:{path:task.path},task.expected,task.key);
+      const result=await repository.mutate(bucket==='banner-images'?'banner_image':bucket==='product-images'?'image_link':'category_image',id,
+        bucket==='banner-images'?{path:task.path,variant}:bucket==='product-images'?{path:task.path,alt_text:file.name.slice(0,300)}:{path:task.path},task.expected,task.key);
       pending.delete(fingerprint);return result;
     },
     signedUrl:media.signedUrl,

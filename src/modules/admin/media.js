@@ -36,7 +36,7 @@ function uploadForm(context,bucket,entity) {
   });
   return el('section',{className:'media-upload'},[el('h2',{},'Enviar arquivos'),form,statusList]);
 }
-function cleanupPanel(context,orphans,pending,bucket,id) {
+export function cleanupPanel(context,orphans,pending,bucket,id) {
   const section=el('section',{className:'media-cleanup'},[
     el('h2',{},'Limpeza de arquivos'),el('p',{className:'muted'},`${pending.total} arquivo(s) na fila de remoção. Os vínculos já removidos não recebem novas URLs do catálogo.`),
     actionButton('Tentar limpeza',async()=>{const result=await context.media.flush();if(result.pending)throw new AppError('REQUEST_FAILED',`${result.removed} arquivo(s) removido(s); ${result.pending} ainda pendente(s). A fila foi preservada.`);},context,{success:'Limpeza concluída.'}),

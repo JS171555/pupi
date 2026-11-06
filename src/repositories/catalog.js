@@ -4,6 +4,12 @@ const fields = 'id,category_id,sku,slug,name,title,short_description,description
 
 export function createCatalogRepository(client) {
   return {
+    listBanners(signal) {
+      let query=client.from('home_banners').select('id,title,mobile_path,desktop_path,sort_order')
+        .eq('active',true).order('sort_order').order('id').limit(8);
+      query=query.abortSignal(signal?AbortSignal.any([signal,AbortSignal.timeout(3000)]):AbortSignal.timeout(3000));
+      return unwrap(query);
+    },
     listCategories() {
       return unwrap(client.from('categories').select('id,name,slug,description,sort_order')
         .eq('active', true).order('sort_order').order('id'));

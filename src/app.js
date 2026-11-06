@@ -26,6 +26,7 @@ import './styles/app.css';
 import './styles/admin.css';
 import './styles/experience.css';
 import './styles/feedback.css';
+import './styles/banners.css';
 
 const main = document.querySelector('#main');
 const header = document.querySelector('#header');
@@ -40,7 +41,7 @@ const syncHeaderGeometry=()=>{
 };
 const shellObserver=new ResizeObserver(syncHeaderGeometry);shellObserver.observe(header);shellObserver.observe(status);
 const state = { user: null, profile: null, role: null, busy: false, booting: true, generation: 0, controller: null,
-  currentHash: location.hash || '#/entrar', recovery: false, destination: '/conta' };
+  currentHash: location.hash || '#/loja', recovery: false, destination: '/conta' };
 let client; let auth; let repository;let adminRepository;let adminMedia;let catalogRepository;let catalogMedia;let cartRepository;
 const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
 let stopBusyButton=()=>{};
@@ -160,11 +161,11 @@ async function render() {
   const generation = ++state.generation;
   state.controller?.abort(); state.controller = new AbortController();
   const signal = state.controller.signal;
-  const address = new URL((location.hash || '#/entrar').slice(1), location.origin);
-  const route = address.pathname.replace(/\/$/, '') || '/entrar';
+  const address = new URL((location.hash || '#/loja').slice(1), location.origin);
+  const route = address.pathname.replace(/\/$/, '') || '/loja';
   const pageNumber = Number(address.searchParams.get('pagina') || 1);
   const page = Number.isInteger(pageNumber) && pageNumber > 0 ? pageNumber : 1;
-  state.currentHash = location.hash || '#/entrar';
+  state.currentHash = location.hash || '#/loja';
   const title = routeTitles[route] || (route.startsWith('/enderecos/') ? 'Endereço' : route.startsWith('/pedidos/') ? 'Detalhes do pedido' : 'Página não encontrada');
   document.title = `${title} | Pupi`; notify(''); renderHeader(route);
   const loading=el('div',{className:'loading','aria-label':'Carregando página'});
@@ -195,7 +196,7 @@ async function render() {
         await cartRepository.setQuantity(user.id, product.id, quantity);
         notify('Quantidade salva no carrinho.', 'success');
       };
-      const view = route === '/loja' ? await storeCatalog(catalogRepository, address.searchParams, go, catalogMedia) : await storeProduct(catalogRepository, route.slice(6), catalogMedia, address.searchParams, {addToCart, busy});
+      const view = route === '/loja' ? await storeCatalog(catalogRepository, address.searchParams, go, catalogMedia,{signal}) : await storeProduct(catalogRepository, route.slice(6), catalogMedia, address.searchParams, {addToCart, busy});
       if (generation === state.generation) main.replaceChildren(view);
       return;
     }

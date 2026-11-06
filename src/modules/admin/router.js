@@ -1,6 +1,7 @@
 import {adminShell,notFound} from './common.js';
 import {productsPage,productForm,categoriesPage,categoryForm} from './catalog.js';
 import {productMedia,categoryMedia} from './media.js';
+import {bannersPage,bannerForm} from './banners.js';
 import {dashboard,stockPage,stockDetail,adminOrders,adminOrder,customersPage,customerDetail,settingsPage,resetPrivateAdminUI} from './operations.js';
 export {resetPrivateAdminUI};
 
@@ -23,7 +24,8 @@ export async function renderAdmin(context) {
     else if(id==='novo')view=await categoryForm(context,null);
     else if(segments[3]==='imagem')view=await categoryMedia(context,id);
     else view=await categoryForm(context,id);
-  }else if(segments[1]==='estoque')view=id?await stockDetail(context,id,options):await stockPage(context,options);
+  }else if(segments[1]==='banners')view=id?await bannerForm(context,id==='novo'?null:id):await bannersPage(context,options);
+  else if(segments[1]==='estoque')view=id?await stockDetail(context,id,options):await stockPage(context,options);
   else if(segments[1]==='pedidos')view=id?await adminOrder(context,id):await adminOrders(context,options);
   else if(segments[1]==='clientes')view=id?await customerDetail(context,id,options):await customersPage(context,options);
   else if(route==='/admin/configuracoes')view=await settingsPage(context);

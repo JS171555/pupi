@@ -11,6 +11,8 @@ export function toAppError(error) {
   if (error instanceof AppError) return error;
   const code = error?.code;
   const business = {
+    banner_images_required: 'Envie as imagens mobile e desktop antes de publicar o banner.',
+    banner_limit: 'Você pode publicar até 8 banners. Oculte um deles para publicar outro.',
     request_key_reused: 'Esta tentativa já foi usada com outros dados. Recarregue a tela antes de tentar novamente.',
     category_not_active: 'Para publicar, escolha uma categoria ativa.',
     category_has_products: 'Esta categoria possui produtos. Mova os produtos antes de excluí-la.',

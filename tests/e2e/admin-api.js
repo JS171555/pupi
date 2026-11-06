@@ -6,17 +6,19 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
 export const pngFile={name:'imagem-teste.png',mimeType:'image/png',buffer:png};
 export async function installAdminApi(page) {
   const api=await installApi(page,{signedIn:true,role:'admin'});
-  const state={categories:[],products:[],images:[],movements:[],settings:[],jobs:[],files:new Map(),receipts:new Map(),failRemove:false,failNext:0,loseReply:false,requestKeys:[],...api};
+  const state={categories:[],products:[],images:[],banners:[],movements:[],settings:[],jobs:[],files:new Map(),fileBytes:new Map(),receipts:new Map(),failRemove:false,failNext:0,loseReply:false,requestKeys:[],...api};
   // As leituras de perfil/role continuam pertencendo ao adaptador da Fase 2.
   let counter=10;const id=()=>`90000000-0000-4000-8000-${String(++counter).padStart(12,'0')}`;
   const ok=data=>({data});const error=(message,code='P0001',status=400)=>({data:{message,code},status});
   const stamp=()=>new Date(Date.now()+counter++).toISOString();
   const paged=(items,options)=>{const size=options.limit||20;const start=((options.page||1)-1)*size;return{items:items.slice(start,start+size),total:items.length,hasMore:start+size<items.length,page:options.page||1};};
-  const linked=(bucket,path)=>bucket==='product-images'?state.images.some(i=>i.storage_path===path):state.categories.some(c=>c.image_path===path);
+  const linked=(bucket,path)=>bucket==='banner-images'?state.banners.some(b=>b.mobile_path===path||b.desktop_path===path):bucket==='product-images'?state.images.some(i=>i.storage_path===path):state.categories.some(c=>c.image_path===path);
   const enqueue=(bucket,path)=>{if(path&&!state.jobs.some(j=>j.bucket===bucket&&j.path===path))state.jobs.push({id:id(),bucket,path});};
   const products=()=>state.products.map(p=>({...p,category_name:state.categories.find(c=>c.id===p.category_id)?.name||'Categoria'}));
   api.adminQuery=async({p_resource:resource,p_options:options={}})=>{
     const search=(options.search||'').toLowerCase();
+    if(resource==='banners')return ok(paged(state.banners.filter(b=>b.title.toLowerCase().includes(search)).sort((a,b)=>a.sort_order-b.sort_order||a.id.localeCompare(b.id)),options));
+    if(resource==='banner')return ok(state.banners.find(b=>b.id===options.id)||null);
     if(resource==='dashboard')return ok({products:state.products.length,categories:state.categories.length,customers:1,orders:api.orders.length,
       pending_orders:api.orders.filter(o=>['confirmed','preparing'].includes(o.status)).length,completed_orders:api.orders.filter(o=>o.status==='delivered').length,
       paid_orders:0,paid_total_cents:0,low_stock_count:state.products.filter(p=>p.stock_quantity<=p.minimum_stock).length,
@@ -41,7 +43,24 @@ export async function installAdminApi(page) {
     if(state.receipts.has(key))return ok(state.receipts.get(key));
     if(state.failNext>0){state.failNext--;return error('raw database detail','PGRST000',503);}
     let result;
-    if(op==='category_save'){
+    if(op==='banner_save'){
+      const existing=state.banners.find(b=>b.id===entityId);
+      if(existing&&existing.updated_at!==expected)return error('changed','40001',409);
+      if(data.active&&(!existing?.mobile_path||!existing?.desktop_path))return error('banner_images_required');
+      result={id:existing?.id||id(),mobile_path:null,desktop_path:null,created_at:created,...existing,...data,updated_at:stamp()};
+      if(existing)Object.assign(existing,result);else state.banners.push(result);
+    }else if(op==='banner_image'){
+      const existing=state.banners.find(b=>b.id===entityId);
+      if(existing.updated_at!==expected)return error('changed','40001',409);
+      const previous=existing[data.variant+'_path'];
+      existing[data.variant+'_path']=data.path;existing.updated_at=stamp();if(previous!==data.path)enqueue('banner-images',previous);result=existing;
+    }else if(op==='banner_remove'){
+      const existing=state.banners.find(b=>b.id===entityId);
+      if(existing.updated_at!==expected)return error('changed','40001',409);
+      state.banners=state.banners.filter(b=>b.id!==entityId);
+      for(const file of state.files.values())if(file.bucket==='banner-images'&&file.path.startsWith(entityId+'/'))enqueue(file.bucket,file.path);
+      result={id:entityId};
+    }else if(op==='category_save'){
       const existing=state.categories.find(c=>c.id===entityId);
       if(existing&&existing.updated_at!==expected)return error('changed','40001',409);
       result={id:existing?.id||id(),image_path:null,created_at:created,...existing,...data,updated_at:stamp()};
@@ -99,13 +118,21 @@ export async function installAdminApi(page) {
     const json=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
     if(tail.startsWith('sign/')) {
       if(method==='POST')return json({signedURL:`/object/${tail}?token=e2e`});
-      return route.fulfill({status:200,contentType:'image/png',body:png});
+      return route.fulfill({status:200,contentType:'image/png',body:state.fileBytes.get(tail.slice(5))||png});
     }
     if(tail.startsWith('list/')){
       const bucket=tail.slice(5);const data=request.postDataJSON();return json([...state.files.values()].filter(f=>f.bucket===bucket&&f.path.startsWith(data.prefix+'/')).map(f=>({name:f.path.split('/').pop(),id:'file-id'})));
     }
     const [bucket,...segments]=tail.split('/');const path=segments.join('/');
-    if(method==='POST'){state.files.set(`${bucket}/${path}`,{bucket,path});return json({Key:`${bucket}/${path}`,Id:id()});}
+    if(method==='POST'){
+      state.files.set(`${bucket}/${path}`,{bucket,path});let bytes=request.postDataBuffer();
+      if(request.headers()['content-type']?.startsWith('multipart/form-data')){
+        const form=await new Request(request.url(),{method:'POST',headers:request.headers(),body:bytes}).formData();
+        const file=[...form.values()].find(value=>typeof value.arrayBuffer==='function');
+        if(file)bytes=Buffer.from(await file.arrayBuffer());
+      }
+      state.fileBytes.set(`${bucket}/${path}`,bytes);return json({Key:`${bucket}/${path}`,Id:id()});
+    }
     if(method==='DELETE'){
       if(state.failRemove)return json({statusCode:'503',message:'Storage temporarily unavailable',error:'unavailable'},503);
       for(const path of request.postDataJSON().prefixes)state.files.delete(`${bucket}/${path}`);return json([]);

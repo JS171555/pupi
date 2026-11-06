@@ -49,6 +49,7 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
       return respond(object ? data.profile : [data.profile]);
     }
     if (url.pathname === '/rest/v1/user_roles') return respond(object ? { role: data.role } : [{ role: data.role }]);
+    if (url.pathname === '/rest/v1/home_banners') return respond([]);
     if (url.pathname === '/rest/v1/rpc/admin_access_status') return respond(data.role === 'admin');
     if (url.pathname === '/functions/v1/pupi-mercadopago-checkout') return respond({code:'CONFIG_MISSING',error:'Pagamento ainda não está configurado.'},503);
     if (url.pathname === '/rest/v1/rpc/admin_payment_review') return respond(false);

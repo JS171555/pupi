@@ -40,11 +40,11 @@ O Pupi reúne catálogo, conta do cliente, carrinho, checkout e administração 
 
 | Área | Recursos |
 | --- | --- |
-| <img src="docs/assets/readme/store.svg" alt="" width="20" height="20"> Loja | Catálogo público de produtos publicados, categorias, busca, ordenação, paginação e detalhes do produto. |
+| <img src="docs/assets/readme/store.svg" alt="" width="20" height="20"> Loja | Catálogo público de produtos publicados, categorias, busca, ordenação, paginação, detalhes do produto e banners responsivos com troca automática. |
 | <img src="docs/assets/readme/account.svg" alt="" width="20" height="20"> Conta | Cadastro, confirmação de e-mail, login, recuperação de senha, Google OAuth configurável, perfil e endereços. Consulta ViaCEP com preenchimento assistido e edição manual. |
 | <img src="docs/assets/readme/cart.svg" alt="" width="20" height="20"> Compra | Carrinho por cliente, conferência de preço e estoque no servidor, cotação de frete e confirmação idempotente de pedido. |
 | <img src="docs/assets/readme/payment.svg" alt="" width="20" height="20"> Pagamento | Cartão e Pix no pedido, desafio 3DS incorporado, recuperação de tentativa, consulta automática limitada e webhook assinado. |
-| <img src="docs/assets/readme/admin.svg" alt="" width="20" height="20"> Administração | Resumo, categorias, produtos, imagens, movimentações de estoque, pedidos, clientes, configurações e associação de chave NF-e. |
+| <img src="docs/assets/readme/admin.svg" alt="" width="20" height="20"> Administração | Resumo, categorias, produtos, imagens, banners mobile/desktop, movimentações de estoque, pedidos, clientes, configurações e associação de chave NF-e. |
 | <img src="docs/assets/readme/shipping.svg" alt="" width="20" height="20"> Logística | Cotação Melhor Envio, preparação de remessa no carrinho do provedor, receptor de eventos assinados e acompanhamento manual. Registro e eventos dependem de configuração e homologação próprias. |
 | <img src="docs/assets/readme/mobile.svg" alt="" width="20" height="20"> Experiência | Interface responsiva, navegação mobile, fontes locais DM Sans e Nunito Sans, notificações compactas abaixo do menu, loading, movimento reduzido e PWA instalável em navegadores compatíveis. |
 | <img src="docs/assets/readme/security.svg" alt="" width="20" height="20"> Integridade | RLS, permissões explícitas, operações transacionais, auditoria, snapshots de pedido e identificação de compras de teste. |
@@ -290,7 +290,13 @@ Entre com a conta e abra **http://localhost:3000/#/admin**. Para preparar a prim
 4. Cadastre imagens e registre entrada de estoque em **Estoque**. O saldo inicial de um produto novo é zero.
 5. Ative e publique o produto. Cadastre o endereço da conta compradora, adicione ao carrinho e revise o pedido.
 
-As imagens aceitas são JPEG, PNG e WebP, até **5 MiB por arquivo**. Os buckets `product-images` e `category-images` são privados; o catálogo usa URLs assinadas, com validade de cinco minutos. Produtos com histórico devem ser arquivados quando a exclusão definitiva não for permitida.
+As imagens aceitas são JPEG, PNG e WebP, até **5 MiB por arquivo**. Os buckets `product-images`, `category-images` e `banner-images` são privados; o catálogo usa URLs assinadas, com validade de cinco minutos. Produtos com histórico devem ser arquivados quando a exclusão definitiva não for permitida.
+
+### Banners da página inicial
+
+Em **Administração → Banners**, crie um rascunho e envie uma imagem **mobile quadrada (1:1)** e outra **desktop horizontal (3:1)**. Tamanhos sugeridos: **1080 × 1080 px** e **1920 × 640 px**. Confira as prévias, marque **Exibir na loja** e salve. Posições menores aparecem primeiro; até oito banners ficam publicados. É possível editar, ocultar e excluir com confirmação.
+
+A página inicial abre a loja. Banners publicados alternam automaticamente a cada seis segundos, com pausa e navegação; movimento reduzido começa pausado. Um único banner permanece estático. Não é necessário configurar novas credenciais. Consulte [operação, permissões e recuperação de uploads](docs/banners.md).
 
 <a id="pagamentos"></a>
 
@@ -526,6 +532,7 @@ Não há emissão fiscal própria, compra automática de etiqueta, notificaçõe
 | [Arquitetura da fundação](docs/architecture.md) | Modelo de dados e decisões originais de integridade. |
 | [Permissões e segurança](docs/security.md) | Fronteiras de acesso e proteção dos recursos. |
 | [Polimento da interface](docs/interface-polish.md) | Alterações visuais, decisões preservadas e verificações. |
+| [Banners](docs/banners.md) | Upload mobile/desktop, publicação, carrossel e limpeza de imagens. |
 | [Design](DESIGN.md) e [UX](UX-CONTRACT.md) | Identidade visual, componentes e comportamento das telas. |
 
 Os documentos de fases preservam o contexto da época e podem citar branches ou pendências já superadas. Para instalar e operar a versão atual, siga este README; para pagamentos, use primeiro `docs/payment-production.md`. Não execute uma instrução antiga de API Payments ou reaplicação de banco como se fosse a configuração atual de Orders.
