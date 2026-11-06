@@ -28,10 +28,14 @@ Filtros de destaque e promoção na vitrine, combináveis com busca/categoria/or
 
 Detalhe do produto mostra a categoria ativa e oferece acesso à vitrine filtrada por ela; falha de consulta é informada sem impedir a exibição do produto.
 
+## Etapa 7
+
+Repositório de carrinho permite definir uma quantidade absoluta de produto publicado, com conferência do estoque consultado e tratamento de criação simultânea do carrinho. Repetir o mesmo pedido define o mesmo valor. RLS existente limita o carrinho ao titular. Ainda não há interface de carrinho; o estoque pode mudar após a consulta e deve ser validado novamente no checkout.
+
 ## Falta para concluir
 
 1. Testar vitrine e detalhes com produtos publicados reais.
-2. Carrinho persistente por usuário: adicionar, alterar, remover, validar estoque e calcular subtotal; testar isolamento de contas e concorrência.
+2. Carrinho persistente por usuário: conectar a interface, consultar, alterar, remover, validar estoque e calcular subtotal; testar isolamento de contas e concorrência.
 3. Frete: integrar Melhor Envio em backend confiável com credenciais protegidas, cotações e seleção válida; definir configuração e tratar indisponibilidade. Nunca confiar em frete enviado pelo navegador.
 4. Checkout autenticado: endereço, revisão, estoque e preços recalculados no backend; confirmar pedido idempotente e gravar cotação/entrega com segurança. Não expor service_role nem aceitar total fornecido pelo cliente.
 5. Estrutura de pagamento pendente, sem aprovar/simular transações. Conectar registro/rastreamento de remessa e eventos reais quando credenciais estiverem disponíveis.
