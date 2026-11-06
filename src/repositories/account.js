@@ -17,7 +17,7 @@ export function createAccountRepository(client) {
     const {data,error}=await client.functions.invoke('pupi-mercadopago-checkout',{body,signal:AbortSignal.timeout(25000)});
     if(error) {
       let detail;try{detail=await error.context?.json();}catch{/* resposta indisponível */}
-      const messages={CONFIG_MISSING:'Pagamento ainda não está disponível.',ORDER_UNAVAILABLE:'Este pedido não está disponível para pagamento.',LEGACY_PAYMENT:'Este pedido já abriu um pagamento externo. Confira esse pagamento antes de fazer um novo pedido para pagar aqui.',PAYMENT_REJECTED:'O pagamento foi recusado. Confira os dados e tente novamente.',INVALID_DATA:'Confira os dados de pagamento.'};
+      const messages={CONFIG_MISSING:'Pagamento ainda não está disponível.',CONFIG_MISMATCH:'A loja precisa conferir a configuração do pagamento. Sua tentativa anterior foi preservada.',ORDER_UNAVAILABLE:'Este pedido não está disponível para pagamento.',LEGACY_PAYMENT:'Este pedido já abriu um pagamento externo. Confira esse pagamento antes de fazer um novo pedido para pagar aqui.',PAYMENT_REJECTED:'O pagamento foi recusado. Confira os dados e tente novamente.',INVALID_DATA:'Confira os dados de pagamento.'};
       const code=Object.hasOwn(messages,detail?.code)?detail.code:'PAYMENT_UNCERTAIN';
       throw new AppError(code,messages[code]||'Pagamento em verificação. Consulte o resultado antes de tentar novamente.');
     }

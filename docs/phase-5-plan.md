@@ -8,7 +8,7 @@ A fase 5 inclui o pagamento via Mercado Pago solicitado pelo usuário, instalaç
 - O receptor de webhook valida a assinatura, consulta o pagamento diretamente no Mercado Pago e confere pedido, vendedor, valor, moeda e ambiente. O banco registra pagamentos com processamento idempotente e ignora eventos antigos. Recusas permitem nova tentativa no mesmo checkout; estornos parciais, contestações e múltiplos pagamentos exigem conferência administrativa. O pedido só é marcado como pago mediante confirmação do provedor.
 - A migration `20261106064442_pupi_payment_reconciliation.sql` foi aplicada ao Supabase. As funções `pupi-mercadopago-checkout` e `pupi-mercadopago-webhook` são usadas pelo checkout e pela confirmação do pagamento. A primeira exige JWT; a segunda valida a assinatura do provedor.
 - O detalhe do pedido oferece acesso ao pagamento quando estiver configurado. O PWA tem manifesto, ícones e service worker que guarda somente o shell público; chamadas de APIs e dados de conta não são adicionados ao cache offline.
-- Os testes locais usam dados fictícios. Foi verificado o funcionamento offline do shell em navegador e a ausência de rotas privadas no cache. A API real do Mercado Pago ainda não foi testada.
+- Os testes locais usam dados fictícios. Foi verificado o funcionamento offline do shell em navegador e a ausência de rotas privadas no cache. A homologação real do Mercado Pago está em andamento; o teste do pedido #4 permanece sem resultado confirmado.
 
 ## Configuração para depois
 
@@ -50,3 +50,12 @@ O Checkout Pro foi substituído na função pública pelo Checkout Transparente 
 Pedidos com tentativa anterior do Checkout Pro não podem iniciar outra cobrança no formulário incorporado; conferir a tentativa antiga ou usar um novo pedido de teste. Não se deve apagar registros antigos para liberar uma cobrança. A aplicação no Mercado Pago deve estar configurada como Checkout Transparente/Payments API e o webhook deve receber eventos de Pagamentos; o endpoint de webhook Pupi permanece o mesmo. A Public Key correspondente à mesma conta/ambiente precisa ser cadastrada como `MERCADO_PAGO_PUBLIC_KEY`.
 
 A homologação real do SDK, cartões, Pix e eventuais autenticações adicionais do emissor permanece necessária. Os testes automatizados usam um SDK substituto e respostas fictícias; não comprovam um pagamento real nem todas as exigências de cada emissor.
+
+
+## Diagnóstico do pagamento em verificação — 06/11/2026
+
+- O pedido #4 permanece com tentativa iniciada e sem pagamento vinculado no banco. A consulta real registrou `PAYMENT_SEARCH_EMPTY`; isso não comprova ausência de cobrança no provedor.
+- A verificação consulta o detalhe completo de cada candidato quando a busca omite metadados e exige vínculo exato à tentativa antes de aplicar o resultado. Conta vendedora, ambiente, moeda e valor continuam obrigatórios. Antes de enviar ou consultar pagamentos, o backend compara a conta autenticada do Access Token com `MERCADO_PAGO_COLLECTOR_ID`.
+- Checkout e webhook registram somente estágios de diagnóstico, código HTTP/SQL e contagens limitadas. Não registram credenciais, respostas completas nem dados do comprador. Divergência de conta retorna um aviso de configuração sem liberar a tentativa anterior.
+- Os testes cobrem recuperação por detalhe, vínculo divergente sem alteração financeira, conta incompatível sem cobrança, idempotência e privacidade dos logs. As verificações locais não substituem a homologação real.
+- Próximo passo: consultar os novos diagnósticos após o usuário verificar o pedido #4. Se houver divergência de conta, corrigir o ID do vendedor correspondente ao Access Token nos segredos. Não apagar a tentativa, gerar outro pedido ou reenviar cartão enquanto o resultado anterior estiver desconhecido.

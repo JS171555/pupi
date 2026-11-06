@@ -16,7 +16,7 @@ function fields(form) {
   }
   return result;
 }
-export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetch}) {
+export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetch,diagnose=()=>{}}) {
   return async request=>{
     if(request.method==='OPTIONS')return new Response('ok',{headers:cors});
     if(request.method!=='POST')return reply(405,'METHOD','Método não permitido.');
@@ -37,10 +37,16 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
       if(context.error||!context.data)return reply(409,'ORDER_UNAVAILABLE','Pedido indisponível para pagamento.');
       const data=context.data;
       if(!Number.isSafeInteger(data.total_cents)||data.total_cents<=0)return reply(409,'ORDER_UNAVAILABLE','Valor do pedido indisponível.');
-      const process=createPaymentProcessor({admin,env});
+      const process=createPaymentProcessor({admin,env,diagnose});
       const getContext=async()=>admin.rpc('service_transparent_context',{p_user_id:user.id,p_order_id:body.order_id});
       const ready=ctx=>reply(200,'READY',null,{public_key:publicKey,total_cents:ctx.total_cents,payment_status:ctx.payment_status,submission:ctx.submission});
       if(body.action==='init')return ready(data);
+      // Confere a conta antes de enviar pagamentos; os IDs e a resposta não são registrados.
+      const accountResponse=await fetchImpl('https://api.mercadopago.com/users/me',{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},signal:AbortSignal.timeout(10000),redirect:'error'});
+      if(!accountResponse.ok){diagnose('PAYMENT_ACCOUNT_HTTP',{http_status:accountResponse.status});return reply(503,'CONFIG_MISMATCH','A configuração de pagamento precisa ser conferida pela loja.');}
+      const account=await accountResponse.json();
+      if((typeof account.id==='number'&&!Number.isSafeInteger(account.id))||String(account.id)!==collector){diagnose('PAYMENT_ACCOUNT_COLLECTOR_MISMATCH');return reply(503,'CONFIG_MISMATCH','A configuração de pagamento precisa ser conferida pela loja.');}
+
       if(body.action==='refresh') {
         if(!data.submission)return ready(data);
         const options={headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},signal:AbortSignal.timeout(12000),redirect:'error'};
@@ -50,13 +56,21 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
           if(!response.ok||!await process({paymentId:id,payment:await response.json()}))return uncertain();
         } else {
           const response=await fetchImpl(`https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(body.order_id)}&limit=50`,options);
-          if(!response.ok)return uncertain();
+          if(!response.ok){diagnose('PAYMENT_PROVIDER_HTTP',{http_status:response.status});return uncertain();}
           const found=await response.json();if(!Array.isArray(found.results)||!Number.isSafeInteger(found.paging?.total)||found.paging.total>50)return uncertain();
-          const matches=found.results.filter(payment=>payment.metadata?.pupi_submission_id===data.submission.request_key);
-          if(matches.length!==1)return uncertain();
-          const id=String(matches[0].id);if(!/^\d{1,30}$/.test(id))return uncertain();
-          const detail=await fetchImpl(`https://api.mercadopago.com/v1/payments/${id}`,options);
-          if(!detail.ok||!await process({paymentId:id,payment:await detail.json()}))return uncertain();
+          // A busca pode omitir metadados: a decisão usa sempre o recurso completo.
+          const candidates=found.results.filter(payment=>!payment.metadata?.pupi_submission_id||payment.metadata.pupi_submission_id===data.submission.request_key);
+          if(candidates.length>10){diagnose('PAYMENT_SEARCH_AMBIGUOUS',{candidate_count:candidates.length});return uncertain();}
+          const details=[];
+          for(const candidate of candidates) {
+            const id=String(candidate.id);if(!/^\d{1,30}$/.test(id))return uncertain();
+            const detail=await fetchImpl(`https://api.mercadopago.com/v1/payments/${id}`,options);
+            if(!detail.ok){diagnose('PAYMENT_PROVIDER_HTTP',{http_status:detail.status});return uncertain();}
+            const payment=await detail.json();if(String(payment.id)!==id)return uncertain();details.push(payment);
+          }
+          const matches=details.filter(payment=>payment.metadata?.pupi_submission_id===data.submission.request_key);
+          if(matches.length!==1){diagnose(matches.length?'PAYMENT_SEARCH_AMBIGUOUS':'PAYMENT_SEARCH_EMPTY',{candidate_count:candidates.length,match_count:matches.length});return uncertain();}
+          if(!await process({paymentId:String(matches[0].id),payment:matches[0]}))return uncertain();
         }
         const refreshed=await getContext();return refreshed.error?uncertain():ready(refreshed.data);
       }
@@ -72,13 +86,16 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
       try {
         const response=await fetchImpl('https://api.mercadopago.com/v1/payments',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',Accept:'application/json','X-Idempotency-Key':begin.data.idempotency_key},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000),redirect:'error'});
         if(!response.ok) {
+          diagnose('PAYMENT_PROVIDER_HTTP',{http_status:response.status});
           if([400,422].includes(response.status)){const rejected=await admin.rpc('service_reject_transparent_payment',{p_order_id:body.order_id,p_request_key:body.request_key});if(!rejected.error&&rejected.data===true)return reply(422,'PAYMENT_REJECTED','O pagamento foi recusado. Confira os dados e tente novamente.');}
           return uncertain();
         }
         const payment=await response.json(),id=String(payment.id);
-        if(!/^\d{1,30}$/.test(id)||payment.metadata?.pupi_submission_id!==body.request_key||!await process({paymentId:id,payment}))return uncertain();
+        if(!/^\d{1,30}$/.test(id)){diagnose('PAYMENT_RESPONSE_ID_INVALID');return uncertain();}
+        if(payment.metadata?.pupi_submission_id!==body.request_key){diagnose('PAYMENT_METADATA_MISMATCH');return uncertain();}
+        if(!await process({paymentId:id,payment}))return uncertain();
         const final=await getContext();return final.error?uncertain():ready(final.data);
-      }catch{return uncertain();}
-    }catch{return uncertain();}
+      }catch{diagnose('PAYMENT_OPERATION_FAILURE');return uncertain();}
+    }catch{diagnose('PAYMENT_HANDLER_FAILURE');return uncertain();}
   };
 }

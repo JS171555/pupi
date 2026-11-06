@@ -19,14 +19,24 @@ export async function verifyPaymentNotification({url,headers,secret}) {
   return await crypto.subtle.verify('HMAC',key,bytes,new TextEncoder().encode(manifest)) ? {paymentId:ids[0]} : null;
 }
 
+const paymentId=value=>typeof value==='string'&&/^\d{1,30}$/.test(value)?value:typeof value==='number'&&Number.isSafeInteger(value)&&value>=0?String(value):null;
+const cents=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&Number.isSafeInteger(Math.round(value*100))&&Math.abs(value*100-Math.round(value*100))<0.000001?Math.round(value*100):null;
+export function paymentValidationIssue(payment,{paymentId:expectedId,orderId,totalCents,collectorId,liveMode}) {
+  if(!payment||!paymentId(expectedId)||!paymentId(collectorId)||typeof orderId!=='string'||!Number.isSafeInteger(totalCents)||totalCents<=0||typeof liveMode!=='boolean')return 'PAYMENT_INVALID_CONTEXT';
+  if(paymentId(payment.id)!==paymentId(expectedId))return 'PAYMENT_ID_MISMATCH';
+  if(paymentId(payment.collector_id)!==paymentId(collectorId))return 'PAYMENT_COLLECTOR_MISMATCH';
+  if(payment.external_reference!==orderId)return 'PAYMENT_ORDER_MISMATCH';
+  if(payment.currency_id!=='BRL')return 'PAYMENT_CURRENCY_MISMATCH';
+  if(payment.live_mode!==liveMode)return 'PAYMENT_MODE_MISMATCH';
+  if(cents(payment.transaction_amount)!==totalCents)return 'PAYMENT_AMOUNT_MISMATCH';
+  const refunded=cents(payment.transaction_amount_refunded);
+  if(refunded===null||refunded>totalCents)return 'PAYMENT_REFUND_INVALID';
+  return null;
+}
 /** Confere o resultado obtido diretamente da API; retornos do navegador não provam pagamento. */
-export function inspectProviderPayment(payment,{paymentId,orderId,totalCents,collectorId,liveMode}) {
-  const id=value=>typeof value==='string' && /^\d{1,30}$/.test(value)?value:typeof value==='number'&&Number.isSafeInteger(value)&&value>=0?String(value):null;
-  const amount=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&Number.isSafeInteger(Math.round(value*100))&&Math.abs(value*100-Math.round(value*100))<0.000001?Math.round(value*100):null;
-  if(!payment || !id(paymentId) || !id(collectorId) || typeof orderId!=='string' || !Number.isSafeInteger(totalCents) || totalCents<=0 || typeof liveMode!=='boolean')return {valid:false};
-  if(id(payment.id)!==id(paymentId)||id(payment.collector_id)!==id(collectorId)||payment.external_reference!==orderId||payment.currency_id!=='BRL'||payment.live_mode!==liveMode||amount(payment.transaction_amount)!==totalCents)return {valid:false};
-  const refunded=amount(payment.transaction_amount_refunded);
-  if(refunded===null||refunded>totalCents)return {valid:false};
+export function inspectProviderPayment(payment,context) {
+  if(paymentValidationIssue(payment,context))return {valid:false};
+  const refunded=cents(payment.transaction_amount_refunded),totalCents=context.totalCents;
   if(refunded>0 && refunded<totalCents)return {valid:true,status:'review'};
   if(payment.status==='refunded' && refunded===totalCents)return {valid:true,status:'refunded'};
   if(payment.status==='approved' && refunded===0)return {valid:true,status:'paid'};
