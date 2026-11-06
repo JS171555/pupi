@@ -21,3 +21,26 @@ test('processador confere vendedor, pedido, valor e ambiente antes de salvar',as
  assert.equal(await processor({paymentId:'123',payment}),true);assert.equal(calls.at(-1).args.p_state,'paid');calls.length=0;
  assert.equal(await processor({paymentId:'123',payment:{...payment,transaction_amount:1}}),false);assert.equal(calls.length,1);
 });
+
+test('recuperação encontra preferência existente sem enviar nova criação',async()=>{
+ const attempt='cccccccc-cccc-4ccc-8ccc-cccccccccccc';let saved=false;const methods=[];
+ const expected={id:'123-abc',collector_id:12,external_reference:order,notification_url:'https://example.supabase.co/functions/v1/pupi-mercadopago-webhook',back_urls:{success:`https://pupi.example/#/pedidos/${order}`,pending:`https://pupi.example/#/pedidos/${order}`,failure:`https://pupi.example/#/pedidos/${order}`},items:[{id:product,quantity:1,currency_id:'BRL',unit_price:10},{id:'shipping',quantity:1,currency_id:'BRL',unit_price:5}],init_point:'https://www.mercadopago.com.br/checkout/123'};
+ const client={auth:{getUser:async()=>({data:{user:{id:order}}})}};
+ const admin={rpc:async name=>name==='service_begin_payment_attempt'?{data:{created:false,attempt_id:attempt,snapshot}}:name==='service_payment_attempt_state'?{data:{status:saved?'ready':'started',checkout_url:saved?expected.init_point:null}}:name==='service_finish_payment_preference'?(saved=true,{data:true}):{error:'unexpected'}};
+ const handler=createPaymentCheckoutHandler({env:name=>config[name],createClient:(_u,key)=>key==='anon'?client:admin,fetchImpl:async(url,options)=>{methods.push(options.method||'GET');return new Response(JSON.stringify(url.includes('/search?')?{total:1,elements:[{id:expected.id}]}:expected),{status:200});}});
+ const response=await handler(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer valid','Content-Type':'application/json'},body:JSON.stringify({order_id:order})}));
+ assert.equal(response.status,200);assert.equal(saved,true);assert.deepEqual(methods,['GET','GET']);
+});
+
+test('recuperação não cria preferência nem aceita resultado ambíguo ou valor divergente',async()=>{
+ const attempt='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+ for(const variant of ['empty','multiple','wrong_amount','wrong_collector']) {
+  const calls=[];let saved=false;
+  const client={auth:{getUser:async()=>({data:{user:{id:order}}})}};
+  const admin={rpc:async name=>name==='service_begin_payment_attempt'?{data:{created:false,attempt_id:attempt,snapshot}}:name==='service_payment_attempt_state'?{data:{status:'started'}}:name==='service_finish_payment_preference'?(saved=true,{data:true}):{error:'unexpected'}};
+  const expected={id:'123-abc',collector_id:variant==='wrong_collector'?99:12,external_reference:order,notification_url:'https://example.supabase.co/functions/v1/pupi-mercadopago-webhook',back_urls:{success:`https://pupi.example/#/pedidos/${order}`,pending:`https://pupi.example/#/pedidos/${order}`,failure:`https://pupi.example/#/pedidos/${order}`},items:[{id:product,quantity:1,currency_id:'BRL',unit_price:variant==='wrong_amount'?1:10},{id:'shipping',quantity:1,currency_id:'BRL',unit_price:5}],init_point:'https://www.mercadopago.com.br/checkout/123'};
+  const handler=createPaymentCheckoutHandler({env:name=>config[name],createClient:(_u,key)=>key==='anon'?client:admin,fetchImpl:async(url,options)=>{calls.push(options.method||'GET');const result=url.includes('/search?')?{total:variant==='empty'?0:variant==='multiple'?2:1,elements:variant==='empty'?[]:[{id:expected.id}]}:expected;return new Response(JSON.stringify(result),{status:200});}});
+  const response=await handler(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer valid','Content-Type':'application/json'},body:JSON.stringify({order_id:order})}));
+  assert.equal(response.status,503,variant);assert.equal(saved,false,variant);assert.ok(calls.every(method=>method==='GET'),variant);
+ }
+});

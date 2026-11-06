@@ -6,6 +6,19 @@ function safeCheckoutUrl(value) {
   try {const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&/^(www|sandbox)\.mercadopago\.(com|com\.br)$/.test(u.hostname);} catch{return false;}
 }
 const uncertain=()=>reply(503,'PAYMENT_UNCERTAIN','Não foi possível confirmar a preparação do pagamento. Consulte o pedido antes de tentar novamente.');
+function preferenceMatches(actual,expected,collector) {
+  const id=value=>typeof value==='string'&&/^\d{1,30}$/.test(value)?value:typeof value==='number'&&Number.isSafeInteger(value)?String(value):null;
+  if(!actual||id(actual.collector_id)!==collector||actual.external_reference!==expected.external_reference||actual.notification_url!==expected.notification_url||!Array.isArray(actual.items)||actual.items.length!==expected.items.length)return false;
+  if(['success','pending','failure'].some(name=>actual.back_urls?.[name]!==expected.back_urls[name]))return false;
+  const items=new Map(expected.items.map(item=>[item.id,item]));
+  for(const item of actual.items) {
+    const target=items.get(item.id);
+    if(!target||item.currency_id!==target.currency_id||item.quantity!==target.quantity||typeof item.unit_price!=='number'||!Number.isFinite(item.unit_price)||Math.round(item.unit_price*100)!==Math.round(target.unit_price*100)||Math.abs(item.unit_price*100-Math.round(item.unit_price*100))>0.000001)return false;
+    items.delete(item.id);
+  }
+  return items.size===0;
+}
+
 export function createPaymentCheckoutHandler({createClient,env,fetchImpl=fetch}) {
   return async request=>{
     if(request.method==='OPTIONS')return new Response('ok',{headers:cors});
@@ -28,7 +41,27 @@ export function createPaymentCheckoutHandler({createClient,env,fetchImpl=fetch})
       if(!started.created) {
         const state=await admin.rpc('service_payment_attempt_state',{p_user_id:user.id,p_order_id:body.order_id});
         if(!state.error&&state.data?.status==='ready'&&safeCheckoutUrl(state.data.checkout_url))return reply(200,'READY',null,{checkout_url:state.data.checkout_url});
-        return uncertain();
+        if(state.error||state.data?.status!=='started'||!uuid(started.attempt_id))return uncertain();
+        // Uma busca vazia pode refletir atraso do provedor: nunca cria outra preferência.
+        try {
+          const expected=buildCheckoutPreference(started.snapshot,{storeOrigin,supabaseOrigin:url});
+          const options={headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},signal:AbortSignal.timeout(10000),redirect:'error'};
+          const search=await fetchImpl(`https://api.mercadopago.com/checkout/preferences/search?external_reference=${encodeURIComponent(body.order_id)}&limit=2`,options);
+          if(!search.ok)return uncertain();
+          const found=await search.json();
+          if(found.total!==1||!Array.isArray(found.elements)||found.elements.length!==1)return uncertain();
+          const id=found.elements[0]?.id;
+          if(typeof id!=='string'||!/^[A-Za-z0-9_-]{1,200}$/.test(id))return uncertain();
+          const detail=await fetchImpl(`https://api.mercadopago.com/checkout/preferences/${id}`,options);
+          if(!detail.ok)return uncertain();
+          const preference=await detail.json();
+          if(preference.id!==id||!safeCheckoutUrl(preference.init_point)||!preferenceMatches(preference,expected,collector))return uncertain();
+          const saved=await admin.rpc('service_finish_payment_preference',{p_user_id:user.id,p_order_id:body.order_id,p_attempt_id:started.attempt_id,p_preference_id:id,p_checkout_url:preference.init_point});
+          if(saved.error||saved.data!==true)return uncertain();
+          const current=await admin.rpc('service_payment_attempt_state',{p_user_id:user.id,p_order_id:body.order_id});
+          if(current.error||!safeCheckoutUrl(current.data?.checkout_url))return uncertain();
+          return reply(200,'READY',null,{checkout_url:current.data.checkout_url});
+        }catch{return uncertain();}
       }
       let payload;try {payload=buildCheckoutPreference(started.snapshot,{storeOrigin,supabaseOrigin:url});}catch{return uncertain();}
       try {

@@ -4,7 +4,7 @@ A fase 5 inclui o pagamento via Mercado Pago solicitado pelo usuário, instalaç
 
 ## Implementado
 
-- O Checkout Pro cria a preferência a partir dos itens, valores e frete registrados no banco. A tentativa é única por pedido; perda da resposta não dispara nova preferência automaticamente. A função exige usuário autenticado e verifica a titularidade.
+- O Checkout Pro cria a preferência a partir dos itens, valores e frete registrados no banco. A tentativa é única por pedido; após perda da resposta, o serviço busca uma preferência existente e só a vincula quando os dados do pedido, conta, valores e URLs correspondem. Ele não cria outra automaticamente. A função exige usuário autenticado e verifica a titularidade.
 - O receptor de webhook valida a assinatura, consulta o pagamento diretamente no Mercado Pago e confere pedido, vendedor, valor, moeda e ambiente. O banco registra pagamentos com processamento idempotente e ignora eventos antigos. Recusas permitem nova tentativa no mesmo checkout; estornos parciais, contestações e múltiplos pagamentos exigem conferência administrativa. O pedido só é marcado como pago mediante confirmação do provedor.
 - A migration `20261106064442_pupi_payment_reconciliation.sql` foi aplicada ao Supabase. As funções `pupi-mercadopago-checkout` e `pupi-mercadopago-webhook` foram implantadas. A primeira exige JWT; a segunda valida a assinatura do provedor.
 - O detalhe do pedido oferece acesso ao pagamento quando estiver configurado. O PWA tem manifesto, ícones e service worker que guarda somente o shell público; chamadas de APIs e dados de conta não são adicionados ao cache offline.
@@ -26,7 +26,7 @@ Configurar o evento de pagamentos no webhook `https://loifqxmmnmhpwnwcvrak.supab
 ## Pendências e limites
 
 - A integração não foi homologada com o Mercado Pago real e não deve ser considerada pronta para produção antes desses testes.
-- Uma tentativa com resultado de criação incerto permanece bloqueada para evitar cobrança duplicada e exige reconciliação técnica com o provedor; ainda não há recuperação automática nem ação de cancelamento segura no painel. Pedidos com uma tentativa aberta também não podem ser cancelados ou ter o estoque devolvido automaticamente.
+- Uma resposta perdida é recuperada automaticamente quando o provedor retorna exatamente uma preferência compatível. Se a busca for vazia, ambígua ou inconsistente, a tentativa permanece bloqueada para evitar cobrança duplicada e exige reconciliação técnica. Ainda não há cancelamento seguro no painel enquanto existir uma tentativa aberta; estoque e pedido permanecem preservados.
 - Um alerta no pedido administrativo indica múltiplos pagamentos, contestações ou estornos parciais; a resolução financeira e o estorno continuam a cargo do Mercado Pago e de conferência manual.
 - É necessário homologar a instalação PWA nos navegadores e dispositivos alvo. O cache contém apenas os arquivos públicos da aplicação; operações que precisam da rede permanecem indisponíveis offline.
 - O acabamento visual, a navegação de aplicativo, as animações e demais melhorias de UI/UX ficam para a última etapa, conforme solicitado.
