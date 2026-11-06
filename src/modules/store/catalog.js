@@ -1,4 +1,6 @@
 import {el, link, heading, money} from '../../ui/dom.js';
+import {makeForm} from '../../ui/forms.js';
+import {AppError} from '../../utils/errors.js';
 
 async function primaryImages(repository, media, products) {
   if (!products.length) return new Map();
@@ -56,7 +58,7 @@ export async function storeCatalog(repository, params, go, media) {
     el('nav',{className:'pagination','aria-label':'Páginas do catálogo'},[page>1?pageLink(page-1,'Anterior'):null,el('span',{},`Página ${page}`),products.length===20?pageLink(page+1,'Próxima'):null])]);
 }
 
-export async function storeProduct(repository, slug, media, params = new URLSearchParams()) {
+export async function storeProduct(repository, slug, media, params = new URLSearchParams(), context = {}) {
   const product=await repository.getProductBySlug(slug);
   if(!product)return el('section',{className:'panel'},[heading('Produto indisponível','Confira a loja para ver os produtos disponíveis.'),link('Voltar à loja','#/loja')]);
   let category;
@@ -80,7 +82,17 @@ export async function storeProduct(repository, slug, media, params = new URLSear
         records.length===20 ? link('Mais fotos',`#/loja/${slug}?fotos=${page+1}`,{className:'button button-secondary'}) : null,
       ])]);
   } catch {gallery=el('p',{role:'status'},'Não foi possível carregar as fotos. Recarregue a página para tentar novamente.');}
+  const cartForm = product.stock_quantity > 0 && context.addToCart ? makeForm({
+    name:'Quantidade no carrinho', submitLabel:'Salvar no carrinho', onBusy:context.busy,
+    fields:[{name:'quantity',label:'Quantidade',value:'1',required:true,inputmode:'numeric',hint:'Substitui a quantidade anterior deste produto no carrinho.'}],
+    onSubmit:async values=>{
+      const quantity=Number(values.quantity);
+      if (!/^[0-9]+$/.test(values.quantity) || !Number.isSafeInteger(quantity) || quantity<1 || quantity>999) throw new AppError('INVALID_DATA','Informe uma quantidade inteira entre 1 e 999.');
+      if (quantity>product.stock_quantity) throw new AppError('INVALID_DATA','A quantidade solicitada supera o estoque disponível.');
+      await context.addToCart(product,quantity);
+    },
+  }) : null;
   return el('section',{className:'panel'},[heading(product.name,product.title),category,gallery,el('p',{},product.description||product.short_description),
     product.sale_price_cents!==null?el('p',{},[el('del',{},money(product.price_cents)),' ',el('strong',{},money(product.sale_price_cents))]):el('p',{},money(product.price_cents)),
-    el('p',{},product.stock_quantity>0?'Disponível':'Indisponível'),link('Voltar à loja','#/loja',{className:'button button-secondary'})]);
+    el('p',{},product.stock_quantity>0?'Disponível':'Indisponível'),cartForm,link('Voltar à loja','#/loja',{className:'button button-secondary'})]);
 }
