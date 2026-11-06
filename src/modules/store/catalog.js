@@ -56,8 +56,7 @@ export async function storeCatalog(repository, params, go, media) {
       el('div',{className:'product-card-content'},[
         el('h2',{},product.name),
         product.short_description ? el('p',{className:'product-description'},product.short_description) : null,
-        el('div',{className:'product-card-footer'},[price,el('span',{className:'product-card-cue','aria-hidden':'true'},icon(ArrowUpRight))]),
-        el('p',{className:`product-availability${product.stock_quantity>0?'':' is-unavailable'}`},product.stock_quantity>0?'Disponível':'Indisponível'),
+        el('div',{className:'product-card-footer'},[price]),
       ]),
     ],`#/loja/${product.slug}`,{className:'product-card-link','aria-label':`Abrir detalhes de ${product.name}`})]);
   });

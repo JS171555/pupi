@@ -17,6 +17,8 @@ test('detalhe abre a categoria do produto e filtra a vitrine',async({page})=>{
   await expect(page.locator('.product-card')).toHaveCount(1);
   await expect(page.locator('.product-card a')).toHaveCount(1);
   await expect(page.getByRole('link',{name:'Abrir detalhes de Bola'})).toBeVisible();
+  await expect(page.locator('.product-card .product-availability')).toHaveCount(0);
+  await expect(page.locator('.product-card .product-card-cue')).toHaveCount(0);
   await expect(page.getByText('Ver produto',{exact:false})).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.setViewportSize({width:1280,height:900});
@@ -64,6 +66,10 @@ test('vitrine mobile oferece navegação e filtros sem movimento nem rolagem hor
     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
   });
   await page.goto('/#/loja');await expect(page.getByRole('heading',{name:'Loja',exact:true})).toBeVisible();
+  const brandIconSize=await page.locator('.brand svg').evaluate(node=>Number.parseFloat(getComputedStyle(node).width));
+  const moreIconSize=await page.locator('.mobile-menu summary svg').evaluate(node=>Number.parseFloat(getComputedStyle(node).width));
+  const moreLabelSize=await page.locator('.mobile-menu summary span').evaluate(node=>Number.parseFloat(getComputedStyle(node).fontSize));
+  expect(brandIconSize).toBeGreaterThanOrEqual(38);expect(moreIconSize).toBeGreaterThanOrEqual(25);expect(moreLabelSize).toBeGreaterThanOrEqual(14);
   const nav=page.getByRole('navigation',{name:'Navegação inferior'});await expect(nav).toBeVisible();
   await expect(nav.getByRole('link',{name:'Loja'})).toHaveAttribute('aria-current','page');
   await page.getByText('Buscar e filtrar produtos').click();await expect(page.getByLabel('Categoria')).toBeVisible();
