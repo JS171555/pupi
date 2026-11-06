@@ -8,6 +8,7 @@ import { createCatalogRepository } from './repositories/catalog.js';
 import { createMediaService } from './services/media.js';
 import { storeCatalog, storeProduct } from './modules/store/catalog.js';
 import { cartView } from './modules/store/cart.js';
+import { checkoutReview } from './modules/store/checkout.js';
 import { authView, noticeView, onboardingView } from './modules/auth/views.js';
 import { profileView, addressesView, addressFormView, ordersView, orderView } from './modules/account/views.js';
 import { el, link, button, heading, empty } from './ui/dom.js';
@@ -116,7 +117,7 @@ function unavailable(title, message, destination = '/conta') {
   return el('section', { className: 'panel' }, [heading(title, message), link('Voltar', `#${destination}`, { className: 'button button-secondary' })]);
 }
 const routeTitles = { '/entrar': 'Entrar', '/cadastro': 'Criar conta', '/recuperar': 'Recuperar acesso', '/nova-senha': 'Nova senha',
-  '/carrinho': 'Carrinho', '/conta': 'Meus dados', '/enderecos': 'Meus endereços', '/pedidos': 'Meus pedidos', '/admin': 'Administração', '/aviso': 'Aviso de testes' };
+  '/checkout': 'Revisar pedido', '/carrinho': 'Carrinho', '/conta': 'Meus dados', '/enderecos': 'Meus endereços', '/pedidos': 'Meus pedidos', '/admin': 'Administração', '/aviso': 'Aviso de testes' };
 
 async function render() {
   const generation = ++state.generation;
@@ -182,7 +183,10 @@ async function render() {
     const context = { user, profile, role, repository, busy, announce: notify, go,
       reload: render, refresh: next => { state.profile = next; } };
     let view;
-    if (route === '/carrinho') {
+    if (route === '/checkout') {
+      const [cart, addresses] = await Promise.all([cartRepository.listItems(user.id, 1, signal), repository.listAddresses(user.id, page, signal)]);
+      view = checkoutReview({cart, addresses, page, go});
+    } else if (route === '/carrinho') {
       const data = await cartRepository.listItems(user.id, page, signal);
       if (!data.items.length && page > 1) { await go(`/carrinho?pagina=${page - 1}`, {force:true}); return; }
       view = cartView({...data, page, go, user, busy, announce:notify, repository:cartRepository});

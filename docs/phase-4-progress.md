@@ -48,13 +48,21 @@ Remoção de item do carrinho com confirmação, autorização existente por tit
 
 Alteração de quantidade no carrinho verifica estoque atual e versão do item, preservando os dados digitados em erro ou conflito. Estoque não é reservado; a confirmação posterior do pedido precisa validá-lo novamente.
 
+## Etapa 12
+
+Subtotal estimado dos itens disponíveis, incluindo todas as páginas; preços promocionais são considerados. A tela sinaliza quando há itens indisponíveis ou não carregados e não inventa frete. Valores e estoque precisam ser confirmados no servidor ao fechar pedido.
+
+## Etapa 13
+
+Tela autenticada de revisão com seleção local de endereço, lista parcial de itens e subtotal. Ela informa que o frete e a confirmação ainda não estão disponíveis; não cria pedido nem retém pagamento.
+
 ## Falta para concluir
 
 1. Testar vitrine e detalhes com produtos publicados reais.
-2. Carrinho persistente por usuário: validar estoque no checkout e calcular subtotal; testar isolamento de contas e concorrência.
+2. Carrinho persistente por usuário: validar estoque e preços no checkout; testar isolamento de contas e concorrência.
 3. Frete: integrar Melhor Envio em backend confiável com credenciais protegidas, cotações e seleção válida; definir configuração e tratar indisponibilidade. Nunca confiar em frete enviado pelo navegador.
-4. Checkout autenticado: endereço, revisão, estoque e preços recalculados no backend; confirmar pedido idempotente e gravar cotação/entrega com segurança. Não expor service_role nem aceitar total fornecido pelo cliente.
+4. Checkout autenticado: persistir a seleção de endereço, validar estoque e preços no backend; confirmar pedido idempotente e gravar cotação/entrega com segurança. Não expor service_role nem aceitar total fornecido pelo cliente.
 5. Estrutura de pagamento pendente, sem aprovar/simular transações. Conectar registro/rastreamento de remessa e eventos reais quando credenciais estiverem disponíveis.
 6. Testar fluxo completo, autorização, estoque concorrente, retentativas, erros de frete, celular, build e regressão das fases anteriores; documentar e publicar no GitHub.
 
-A integração real depende de credenciais e configuração do Melhor Envio; a existência delas ainda não foi verificada. O checkout deve continuar indisponível até existir uma cotação confiável e operação de pedido no backend.
+O usuário informou que a integração do Melhor Envio ainda não está configurada; não há Edge Functions no projeto Pupi. O checkout deve continuar indisponível até existir uma cotação confiável e operação de pedido no backend.

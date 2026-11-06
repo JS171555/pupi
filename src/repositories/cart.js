@@ -12,13 +12,32 @@ export function createCartRepository(client) {
       let cartQuery = client.from('carts').select('id').eq('user_id',userId).maybeSingle();
       if (signal) cartQuery = cartQuery.abortSignal(signal);
       const cart = await unwrap(cartQuery);
-      if (!cart) return {items:[],hasMore:false};
+      if (!cart) return {items:[],hasMore:false,subtotalCents:0,subtotalIncomplete:false};
       let itemsQuery = client.from('cart_items')
         .select('id,product_id,quantity,updated_at,products(id,name,slug,price_cents,sale_price_cents,stock_quantity,active,status,categories(active))')
         .eq('cart_id',cart.id).order('id').range((page-1)*20,page*20);
       if (signal) itemsQuery = itemsQuery.abortSignal(signal);
       const items = await unwrap(itemsQuery);
-      return {items:items.slice(0,20),hasMore:items.length>20};
+      let subtotalCents=0, subtotalIncomplete=false, lastId=null, complete=false;
+      for (let batch=0;batch<100;batch++) {
+        let summaryQuery=client.from('cart_items')
+          .select('id,quantity,products(price_cents,sale_price_cents,active,status,categories(active))')
+          .eq('cart_id',cart.id).order('id').limit(100);
+        if (lastId) summaryQuery=summaryQuery.gt('id',lastId);
+        if (signal) summaryQuery=summaryQuery.abortSignal(signal);
+        const rows=await unwrap(summaryQuery);
+        for (const row of rows) {
+          const product=row.products;
+          if (!product || !product.active || product.status!=='published' || !product.categories?.active) { subtotalIncomplete=true; continue; }
+          const price=product.sale_price_cents ?? product.price_cents;
+          if (!Number.isSafeInteger(price) || price<0 || !Number.isSafeInteger(row.quantity)) { subtotalIncomplete=true; continue; }
+          subtotalCents+=price*row.quantity;
+          if (!Number.isSafeInteger(subtotalCents)) { subtotalIncomplete=true; subtotalCents=0; break; }
+        }
+        if (rows.length<100) {complete=true;break;}
+        lastId=rows.at(-1).id;
+      }
+      return {items:items.slice(0,20),hasMore:items.length>20,subtotalCents,subtotalIncomplete:subtotalIncomplete || !complete};
     },
     async updateItemQuantity(userId, itemId, productId, quantity, expected) {
       if (!uuid(userId) || !uuid(itemId) || !uuid(productId) || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 999 || typeof expected !== 'string' || !expected) {

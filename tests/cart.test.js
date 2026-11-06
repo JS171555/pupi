@@ -72,3 +72,23 @@ test('edição recusada quando a versão do item mudou',async()=>{
   assert.equal(calls[2].url.searchParams.get('updated_at'),'eq.2026-11-05T12:00:00Z');
   assert.equal(calls[2].url.searchParams.get('cart_id'),`eq.${cart}`);
 });
+
+test('subtotal considera todas as páginas e sinaliza itens indisponíveis',async()=>{
+  const calls=[];
+  const published={price_cents:3000,sale_price_cents:2500,active:true,status:'published',categories:{active:true}};
+  const first=Array.from({length:100},(_,i)=>({id:String(i).padStart(4,'0'),quantity:1,products:published}));
+  const client=createPupiClient({SUPABASE_URL:'https://pupi.example.com',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test'}, {
+    auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:async(url)=>{
+      const parsed=new URL(url);calls.push(parsed);
+      let result;
+      if(parsed.pathname.endsWith('/carts'))result=[{id:cart}];
+      else if(parsed.searchParams.get('limit')==='21')result=first.slice(0,21);
+      else result=parsed.searchParams.has('id')?[{id:'0100',quantity:2,products:published},{id:'0101',quantity:1,products:null}]:first;
+      return new Response(JSON.stringify(result),{status:200,headers:{'Content-Type':'application/json'}});
+    }},
+  });
+  const data=await createCartRepository(client).listItems(user);
+  assert.equal(data.items.length,20);assert.equal(data.hasMore,true);
+  assert.equal(data.subtotalCents,255000);assert.equal(data.subtotalIncomplete,true);
+  assert.equal(calls[3].searchParams.get('id'),'gt.0099');
+});

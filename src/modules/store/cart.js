@@ -4,7 +4,7 @@ import {confirmAction} from '../../ui/feedback.js';
 import {makeForm,cleanForm} from '../../ui/forms.js';
 import {AppError} from '../../utils/errors.js';
 
-export function cartView({items,hasMore,page,go,user,busy,announce,repository}) {
+export function cartView({items,hasMore,page,go,user,busy,announce,repository,subtotalCents,subtotalIncomplete}) {
   const rows=items.map(item=>{
     const product=item.products;
     const label=product?.name || 'produto indisponível';
@@ -39,5 +39,10 @@ export function cartView({items,hasMore,page,go,user,busy,announce,repository}) 
   });
   return el('section',{className:'panel'},[heading('Carrinho','Preços e estoque podem mudar antes da confirmação do pedido.'),
     rows.length ? el('ul',{className:'record-list'},rows) : el('p',{},'Seu carrinho está vazio.'),
-    pagination(page,hasMore,'/carrinho',go),link('Continuar na loja','#/loja',{className:'button button-secondary'})]);
+    pagination(page,hasMore,'/carrinho',go),
+    el('p',{},[el('strong',{},`${subtotalIncomplete?'Subtotal dos itens disponíveis':'Subtotal'}: ${money(subtotalCents)}`)]),
+    subtotalIncomplete ? el('p',{className:'muted'},'Itens indisponíveis ou não carregados não estão incluídos no subtotal.') : null,
+    el('p',{className:'muted'},'O frete será calculado quando a entrega estiver disponível.'),
+    items.length ? link('Revisar pedido','#/checkout',{className:'button button-primary'}) : null,
+    link('Continuar na loja','#/loja',{className:'button button-secondary'})]);
 }
