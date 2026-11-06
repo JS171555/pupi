@@ -2,7 +2,7 @@ import { el, link, button, heading, empty, date, money } from '../../ui/dom.js';
 import { makeForm, cleanForm } from '../../ui/forms.js';
 import { STATES } from '../auth/validation.js';
 import { confirmAction } from '../../ui/feedback.js';
-import { createElement, UserRound, Mail, CalendarDays, MapPin, ShoppingBag, ArrowUpRight, Package, ArrowLeft, ArrowRight, CreditCard, Truck } from 'lucide';
+import { createElement, UserRound, Mail, CalendarDays, MapPin, ShoppingBag, ArrowUpRight, Package, ArrowLeft, ArrowRight, CreditCard, Truck, Plus, Pencil, Trash2 } from 'lucide';
 
 const statusLabels = {
   confirmed: 'Pedido confirmado', preparing: 'Preparando pedido', shipped: 'Enviado', in_transit: 'Em trânsito',
@@ -57,9 +57,10 @@ export function pagination(page, hasMore, route, go) {
   return el('nav', { className: 'pagination', 'aria-label': 'Paginação' }, [previous, el('span', {}, `Página ${page}`), next]);
 }
 export function addressesView({ items, hasMore, page, go, repository, user, announce, reload, busy }) {
-  const list = el('ul', { className: 'record-list' });
+  const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
+  const list = el('ul', { className: 'record-list address-list' });
   for (const address of items) {
-    const remove = button('Excluir endereço', () => confirmAction({
+    const remove = button([icon(Trash2), 'Excluir endereço'], () => confirmAction({
       title: `Excluir endereço “${address.label}”?`, description: 'O endereço será removido da sua conta. O endereço registrado em pedidos anteriores será preservado.',
       confirmLabel: 'Excluir endereço', danger: true,
       onConfirm: async () => {
@@ -68,22 +69,35 @@ export function addressesView({ items, hasMore, page, go, repository, user, anno
         finally { busy(false); }
       },
     }), 'ghost');
-    list.append(el('li', { className: 'record-card' }, [
-      el('h2', {}, [address.label, address.is_default ? el('span', { className: 'badge' }, 'Padrão') : null]),
-      el('p', {}, address.recipient), el('p', {}, `${address.street}, ${address.number}${address.complement ? ` · ${address.complement}` : ''}`),
-      el('p', { className: 'muted' }, `${address.neighborhood} · ${address.city}/${address.state} · CEP ${address.postal_code}`),
-      el('div', { className: 'actions' }, [link('Editar endereço', `#/enderecos/${address.id}`, { className: 'button button-secondary' }), remove]),
+    remove.classList.add('address-delete-action');
+    list.append(el('li', { className: 'record-card address-card' }, [
+      el('div', { className: 'address-card-heading' }, [
+        el('span', { className: 'address-card-icon', 'aria-hidden': 'true' }, icon(MapPin)),
+        el('div', { className: 'address-card-title' }, [
+          el('h2', {}, [address.label, address.is_default ? el('span', { className: 'badge address-default-badge' }, 'Padrão') : null]),
+          el('p', { className: 'address-card-recipient' }, address.recipient),
+        ]),
+      ]),
+      el('div', { className: 'address-card-location' }, [
+        el('p', {}, [icon(MapPin),el('span', {}, `${address.street}, ${address.number}${address.complement ? ` · ${address.complement}` : ''}`)]),
+        el('p', { className: 'muted' }, `${address.neighborhood} · ${address.city}/${address.state} · CEP ${address.postal_code}`),
+      ]),
+      el('div', { className: 'address-card-actions' }, [
+        link([icon(Pencil), 'Editar endereço'], `#/enderecos/${address.id}`, { className: 'button button-secondary address-edit-action' }),
+        remove,
+      ]),
     ]));
   }
-  return el('section', { className: 'panel' }, [
-    el('div', { className: 'toolbar' }, [heading('Meus endereços', 'Cadastre e edite os endereços da sua conta.'),
-      link('Adicionar endereço', '#/enderecos/novo', { className: 'button button-primary' })]),
+  return el('section', { className: 'panel addresses-page' }, [
+    el('div', { className: 'toolbar address-toolbar' }, [heading('Meus endereços', 'Cadastre e edite os endereços da sua conta.'),
+      link([icon(Plus), 'Adicionar endereço'], '#/enderecos/novo', { className: 'button button-primary address-add-button' })]),
     items.length ? list : empty('Nenhum endereço cadastrado', 'Adicione um endereço para usar em compras futuras.'),
     pagination(page, hasMore, '/enderecos', go),
   ]);
 }
 
 export function addressFormView({ address, repository, go, busy, announce }) {
+  const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
   const value = key => address?.[key] || '';
   const fields = [
     { name: 'label', label: 'Nome do endereço', value: value('label') || 'Casa', required: true, maxLength: 60, autocomplete: 'off' },
@@ -104,8 +118,26 @@ export function addressFormView({ address, repository, go, busy, announce }) {
     },
   });
   setupPostalLookup(form);
-  return el('section', { className: 'panel' }, [heading(address ? 'Editar endereço' : 'Adicionar endereço', 'Os dados são salvos apenas na sua conta.'),
-    form, link('Cancelar e voltar', '#/enderecos')]);
+  form.classList.add('address-form');
+  form.querySelector('.form-fields')?.classList.add('address-form-fields');
+  return el('div', { className: 'address-form-layout' }, [
+    el('section', { className: 'panel address-form-main' }, [
+      el('p', { className: 'address-form-eyebrow' }, 'DADOS DE ENTREGA'),
+      heading(address ? 'Editar endereço' : 'Adicionar endereço', 'Os dados são salvos apenas na sua conta.'),
+      el('p', { className: 'address-form-note' }, 'Preencha o endereço com atenção. Você poderá revisá-lo antes de salvar.'),
+      form,
+      link('Cancelar e voltar', '#/enderecos', { className: 'address-cancel-link' }),
+    ]),
+    el('aside', { className: 'address-guidance' }, [
+      el('span', { className: 'address-guidance-icon', 'aria-hidden': 'true' }, icon(MapPin)),
+      el('h2', {}, 'Dicas para preencher'),
+      el('ul', { className: 'address-guidance-list' }, [
+        el('li', {}, [el('strong', {}, 'Use o CEP'),el('p', {}, 'A consulta pode preencher rua, bairro, cidade e UF. Confira os dados antes de salvar.')]),
+        el('li', {}, [el('strong', {}, 'Confira número e complemento'),el('p', {}, 'Inclua apartamento, bloco ou outra referência no campo de complemento.')]),
+        el('li', {}, [el('strong', {}, 'Escolha um padrão'),el('p', {}, 'Marque o endereço padrão se quiser priorizá-lo em compras futuras.')]),
+      ]),
+    ]),
+  ]);
 }
 
 // Uma resposta antiga nunca pode substituir dados digitados durante a consulta.

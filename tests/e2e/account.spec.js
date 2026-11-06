@@ -83,10 +83,28 @@ test('Google não configurado mantém a alternativa de e-mail e senha', async ({
 });
 
 test('endereço: criar, abrir select nativo, editar e excluir com confirmação', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   const api = await installApi(page, { signedIn: true });
   await page.goto('/#/enderecos');
   await expect(page.getByRole('heading', { name: 'Nenhum endereço cadastrado' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('link', { name: 'Adicionar endereço' }).click();
+  const formPanel = await page.locator('.address-form-main').boundingBox();
+  const guidancePanel = await page.locator('.address-guidance').boundingBox();
+  expect(guidancePanel.y).toBeGreaterThan(formPanel.y);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const desktopFormPanel = await page.locator('.address-form-main').boundingBox();
+  const desktopGuidancePanel = await page.locator('.address-guidance').boundingBox();
+  expect(desktopGuidancePanel.x).toBeGreaterThan(desktopFormPanel.x);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.getByLabel('Destinatário').fill('Pessoa Teste');
   await page.getByLabel('CEP').fill('01001-000');
   await page.getByLabel('Rua ou avenida').fill('Rua de teste');
@@ -99,10 +117,12 @@ test('endereço: criar, abrir select nativo, editar e excluir com confirmação'
   await page.getByRole('button', { name: 'Salvar endereço' }).click();
   await expect(page.getByText('Endereço salvo.', { exact: true })).toBeVisible();
   expect(api.addresses).toHaveLength(1); expect(api.addresses[0].postal_code).toBe('01001000');
+  await page.getByRole('button', { name: 'Fechar aviso' }).click();
   await page.getByRole('link', { name: 'Editar endereço' }).click();
   await page.getByLabel('Nome do endereço').fill('Trabalho');
   await page.getByRole('button', { name: 'Salvar endereço' }).click();
   await expect(page.getByRole('heading', { name: 'Trabalho' })).toBeVisible();
+  await page.getByRole('button', { name: 'Fechar aviso' }).click();
   api.failDelete = true;
   await page.getByRole('button', { name: 'Excluir endereço', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();

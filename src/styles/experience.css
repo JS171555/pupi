@@ -556,3 +556,100 @@ input:focus,select:focus,textarea:focus {border-color:var(--color-text);}
   .store-product-info {padding:.95rem;}
   .store-product-info .page-heading h1 {font-size:1.6rem;}
 }
+
+/* Address book and address form */
+.addresses-page {display:grid;gap:1.1rem;padding:clamp(1.15rem,2.5vw,2rem);border-radius:var(--radius-card);}
+.address-toolbar {align-items:center;gap:1rem;margin-bottom:.2rem;}
+.address-toolbar .page-heading {margin:0;}
+.address-toolbar .page-heading h1 {font-size:clamp(1.65rem,3vw,2.1rem);letter-spacing:-.05em;}
+.address-toolbar .page-heading p {margin-top:.35rem;font-size:.9rem;}
+.address-add-button {min-height:48px;flex:none;border-radius:13px;}
+.address-add-button svg {width:18px;height:18px;}
+.address-list {grid-template-columns:repeat(auto-fill,minmax(min(100%,350px),1fr));gap:.9rem;}
+.address-card {display:grid;grid-template-columns:minmax(0,1fr);gap:1rem;min-width:0;padding:1.15rem;border:1px solid color-mix(in srgb,var(--color-primary) 16%,var(--color-border));border-radius:20px;background:linear-gradient(145deg,var(--color-surface),color-mix(in srgb,var(--color-background) 65%,var(--color-surface)));box-shadow:0 8px 24px rgba(48,39,70,.035);transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease;}
+.address-card:hover {border-color:color-mix(in srgb,var(--color-primary) 42%,var(--color-border));box-shadow:0 13px 30px rgba(48,39,70,.07);transform:translateY(-1px);}
+.address-card-heading {display:flex;align-items:center;gap:.8rem;min-width:0;}
+.address-card-icon {display:grid;place-items:center;width:2.8rem;height:2.8rem;flex:none;border:1px solid color-mix(in srgb,var(--color-primary) 20%,transparent);border-radius:14px;background:var(--color-soft);color:var(--color-text);}
+.address-card-icon svg {width:21px;height:21px;}
+.address-card-title {display:grid;gap:.2rem;min-width:0;}
+.address-card-title h2 {display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;margin:0;font-size:1.02rem;line-height:1.35;letter-spacing:-.025em;overflow-wrap:anywhere;}
+.address-default-badge {border:1px solid color-mix(in srgb,var(--color-primary) 18%,transparent);border-radius:999px;background:var(--color-soft);font-size:.68rem;font-weight:750;}
+.address-card-recipient {margin:0;color:var(--color-muted);font-size:.82rem;overflow-wrap:anywhere;}
+.address-card-location {display:grid;gap:.3rem;padding:.8rem 0;border-top:1px solid var(--color-border);border-bottom:1px solid var(--color-border);}
+.address-card-location p {display:flex;align-items:flex-start;gap:.45rem;margin:0;font-size:.82rem;line-height:1.5;overflow-wrap:anywhere;}
+.address-card-location p svg {width:15px;height:15px;flex:none;margin-top:.12rem;color:var(--color-muted);}
+.address-card-location p.muted {padding-left:1.4rem;font-size:.75rem;}
+.address-card-actions {display:flex;align-items:center;gap:.55rem;}
+.address-card-actions .button {min-height:42px;padding:.55rem .7rem;border-radius:11px;font-size:.79rem;}
+.address-card-actions svg {width:16px;height:16px;}
+.address-delete-action {color:var(--color-danger);}
+.address-delete-action:hover:not(:disabled) {border-color:color-mix(in srgb,var(--color-danger) 35%,var(--color-border));background:color-mix(in srgb,var(--color-danger) 7%,var(--color-surface));color:var(--color-danger);}
+.addresses-page .empty-state {display:grid;place-items:center;max-width:40rem;width:100%;margin:.3rem auto;padding:2.5rem 1rem;border:1px dashed color-mix(in srgb,var(--color-primary) 30%,var(--color-border));border-radius:20px;background:var(--color-background);text-align:center;}
+.addresses-page .pagination {margin-top:.2rem;}
+.address-form-layout {display:grid;grid-template-columns:minmax(0,1.55fr) minmax(17rem,.75fr);align-items:start;gap:1rem;min-width:0;}
+.address-form-main {min-width:0;padding:clamp(1.2rem,2.5vw,2rem);border-radius:var(--radius-card);}
+.address-form-eyebrow {margin:0 0 .4rem;color:var(--color-muted);font-size:.68rem;font-weight:800;letter-spacing:.14em;}
+.address-form-main .page-heading {margin:0 0 .85rem;}
+.address-form-main .page-heading h1 {font-size:clamp(1.65rem,3vw,2.1rem);letter-spacing:-.05em;}
+.address-form-main .page-heading p {margin:.3rem 0 0;font-size:.9rem;}
+.address-form-note {margin:0 0 1rem;color:var(--color-muted);font-size:.83rem;line-height:1.5;}
+.address-form-fields {grid-template-columns:repeat(2,minmax(0,1fr));gap:.35rem 1rem;}
+.address-form-fields>.field {min-width:0;margin:0;}
+.address-form-fields>.field[data-field='label'],.address-form-fields>.field[data-field='recipient'],.address-form-fields>.field[data-field='street'],.address-form-fields>.field[data-field='is_default'],.address-form-fields>.button {grid-column:1/-1;}
+.address-form-fields>.field[data-field='postal_code'],.address-form-fields>.field[data-field='number'],.address-form-fields>.field[data-field='neighborhood'],.address-form-fields>.field[data-field='state'] {grid-column:1;}
+.address-form-fields>.field[data-field='complement'],.address-form-fields>.field[data-field='city'] {grid-column:2;}
+.address-form-fields label {font-size:.82rem;font-weight:700;}
+.address-form-fields input:not([type='checkbox']),.address-form-fields select {min-height:48px;padding:.7rem .85rem;border-radius:12px;}
+.address-form-fields .field-help {margin-top:.22rem;font-size:.75rem;line-height:1.4;}
+.address-form-fields .field-error {min-height:1.1rem;font-size:.75rem;}
+.address-form-fields .checkbox-field {align-self:center;margin:.15rem 0 .3rem;padding:.8rem .85rem;border:1px solid var(--color-border);border-radius:13px;background:var(--color-background);}
+.address-form-fields .checkbox-row {align-items:center;gap:.65rem;}
+.address-form-fields .checkbox-row input {width:21px;height:21px;margin:0;}
+.address-form-fields .checkbox-row label {font-size:.82rem;line-height:1.4;}
+.address-form-fields>.button {min-height:50px;margin-top:.3rem;border-radius:13px;}
+.address-form .form-status {min-height:0;margin:.45rem 0 0;font-size:.82rem;}
+.address-cancel-link {display:inline-flex;align-items:center;min-height:42px;margin-top:.65rem;padding:.45rem .15rem;color:var(--color-muted);font-size:.84rem;font-weight:650;text-decoration:none;}
+.address-cancel-link:hover {color:var(--color-text);text-decoration:underline;text-underline-offset:3px;}
+.address-guidance {position:relative;display:grid;align-content:start;gap:.75rem;min-width:0;padding:1.3rem;border:1px solid color-mix(in srgb,var(--color-primary) 16%,var(--color-border));border-radius:var(--radius-card);background:linear-gradient(155deg,var(--color-soft),var(--color-surface) 76%);}
+.address-guidance-icon {display:grid;place-items:center;width:2.7rem;height:2.7rem;border-radius:14px;background:var(--color-surface);color:var(--color-text);box-shadow:0 4px 12px rgba(48,39,70,.05);}
+.address-guidance-icon svg {width:21px;height:21px;}
+.address-guidance h2 {margin:0;font-size:1.05rem;letter-spacing:-.025em;}
+.address-guidance-list {display:grid;gap:.85rem;margin:0;padding:0;list-style:none;counter-reset:address-tip;}
+.address-guidance-list li {position:relative;padding-left:2rem;counter-increment:address-tip;}
+.address-guidance-list li::before {position:absolute;top:.05rem;left:0;display:grid;place-items:center;width:1.4rem;height:1.4rem;border:1px solid color-mix(in srgb,var(--color-primary) 25%,transparent);border-radius:50%;background:var(--color-surface);color:var(--color-text);font-size:.7rem;font-weight:800;content:counter(address-tip);}
+.address-guidance-list strong {display:block;margin-bottom:.15rem;font-size:.8rem;}
+.address-guidance-list p {margin:0;color:var(--color-muted);font-size:.76rem;line-height:1.5;}
+@media(max-width:52rem) {
+  .address-form-layout {grid-template-columns:minmax(0,1fr);gap:.8rem;}
+  .address-guidance {grid-template-columns:auto minmax(0,1fr);align-items:center;padding:1rem;border-radius:18px;}
+  .address-guidance-icon {grid-row:1;}
+  .address-guidance h2 {grid-row:1;}
+  .address-guidance-list {grid-column:1/-1;gap:.75rem;}
+}
+@media(max-width:47.99rem) {
+  .addresses-page {gap:.85rem;padding:1rem;border-radius:18px;}
+  .address-toolbar {align-items:stretch;flex-direction:column;gap:.8rem;margin-bottom:0;}
+  .address-toolbar .page-heading h1 {font-size:1.6rem;}
+  .address-toolbar .page-heading p {font-size:.84rem;}
+  .address-add-button {width:100%;min-height:48px;}
+  .address-list {grid-template-columns:minmax(0,1fr);gap:.7rem;}
+  .address-card {gap:.8rem;padding:.9rem;border-radius:17px;}
+  .address-card-actions {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.5rem;}
+  .address-card-actions .button {width:100%;min-height:44px;gap:.35rem;padding:.5rem .4rem;font-size:.73rem;white-space:nowrap;}
+  .address-form-main {padding:1.05rem;border-radius:18px;}
+  .address-form-main .page-heading h1 {font-size:1.6rem;}
+  .address-form-note {font-size:.8rem;}
+  .address-form-fields {column-gap:.65rem;}
+  .address-form-fields>.field[data-field='postal_code'],.address-form-fields>.field[data-field='state'] {grid-column:1/-1;}
+  .address-form-fields input:not([type='checkbox']),.address-form-fields select {min-height:46px;padding:.65rem .7rem;}
+}
+@media(max-width:360px) {
+  .addresses-page {padding:.85rem;}
+  .address-card {padding:.8rem;}
+  .address-card-actions {grid-template-columns:minmax(0,1fr);}
+  .address-form-main {padding:.9rem;}
+  .address-form-fields {grid-template-columns:minmax(0,1fr);}
+  .address-form-fields>.field[data-field='label'],.address-form-fields>.field[data-field='recipient'],.address-form-fields>.field[data-field='street'],.address-form-fields>.field[data-field='is_default'],.address-form-fields>.field[data-field='postal_code'],.address-form-fields>.field[data-field='number'],.address-form-fields>.field[data-field='complement'],.address-form-fields>.field[data-field='neighborhood'],.address-form-fields>.field[data-field='city'],.address-form-fields>.field[data-field='state'] {grid-column:1;}
+  .address-guidance {padding:.85rem;}
+}
+@media(prefers-reduced-motion:reduce) {.address-card {transition:none;}}
