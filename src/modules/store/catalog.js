@@ -47,15 +47,20 @@ export async function storeCatalog(repository, params, go, media) {
   ]);
   form.addEventListener('submit',event=>{event.preventDefault();const query=new URLSearchParams();if(select.value)query.set('categoria',select.value);if(searchInput.value.trim())query.set('busca',searchInput.value.trim());if(order.value!=='recent')query.set('ordem',order.value);if(selection.value)query.set('filtro',selection.value);go('/loja'+(query.size?'?'+query:''));});
   const images=await primaryImages(repository, media, products);
-  const cards=products.map(product=>el('li',{className:'record-card product-card'},[
-    el('div',{className:'product-image-wrap'},productImage(images.get(product.id),product.name)),
-    product.featured ? el('span',{className:'badge'},'Destaque') : null,
-    el('h2',{},link(product.name,`#/loja/${product.slug}`)),
-    product.short_description ? el('p',{className:'product-description'},product.short_description) : null,
-    product.sale_price_cents!==null ? el('p',{},[el('del',{},money(product.price_cents)), ' ', el('strong',{},money(product.sale_price_cents))]) : el('p',{},money(product.price_cents)),
-    el('p',{className:`product-availability${product.stock_quantity>0?'':' is-unavailable'}`},product.stock_quantity>0?'Disponível':'Indisponível'),
-    link(['Ver produto ',icon(ArrowUpRight)],`#/loja/${product.slug}`,{className:'product-card-action','aria-label':`Ver produto ${product.name}`}),
-  ]));
+  const cards=products.map(product=>{
+    const price=product.sale_price_cents!==null
+      ? el('p',{className:'product-price'},[el('del',{},money(product.price_cents)),el('strong',{},money(product.sale_price_cents))])
+      : el('p',{className:'product-price'},money(product.price_cents));
+    return el('li',{className:'record-card product-card'},[link([
+      el('div',{className:'product-image-wrap'},[productImage(images.get(product.id),product.name),product.featured?el('span',{className:'badge product-featured-badge'},'Destaque'):null]),
+      el('div',{className:'product-card-content'},[
+        el('h2',{},product.name),
+        product.short_description ? el('p',{className:'product-description'},product.short_description) : null,
+        el('div',{className:'product-card-footer'},[price,el('span',{className:'product-card-cue','aria-hidden':'true'},icon(ArrowUpRight))]),
+        el('p',{className:`product-availability${product.stock_quantity>0?'':' is-unavailable'}`},product.stock_quantity>0?'Disponível':'Indisponível'),
+      ]),
+    ],`#/loja/${product.slug}`,{className:'product-card-link','aria-label':`Abrir detalhes de ${product.name}`})]);
+  });
   const pageLink=(number,label)=>{const query=new URLSearchParams({pagina:String(number)});if(category)query.set('categoria',category);if(search)query.set('busca',search);if(sort!=='recent')query.set('ordem',sort);if(filter)query.set('filtro',filter);return link(label,`#/loja?${query}`,{className:'button button-secondary'});};
   const hero=el('div',{className:'store-hero'},[
     el('div',{className:'store-hero-copy'},[el('p',{className:'store-kicker'},[icon(Sparkles),' UM JEITO CARINHOSO DE CUIDAR']),
@@ -100,6 +105,7 @@ export async function storeProduct(repository, slug, media, params = new URLSear
         records.length===20 ? link('Mais fotos',`#/loja/${slug}?fotos=${page+1}`,{className:'button button-secondary'}) : null,
       ])]);
   } catch {gallery=el('p',{role:'status'},'Não foi possível carregar as fotos. Recarregue a página para tentar novamente.');}
+  category.classList.add('store-product-category');
   const cartForm = product.stock_quantity > 0 && context.addToCart ? makeForm({
     name:'Quantidade no carrinho', submitLabel:'Salvar no carrinho', onBusy:context.busy,
     fields:[{name:'quantity',label:'Quantidade',value:'1',required:true,inputmode:'numeric',hint:'Substitui a quantidade anterior deste produto no carrinho.'}],
@@ -110,7 +116,24 @@ export async function storeProduct(repository, slug, media, params = new URLSear
       await context.addToCart(product,quantity);
     },
   }) : null;
-  return el('section',{className:'panel'},[heading(product.name,product.title),category,gallery,el('p',{},product.description||product.short_description),
-    product.sale_price_cents!==null?el('p',{},[el('del',{},money(product.price_cents)),' ',el('strong',{},money(product.sale_price_cents))]):el('p',{},money(product.price_cents)),
-    el('p',{},product.stock_quantity>0?'Disponível':'Indisponível'),cartForm,link('Voltar à loja','#/loja',{className:'button button-secondary'})]);
+  if(cartForm)cartForm.classList.add('store-product-cart-form');
+  const price=product.sale_price_cents!==null
+    ? el('p',{className:'store-product-price'},[el('del',{},money(product.price_cents)),el('strong',{},money(product.sale_price_cents))])
+    : el('p',{className:'store-product-price'},money(product.price_cents));
+  return el('section',{className:'store-product-page'},[
+    link('Voltar à loja','#/loja',{className:'store-product-back'}),
+    el('div',{className:'store-product-layout'},[
+      el('div',{className:'store-product-gallery'},gallery),
+      el('div',{className:'store-product-info'},[
+        category,
+        heading(product.name,product.title),
+        el('p',{className:'store-product-description'},product.description||product.short_description),
+        el('div',{className:'store-product-purchase'},[
+          price,
+          el('p',{className:`store-product-availability${product.stock_quantity>0?'':' is-unavailable'}`},product.stock_quantity>0?'Disponível':'Indisponível'),
+          cartForm,
+        ]),
+      ]),
+    ]),
+  ]);
 }
