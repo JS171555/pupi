@@ -91,3 +91,12 @@ As últimas consultas registraram `PAYMENT_ACCOUNT_COLLECTOR_MISMATCH` (15:56:52
 A tentativa anterior, criada às 15:30:29.654837 UTC e rejeitada com HTTP 401 às 15:30:29.985 UTC, foi encerrada após bloquear o pedido e conferir data/estado exatos, ausência de payment_id e ausência de pagamentos vinculados. O resultado registra provider_authorization_rejected e HTTP 401; o histórico permanece. A consulta posterior confirmou estado failed e pedido ainda pending. Nenhum código funcional foi alterado nesta investigação.
 
 Próximo passo manual: atualizar somente MERCADO_PAGO_COLLECTOR_ID no Supabase para o User ID numérico do vendedor correspondente ao Access Token atualmente configurado. Consultar o ID na própria conta ou pela API oficial /users/me com a credencial mantida no ambiente do usuário. Não usar identificador da aplicação ou da conta compradora. Manter o par Access Token/Public Key da mesma aplicação e ambiente. Depois, reabrir o pedido #4 e retomar o teste. Não solicitar nem registrar o token pelo chat; o resultado do pagamento ainda exige homologação real.
+
+
+## Nova conferência após atualização — 06/11/2026, 16:34 UTC
+
+As verificações de 16:32:38 e 16:34:16 passaram pela autenticação da conta e comparação do vendedor e chegaram à busca de pagamentos, que registrou PAYMENT_SEARCH_EMPTY com zero candidatos e zero vínculos. A divergência do COLLECTOR_ID não apareceu nessas consultas. Isso confirma acesso de consulta e correspondência da conta naquele momento, mas não comprova permissão de criação nem homologação do par Public Key/Access Token.
+
+A última criação registrada ocorreu às 16:21:46 e recebeu HTTP 401. Após conferir ausência de pagamentos vinculados, somente essa tentativa (criada às 16:21:46.613251 UTC) foi encerrada com auditoria provider_authorization_rejected/401. O histórico foi mantido e a consulta posterior confirmou estado failed, ausência de payment_id e pedido pending. Nenhuma cobrança foi criada durante a conferência.
+
+Próximo passo: reabrir o pedido #4 e enviar uma única nova tentativa com cartão de teste pelas credenciais atuais. Conferir a resposta de criação e os diagnósticos. Não declarar a integração validada somente por consulta vazia; não liberar tentativas incertas por esse motivo. Código funcional preservado nesta análise.
