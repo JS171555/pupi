@@ -28,7 +28,7 @@ Não há função SECURITY DEFINER em `public`. Nenhuma autorização usa user_m
 
 ## Limites operacionais
 
-A Fase 3 permite transições operacionais validadas por RPC administrativa. Cancelamento anterior ao envio repõe estoque uma vez; pagamento aprovado bloqueia cancelamento sem estorno. Integrações financeiras, estornos e webhooks ficam para a Fase 4. O painel não altera payment_status. Entregas nesta fase são registros manuais.
+A Fase 3 permite transições operacionais validadas por RPC administrativa. Cancelamento anterior ao envio repõe estoque uma vez; pagamento aprovado bloqueia cancelamento sem estorno. A integração financeira com Mercado Pago, incluindo estornos e webhooks, está prevista para a Fase 5. O painel não altera payment_status. Entregas nesta fase são registros manuais.
 
 Não há verificação estrita de `auth.sessions` no banco nesta fase. Como em Supabase, um JWT já emitido pode permanecer válido até expirar. A consulta de função no banco faz a revogação de administrador surtir efeito sem esperar um novo JWT. Para remoção de contas, definir revogação de sessão e retenção/anônimização antes de implementar exclusão de usuário; pedidos históricos impedem exclusão em cascata.
 

@@ -83,5 +83,5 @@ O token, o segredo do webhook e a conta Melhor Envio ainda não foram configurad
 1. Configurar credenciais do Melhor Envio no servidor e homologar cotação e confirmação no sandbox com dados reais controlados. Verificar peso e dimensões de produtos e CEP de origem.
 2. Implementar registro e vinculação de remessa e consulta de rastreamento no Melhor Envio; usar os volumes efetivamente retornados na cotação. O receptor de eventos assinado já está preparado, mas precisa da etiqueta vinculada e de homologação. O fluxo comercial exige chave da NF-e, inscrição estadual e dados reais de remetente/destinatário ainda não coletados; não inventar dados nem simular emissão. A entrega manual do painel continua disponível.
 3. Homologar o fluxo completo em navegador com dois usuários, concorrência, falhas de rede, estoque e cotações expiradas. O checkout foi exercitado localmente e em SQL hospedado com rollback; a API externa real ainda não foi testada.
-4. Definir provedor financeiro na fase apropriada. Os pedidos são criados com pagamento pendente; não há cobrança ou aprovação simulada.
+4. Integrar pagamentos com Mercado Pago na Fase 5, conforme `docs/phase-5-plan.md`. Os pedidos são criados com pagamento pendente; não há cobrança ou aprovação simulada.
 5. Regularizar o histórico da migration inicial aplicada manualmente antes de futuro `supabase db push`.
