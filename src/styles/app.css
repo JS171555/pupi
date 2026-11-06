@@ -1,7 +1,9 @@
 @import './tokens.css';
 
 * { box-sizing: border-box; scrollbar-width: auto; scrollbar-color: var(--color-muted) var(--color-background); }
-html { scrollbar-gutter: stable; }
+html { scrollbar-gutter: stable; scroll-padding-top:calc(var(--app-header-height,82px) + 24px); }
+[hidden] {display:none !important;}
+h1[tabindex="-1"]:focus {outline:none;}
 *::-webkit-scrollbar { width: 12px; height: 12px; }
 *::-webkit-scrollbar-track { background: var(--color-background); }
 *::-webkit-scrollbar-thumb { background: var(--color-muted); border: 3px solid var(--color-background); border-radius: var(--radius-default); }
@@ -14,7 +16,7 @@ a { color: var(--color-text); text-underline-offset: 3px; }
 a:hover { text-decoration-thickness: 2px; }
 a:active { opacity: .8; }
 button:disabled, input:disabled, select:disabled { cursor: not-allowed; opacity: .65; }
-:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--color-accent-ink); outline-offset: 3px; }
 h1, h2, h3 { font-family: var(--font-display); line-height: 1.25; overflow-wrap: anywhere; }
 h1 { margin: 0 0 .75rem; font-size: clamp(1.65rem, 4vw, 2rem); }
 h2 { margin: 0 0 .75rem; font-size: 1.25rem; }
@@ -33,10 +35,6 @@ ul { padding-left: 1.25rem; }
 .connection-status { min-height: 2.1rem; padding: .25rem 1rem; text-align: center; font-size: .875rem; background: var(--color-soft); color: var(--color-muted); }
 .connection-status[data-offline='true'] { color: var(--color-danger); }
 .page-shell { max-width: var(--space-page-max); margin: 0 auto; padding: .5rem 1rem 2rem; }
-.feedback { min-height: 3.5rem; display: flex; align-items: center; }
-.feedback p { margin: .3rem 0; padding: .65rem .9rem; background: var(--color-soft); border-radius: var(--radius-default); width: 100%; }
-.feedback-success { color: var(--color-success-ink); }
-.feedback-error { color: var(--color-danger); }
 .auth-layout { display: grid; gap: var(--space-section-gap); align-items: start; }
 .auth-intro { padding: 1rem .25rem; }
 .auth-intro p { max-width: 33rem; }

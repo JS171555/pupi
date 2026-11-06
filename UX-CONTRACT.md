@@ -1,8 +1,8 @@
-# Contrato de experiência — Pupi Fases 2 e 3
+# Contrato de experiência — Pupi
 
 ## Contexto e fontes
 
-Clientes brasileiros, pt-BR, celular e desktop. Datas de conta em America/Sao_Paulo. Fontes: briefing do Pupi, `docs/architecture.md`, `docs/security.md` e APIs Supabase Auth. A autorização do usuário permite aviso de testes enquanto não há termos oficiais. Acessibilidade: WCAG 2.2 AA. A fase inclui gestão administrativa. Compras e integrações de pagamento/frete ficam para a Fase 4.
+Clientes brasileiros, pt-BR, celular e desktop. Datas de conta em America/Sao_Paulo. Fontes: briefing do Pupi, `docs/architecture.md`, `docs/security.md` e APIs Supabase Auth. As informações de uso descrevem a conta; não afirmam aceite de documentos legais que ainda não foram publicados. Acessibilidade: WCAG 2.2 AA. O produto inclui conta, catálogo, carrinho, checkout, pagamento incorporado e gestão administrativa. As regras financeiras e logísticas seguem os contratos do servidor e os guias atuais de integração.
 
 ## Contrato visual
 
@@ -28,7 +28,7 @@ Clientes brasileiros, pt-BR, celular e desktop. Datas de conta em America/Sao_Pa
 |---|---|---|---|
 | Cadastro | Bloquear reenvio | Conta se houver sessão; caso contrário, instrução de confirmação de e-mail | Preservar nome/e-mail; erro de campo ou mensagem genérica sem enumerar contas |
 | Login | Bloquear reenvio | Destino protegido validado ou Minha conta | Preservar e-mail, limpar senha quando rejeitada |
-| Google | Abrir provedor apenas por clique | Callback PKCE, validar usuário, completar aviso se necessário | Mensagem e login por senha disponíveis |
+| Google | Abrir provedor apenas por clique | Callback PKCE, validar usuário, completar informações de uso se necessário | Mensagem e login por senha disponíveis |
 | Recuperação | Bloquear reenvio | Mensagem neutra sobre envio do link | Preservar e-mail; permitir tentar novamente |
 | Nova senha | Validar sessão de recuperação | Encerrar sessão e solicitar novo login | Explicar link inválido/expirado e permitir pedir outro |
 | Perfil | Confirmação no backend | Permanecer no perfil, anunciar Salvo | Preservar campos; conflito pede recarregamento explícito |
@@ -58,7 +58,7 @@ UF usa select nativo, sem prometer geometria própria. Nenhum date picker. Campo
 
 Gravações pessimistas, sem sucesso antecipado. Leituras de rota usam AbortController e geração de rota para rejeitar resposta antiga. Consultas têm timeout; sem conexão não há fila de gravação ou promessa de sucesso. Sessão expirada limpa estado privado e oferece login. Mudanças de sessão em outra aba atualizam a navegação.
 
-Um sistema compartilhado de cartões centrais com live region: sucesso fecha em 4s (7s para mensagens longas), com pausa em foco/ponteiro e aba oculta; erros e informações importantes permanecem até fechamento. Notificações não roubam foco e têm botão Fechar aviso e Escape. Mensagens disparadas dentro de uma confirmação aguardam o fechamento do diálogo. Erros de campo continuam associados aos controles. Carregamento compartilhado usa patinha e texto após 200ms, com limpeza ao concluir ou abortar, sem skeleton ou percentual fictício; o botão preserva suas dimensões e bloqueia envio repetido. Dialog nativo showModal, foco no Cancelar, Escape quando ocioso, foco restaurado ao fechar, sem chamadas a alert/confirm/prompt.
+Um sistema compartilhado de notificações compactas no canto superior direito, abaixo do cabeçalho, com live region: sucesso fecha em 4s (7s para mensagens longas), com pausa em foco/ponteiro e aba oculta; erros e informações importantes permanecem até fechamento. Notificações não roubam foco e têm botão Fechar aviso e Escape. Mensagens disparadas dentro de uma confirmação aguardam o fechamento do diálogo. Erros de campo continuam associados aos controles. Carregamento compartilhado usa patinha e texto após 200ms, com limpeza ao concluir ou abortar, sem skeleton ou percentual fictício; o botão preserva suas dimensões e bloqueia envio repetido. Dialog nativo showModal, foco no Cancelar, Escape quando ocioso, foco restaurado ao fechar, sem chamadas a alert/confirm/prompt.
 
 Atualizações de perfil e endereço comparam updated_at para evitar sobrescrita silenciosa. Definir endereço padrão é transacional e bloqueia por usuário. Tentativa de salvar conflito mantém os dados e permite voltar/recarregar. Cadastro e e-mails não são repetidos automaticamente.
 
@@ -92,7 +92,7 @@ A administração aceita a chave de 44 dígitos de uma NF-e já emitida, sem ins
 
 ## Refinamento mobile e feedback
 
-Nunito Sans nos títulos e DM Sans no corpo, hospedadas localmente e disponíveis no cache público da PWA. Navegação mobile com ícones de 28px, rótulos de 12px e espaço inferior compatível com a barra e a área segura. Cartões centrais têm largura limitada, rolagem interna para conteúdo extenso e cantos definidos pelo token `notice`. GSAP anima entradas/saídas com duração curta; movimento reduzido mantém os elementos estáticos.
+Nunito Sans nos títulos e DM Sans no corpo, hospedadas localmente e disponíveis no cache público da PWA. Navegação mobile com ícones de 28px, rótulos de 12px e espaço inferior compatível com a barra e a área segura. Notificações têm até 380px, texto sem título redundante, ícone semântico, rolagem no texto extenso e cantos definidos pelo token `toast`. O deslocamento acompanha a altura real do cabeçalho e do aviso offline sem alterar o layout da página. GSAP anima entradas/saídas com duração curta; movimento reduzido mantém os elementos estáticos.
 
 ## Pagamento incorporado
 
@@ -102,6 +102,17 @@ Cartão e Pix são apresentados pelo Payment Brick oficial dentro do pedido, sem
 O pagamento incorporado usa a API Orders, conforme `docs/phase-5-plan.md`. A configuração é conferida antes de abrir os campos de cartão. O tipo de pagamento vem do callback oficial do Brick; valores e aprovação continuam sendo conferidos pelo servidor. Tentativas incertas continuam preservadas e não geram outra cobrança durante a verificação.
 
 
-No sandbox, o Pix mostra identificação de teste e informa que a confirmação será simulada pelo provedor, conforme o cenário documentado em `docs/phase-5-plan.md`. O código copia e cola e a ação Verificar pagamento permanecem na própria tela e após recarga. Em produção, a orientação de pagamento pelo QR Code permanece. Nenhum estado pago é criado só pelo navegador.
+Se a configuração financeira não cria cobrança real, o pagamento informa esse fato no contexto do Pix, sem faixa global ou nome de ambiente. O contrato técnico permanece documentado em `docs/payment-production.md`. O código copia e cola e a ação Verificar pagamento permanecem na própria tela e após recarga. Em produção, a orientação de pagamento pelo QR Code permanece. Nenhum estado pago é criado só pelo navegador.
 
-Acompanhamento de pagamentos: pendências conhecidas são consultadas sem nova cobrança, com pausa offline/aba oculta, limite de dois minutos e cancelamento na saída. Verificar pagamento continua disponível. Pix vencido oculta código/cópia sem inventar um estado financeiro. Autenticação 3DS fica em iframe validado; mensagem COMPLETE apenas consulta o servidor. Pedidos de teste são identificados e pagamentos em conferência não mostram aprovação. Configuração e sessão têm mensagens próprias. Detalhes e homologação: `docs/payment-production.md`.
+Acompanhamento de pagamentos: pendências conhecidas são consultadas sem nova cobrança, com pausa offline/aba oculta, limite de dois minutos e cancelamento na saída. Verificar pagamento continua disponível. Pix vencido oculta código/cópia sem inventar um estado financeiro. Autenticação 3DS fica em iframe validado; mensagem COMPLETE apenas consulta o servidor. Pedidos sem cobrança real recebem essa informação nos detalhes; pagamentos em conferência não mostram aprovação. Configuração e sessão têm mensagens próprias. Detalhes e homologação: `docs/payment-production.md`.
+
+
+## Polimento da interface — novembro de 2026
+
+A decisão atual do usuário substitui os antigos cartões centrais de aviso por notificações compactas no canto superior direito, 12px abaixo do cabeçalho. `src/ui/feedback.js` e `src/styles/feedback.css` continuam os únicos donos desse comportamento. Entrada GSAP com deslocamento de 12px e fade em 280ms; saída em 160ms; movimento reduzido remove transformação/animação. Sucesso dura 4s (7s em texto longo); foco, ponteiro e aba oculta pausam a contagem. Erros e informações importantes permanecem até fechar. Não há título genérico, fila visual acumulada ou roubo de foco. Diálogos continuam centrais e mensagens aguardam seu fechamento.
+
+O cabeçalho sticky mantém o menu acessível durante a rolagem. O menu Mais fecha com Escape, clique externo ou navegação e restaura foco ao fechar por teclado. Troca explícita de rota por link começa no topo; atualização da mesma rota mantém o contexto. O foco de título programático não desenha uma moldura de controle, mas botões, links e campos mantêm foco visível de alto contraste.
+
+Cadastro e onboarding preservam a obrigatoriedade de aceite existente. A interface apresenta Informações de uso, sem inventar documentos legais. RPC e identificador histórico `testing-v1` foram preservados para compatibilidade, não constituem aceite de novos Termos/Política. A remoção de textos de desenvolvimento não muda credenciais, modo financeiro, preços, permissões ou estados do pedido.
+
+Busca de catálogo mantém filtros explícitos e oferece Limpar filtros e recuperação após resultado vazio. Catálogo ainda sem produtos e busca sem resultado têm mensagens diferentes. Revisão do pedido compartilha as superfícies do carrinho: entrega e resumo, totais BRL, confirmação no servidor e pagamento posterior. Selects continuam nativos, com popup do sistema operacional. Não há consulta ou mutação financeira nova nesta revisão visual.

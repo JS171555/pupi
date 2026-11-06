@@ -3,15 +3,16 @@ import {installApi} from './api.js';
 
 async function open(page){await installApi(page,{signedIn:true});await page.goto('/#/conta');await expect(page.getByRole('heading',{name:'Meus dados',exact:true})).toBeVisible();}
 
-test('aviso centralizado pausa ao receber foco e permite fechar erro persistente',async({page})=>{
-  await open(page);await page.getByLabel('Nome completo').focus();
-  await page.evaluate(async()=>{const {notify}=await import('/src/ui/feedback.js');notify('Alteração de teste confirmada.','success');});
-  const card=page.locator('.feedback-card');await expect(card).toBeVisible();
-  const box=await card.boundingBox(),area=await page.locator('#feedback').boundingBox();expect(Math.abs(box.x+box.width/2-(area.x+area.width/2))).toBeLessThan(2);expect(Math.abs(box.y+box.height/2-(area.y+area.height/2))).toBeLessThan(12);
-  await page.getByRole('button',{name:'Fechar aviso'}).focus();await page.waitForTimeout(4300);await expect(card).toBeVisible();
-  await page.getByLabel('Nome completo').focus();await expect(card).toHaveCount(0,{timeout:5000});
-  await page.evaluate(async()=>{const {notify}=await import('/src/ui/feedback.js');notify('Não foi possível salvar este teste.','error');});
-  await page.waitForTimeout(4300);await expect(card).toBeVisible();await page.getByRole('button',{name:'Fechar aviso'}).click();await expect(card).toHaveCount(0);await expect(page.getByLabel('Nome completo')).toBeFocused();
+test('notificação fica abaixo do menu, pausa com foco e mantém erro até fechar',async({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});await open(page);await page.clock.install();await page.getByLabel('Nome completo').focus();
+  const heading=await page.getByRole('heading',{name:'Meus dados',exact:true}).boundingBox();
+  await page.evaluate(async()=>{const {notify}=await import('/src/ui/feedback.js');notify('Alterações salvas.','success');});
+  const card=page.locator('.feedback-card');await expect(card).toBeVisible();const box=await card.boundingBox(),header=await page.locator('#header').boundingBox();
+  expect(box.y).toBeGreaterThanOrEqual(header.y+header.height+8);expect(box.x).toBeGreaterThan(700);expect(box.height).toBeLessThan(110);expect(await page.getByRole('heading',{name:'Meus dados',exact:true}).boundingBox()).toEqual(heading);
+  await expect(card.locator('h2')).toHaveCount(0);await page.getByRole('button',{name:'Fechar aviso'}).focus();await page.clock.fastForward(5000);await expect(card).toBeVisible();
+  await page.getByLabel('Nome completo').focus();await page.clock.fastForward(4100);await expect(card).toHaveCount(0);
+  await page.evaluate(async()=>{const {notify}=await import('/src/ui/feedback.js');notify('Não foi possível salvar. Tente novamente.','error');});
+  await page.clock.fastForward(12000);await expect(card).toBeVisible();await expect(page.locator('#feedback')).toHaveAttribute('role','alert');await page.getByRole('button',{name:'Fechar aviso'}).click();await expect(card).toHaveCount(0);await expect(page.getByLabel('Nome completo')).toBeFocused();
 });
 
 test('confirmação mantém aviso pendente até concluir e preserva erro no diálogo',async({page})=>{
@@ -54,5 +55,5 @@ test('cartão com texto longo cabe em quatro tamanhos de tela e com texto amplia
     await page.evaluate(async()=>{const {notify}=await import('/src/ui/feedback.js');notify('Confira os dados e tente novamente. '.repeat(30),'error');});
     const card=page.locator('.feedback-card');await expect(card).toBeVisible();const box=await card.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.y).toBeGreaterThanOrEqual(0);expect(box.width).toBeLessThanOrEqual(width-32);expect(box.height).toBeLessThanOrEqual(760);
   }
-  await page.setViewportSize({width:320,height:800});await page.addStyleTag({content:'html {font-size:200%;}'});expect(await page.locator('.feedback-card').evaluate(node=>node.scrollHeight>node.clientHeight)).toBe(true);await expect(page.getByRole('button',{name:'Fechar aviso'})).toBeInViewport();
+  await page.setViewportSize({width:320,height:800});await page.addStyleTag({content:'html {font-size:200%;}'});expect(await page.locator('.feedback-message').evaluate(node=>node.scrollHeight>node.clientHeight)).toBe(true);await expect(page.getByRole('button',{name:'Fechar aviso'})).toBeInViewport();
 });

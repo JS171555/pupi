@@ -21,9 +21,8 @@ export function notify(message='',tone='info') {
   if(root.parentElement!==document.body)document.body.append(root);
   root.className=`feedback feedback-${tone}`;root.setAttribute('role',tone==='error'?'alert':'status');root.setAttribute('aria-live',tone==='error'?'assertive':'polite');
   const previousFocus=document.activeElement;
-  const title=tone==='success'?'Tudo certo!':tone==='error'?'Não foi possível concluir':'Um aviso para você';
   const closeButton=button(glyph(X),()=>dismiss(),'ghost');closeButton.classList.add('feedback-close');closeButton.setAttribute('aria-label','Fechar aviso');
-  const card=el('div',{className:'feedback-card'},[closeButton,el('span',{className:'feedback-symbol'},glyph(tone==='success'?Check:tone==='error'?TriangleAlert:Info)),el('h2',{},title),el('p',{},message)]);
+  const card=el('div',{className:'feedback-card'},[el('span',{className:'feedback-glyph'},glyph(tone==='success'?Check:tone==='error'?TriangleAlert:Info)),el('p',{className:'feedback-message',tabindex:message.length>160?'0':null},message),closeButton]);
   let remaining=message.length>160?7000:4000,timer,deadline=0,hover=false,focus=false,closing=false;
   const pause=()=>{if(timer){clearTimeout(timer);timer=undefined;remaining=Math.max(0,deadline-performance.now());}};
   const resume=()=>{if(tone!=='success'||hover||focus||document.hidden||closing)return;pause();deadline=performance.now()+remaining;timer=setTimeout(dismiss,remaining);};
@@ -31,14 +30,14 @@ export function notify(message='',tone='info') {
   function dismiss(){
     if(closing||current?.card!==card)return;closing=true;pause();
     const hadFocus=card.contains(document.activeElement);
-    leave(card,()=>{if(current?.card!==card)return;clearFeedback();if(hadFocus){if(previousFocus?.isConnected)previousFocus.focus();else document.querySelector('#main h1')?.focus();}});
+    leave(card,()=>{if(current?.card!==card)return;clearFeedback();if(hadFocus){if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});else document.querySelector('#main h1')?.focus();}},{kind:'toast'});
   }
   card.addEventListener('pointerenter',()=>{hover=true;pause();});card.addEventListener('pointerleave',()=>{hover=false;resume();});
   card.addEventListener('focusin',()=>{focus=true;pause();});card.addEventListener('focusout',()=>queueMicrotask(()=>{focus=card.contains(document.activeElement);if(!focus)resume();}));
-  const escape=event=>{if(event.key==='Escape'&&!modalCount){event.preventDefault();dismiss();}};
+  const escape=event=>{if(event.key==='Escape'&&!modalCount&&!event.defaultPrevented){event.preventDefault();dismiss();}};
   document.addEventListener('visibilitychange',visibility);document.addEventListener('keydown',escape);
   current={message,tone,card,shown:performance.now(),dispose:()=>{pause();document.removeEventListener('visibilitychange',visibility);document.removeEventListener('keydown',escape);}};
-  root.replaceChildren(card);enter(card);resume();
+  root.replaceChildren(card);enter(card,{kind:'toast'});resume();
 }
 
 export function confirmAction({title,description,confirmLabel='Descartar alterações',danger=false,intent,onConfirm=async()=>{}}) {

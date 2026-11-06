@@ -56,7 +56,7 @@ test('falha ao carregar SDK mantém o pedido e permite tentar novamente',async({
 test('tentativa de teste conferida reabre formulário no mesmo pedido sem cobrança automática',async({page})=>{
  await page.setViewportSize({width:390,height:844});const {requests}=await setup(page,{releaseTest:true});
  await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
- await expect(page.getByText('Tentativa de teste encerrada após conferência. Você pode preencher os dados novamente.')).toBeVisible();
+ await expect(page.getByText('Tentativa encerrada após conferência. Você pode preencher os dados novamente.')).toBeVisible();
  expect(requests.some(body=>body.action==='pay')).toBe(false);
  await page.getByRole('button',{name:'Tentar novamente',exact:true}).press('Enter');
  await expect(page.getByRole('button',{name:'Pagar cartão de teste'})).toBeVisible();
@@ -73,8 +73,8 @@ test('credenciais Orders incompatíveis mostram orientação antes de abrir camp
 test('Pix no sandbox identifica simulação e confirma sem instruir pagamento pelo banco',async({page})=>{
  await page.setViewportSize({width:390,height:844});const {requests}=await setup(page,{pix:true,testMode:true});
  await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Gerar Pix de teste'}).click();
- await expect(page.getByRole('heading',{name:'Pix de teste',exact:true})).toBeVisible();await expect(page.getByText(/Ambiente de teste: o Mercado Pago simulará a confirmação/)).toBeVisible();await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');
- await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await expect(page.getByRole('heading',{name:'Pix de teste',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Pague com Pix',exact:true})).toBeVisible();await expect(page.getByText(/Este código não gera uma cobrança real/)).toBeVisible();await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');
+ await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await expect(page.getByRole('heading',{name:'Pague com Pix',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Verificar pagamento',exact:true}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();expect(requests.filter(body=>body.action==='pay')).toHaveLength(1);
 });
 
@@ -89,10 +89,12 @@ test('Pix vencido não permite copiar nem gera cobrança automática e para cons
 test('3DS permanece dentro do Pupi, recupera desafio e só aprova após consulta ao servidor',async({page})=>{
  await page.setViewportSize({width:390,height:844});const {requests,approve}=await setup(page,{challenge:true,autoApprove:false});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Pagar cartão de teste'}).click();
  const frame=page.frameLocator('iframe[title="Autenticação do cartão no banco"]');await expect(frame.getByRole('button',{name:'Concluir desafio'})).toBeVisible();
+ await expect(page.locator('.payment-panel .form-status')).not.toHaveAttribute('aria-busy','true');
  await page.screenshot({path:'work/payment-3ds-mobile.png',fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  const before=requests.length;await page.evaluate(()=>window.postMessage({status:'COMPLETE'},'*'));await page.waitForTimeout(100);expect(requests.length).toBe(before);
+ await page.locator('iframe[title="Autenticação do cartão no banco"]').evaluate(node=>node.scrollIntoView({block:'center',behavior:'instant'}));
  await frame.getByRole('button',{name:'Concluir desafio'}).click();await expect.poll(()=>requests.filter(r=>r.action==='refresh').length).toBe(1);await expect(page.getByText('Pagamento aprovado.',{exact:true})).toHaveCount(0);await expect(frame.getByRole('button',{name:'Concluir desafio'})).toBeVisible();
- await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await expect(frame.getByRole('button',{name:'Concluir desafio'})).toBeVisible();approve();await frame.getByRole('button',{name:'Concluir desafio'}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();expect(requests.filter(r=>r.action==='pay')).toHaveLength(1);expect(page.url()).toContain(`/#/pedidos/${id}`);
+ await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await expect(frame.getByRole('button',{name:'Concluir desafio'})).toBeVisible();approve();await page.locator('iframe[title="Autenticação do cartão no banco"]').evaluate(node=>node.scrollIntoView({block:'center',behavior:'instant'}));await frame.getByRole('button',{name:'Concluir desafio'}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();expect(requests.filter(r=>r.action==='pay')).toHaveLength(1);expect(page.url()).toContain(`/#/pedidos/${id}`);
 });
 test('conferência tem prioridade sobre estado público pago e não exibe aprovação',async({page})=>{
  await setup(page,{review:true,autoApprove:false});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Pagar cartão de teste'}).click();await expect(page.getByRole('heading',{name:'Pagamento em conferência'})).toBeVisible();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toHaveCount(0);

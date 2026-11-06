@@ -2,6 +2,7 @@
 :root {
   --color-primary: #A78BFA;
   --color-brand: #A78BFA;
+  --color-accent-ink: #6D42B5;
   --color-pink: #F4B8D5;
   --color-mint: #8BCDB0;
   --color-lavender: #DDD2FF;
@@ -20,6 +21,7 @@
   --radius-default: 0.75rem;
   --radius-card: 1.25rem;
   --radius-notice: 1.5rem;
+  --radius-toast: 1rem;
   --space-page-max: 68rem;
   --space-section-gap: 1.5rem;
   --font-display: Nunito Sans, system-ui, sans-serif;

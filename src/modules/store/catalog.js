@@ -30,12 +30,13 @@ export async function storeCatalog(repository, params, go, media) {
   const search = (params.get('busca') || '').slice(0,120);
   const sort = params.get('ordem') === 'name' ? 'name' : 'recent';
   const filter = ['featured', 'sale'].includes(params.get('filtro')) ? params.get('filtro') : '';
+  const filtered=Boolean(category||search||filter||sort!=='recent');
   const [categories, products] = await Promise.all([
     repository.listCategories(), repository.listProducts({page, pageSize: 20, categoryId: category || undefined, search, sort, filter}),
   ]);
   const select = el('select', {id:'store-category'}, [el('option',{value:''},'Todas as categorias'),
     ...categories.map(item=>el('option',{value:item.id,selected:item.id===category},item.name))]);
-  const searchInput=el('input',{id:'store-search',type:'search',value:search,maxlength:120});
+  const searchInput=el('input',{id:'store-search',type:'search',value:search,maxlength:120,placeholder:'O que seu pet precisa?',autocomplete:'off'});
   const order=el('select',{id:'store-order'},[el('option',{value:'recent',selected:sort==='recent'},'Mais recentes'),el('option',{value:'name',selected:sort==='name'},'Nome')]);
   const selection=el('select',{id:'store-filter'},[el('option',{value:'',selected:filter===''},'Todos os produtos'),el('option',{value:'featured',selected:filter==='featured'},'Destaques'),el('option',{value:'sale',selected:filter==='sale'},'Promoções')]);
   const form=el('form',{className:'admin-filters',novalidate:true},[
@@ -45,6 +46,7 @@ export async function storeCatalog(repository, params, go, media) {
     el('div',{},[el('label',{for:'store-order'},'Ordenar'),order]),
     el('button',{type:'submit',className:'button button-secondary'},'Filtrar'),
   ]);
+  if(filtered)form.append(link('Limpar filtros','#/loja',{className:'button button-ghost'}));
   form.addEventListener('submit',event=>{event.preventDefault();const query=new URLSearchParams();if(select.value)query.set('categoria',select.value);if(searchInput.value.trim())query.set('busca',searchInput.value.trim());if(order.value!=='recent')query.set('ordem',order.value);if(selection.value)query.set('filtro',selection.value);go('/loja'+(query.size?'?'+query:''));});
   const images=await primaryImages(repository, media, products);
   const cards=products.map(product=>{
@@ -74,9 +76,9 @@ export async function storeCatalog(repository, params, go, media) {
     el('div',{className:'category-chips'},[link('Todas','#/loja',{className:`category-chip${!category?' is-active':''}`}),...categories.map(item=>link([icon(PawPrint),item.name],`#/loja?categoria=${encodeURIComponent(item.id)}`,{className:`category-chip${category===item.id?' is-active':''}`}))]),
   ]):null;
   return el('section',{className:'store-page'},[hero,categoryLinks,
-    el('div',{id:'catalogo',className:'store-section-heading'},[el('div',{},[el('p',{className:'store-section-eyebrow'},'ESCOLHIDOS PARA VOCÊ'),el('h2',{},'Encontre seu favorito')]),el('p',{className:'muted'},'Explore os produtos da loja')]),
+    el('div',{id:'catalogo',className:'store-section-heading'},[el('div',{},[el('p',{className:'store-section-eyebrow'},'ESCOLHIDOS PARA VOCÊ'),el('h2',{},'Encontre seu favorito')]),el('p',{className:'muted',role:'status'},`${products.length} ${products.length===1?'produto':'produtos'} nesta página`)]),
     el('details',{className:'store-filters',open:window.matchMedia('(min-width: 48rem)').matches||Boolean(category||search||filter||sort!=='recent')},[el('summary',{},[icon(SlidersHorizontal),'Buscar e filtrar produtos']),form]),
-    cards.length?el('ul',{className:'record-list product-grid'},cards):el('div',{className:'store-empty'},[icon(PawPrint),el('h3',{},'Nenhum produto encontrado'),el('p',{className:'muted'},'Tente ajustar os filtros para encontrar o que procura.')]),
+    cards.length?el('ul',{className:'record-list product-grid'},cards):el('div',{className:'store-empty'},[icon(PawPrint),el('h3',{},filtered?'Nenhum produto encontrado':'Novidades a caminho'),el('p',{className:'muted'},filtered?'Tente outra busca ou veja todos os produtos.':'Em breve, você encontra os produtos da Pupi por aqui.'),filtered?link('Ver todos os produtos','#/loja',{className:'button button-primary'}):null]),
     el('nav',{className:'pagination','aria-label':'Páginas do catálogo'},[page>1?pageLink(page-1,'Anterior'):null,el('span',{},`Página ${page}`),products.length===20?pageLink(page+1,'Próxima'):null])]);
 }
 

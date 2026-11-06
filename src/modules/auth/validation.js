@@ -37,7 +37,7 @@ export function validateRegistration(values) {
     () => validatePassword(values.password, values.confirmation)]) {
     try { validate(); } catch (e) { if (!(e instanceof ValidationError)) throw e; Object.assign(errors, e.fields); }
   }
-  if (values.accepted !== true) errors.accepted = 'Leia e aceite o aviso de testes para continuar.';
+  if (values.accepted !== true) errors.accepted = 'Leia e aceite as informações de uso para continuar.';
   return finish(errors, { ...login, full_name: profile?.full_name });
 }
 export function validateAddress(values) {

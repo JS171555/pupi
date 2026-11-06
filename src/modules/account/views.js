@@ -185,7 +185,6 @@ export function ordersView({ items, hasMore, page, go }) {
   const list = el('ul', { className: 'orders-list' }, items.map(order => el('li', { className: 'order-list-card' }, [
     el('div', { className: 'order-card-main' }, [
       el('div', { className: 'order-card-title' }, [el('div', {}, [el('span', { className: 'order-card-eyebrow' }, 'PEDIDO'),el('h2', {}, `#${order.order_number}`)]),el('span', { className: 'order-status-pill' }, statusLabel(order.status))]),
-      order.payment_environment==='sandbox'?el('span',{className:'badge order-test-badge'},'Pedido de teste'):null,
       el('p', { className: 'order-card-date' }, [icon(CalendarDays),`Registrado em ${date(order.created_at)}`]),
     ]),
     el('div', { className: 'order-card-footer' }, [
@@ -194,7 +193,7 @@ export function ordersView({ items, hasMore, page, go }) {
     ]),
   ])));
   return el('section', { className: 'orders-page' }, [heading('Meus pedidos', 'Consulte compras e acompanhe as entregas da sua conta.'),
-    items.length ? list : empty('Você ainda não tem pedidos', 'Quando houver uma compra registrada, ela aparecerá aqui. A loja será implementada nas próximas fases.'),
+    items.length ? list : empty('Você ainda não tem pedidos', 'Escolha algo especial para seu pet. Seus pedidos vão aparecer aqui.',link('Explorar a loja','#/loja',{className:'button button-primary'})),
     pagination(page, hasMore, '/pedidos', go),
   ]);
 }
@@ -237,7 +236,7 @@ export function orderView(order,options={}) {
         el('div', { className: 'order-status-value' }, [icon(CreditCard),el('div', {}, [el('span', {}, 'Pagamento'),el('strong', {}, orderStatus)])]),
       ]),
     ]),
-    order.payment_environment==='sandbox'?el('p',{className:'order-test-notice',role:'note'},'Pedido de teste: a aprovação foi simulada no ambiente de testes.'):null,
+    order.payment_environment==='sandbox'?el('p',{className:'order-payment-note',role:'note'},'Este pedido não gerou uma cobrança real.'):null,
     order.payment_review_required?el('p',{className:'order-review-alert',role:'alert'},'Este pagamento precisa de conferência pela loja. Aguarde a atualização do pedido.'):null,
     el('div', { className: 'order-detail-grid' }, [
       el('div', { className: 'order-detail-main' }, [

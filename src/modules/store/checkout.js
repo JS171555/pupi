@@ -2,14 +2,16 @@ import {el,link,heading,money} from '../../ui/dom.js';
 import {pagination} from '../account/views.js';
 import {makeForm} from '../../ui/forms.js';
 import {AppError} from '../../utils/errors.js';
+import {createElement,Package,MapPin,CreditCard,ArrowLeft,ShieldCheck} from 'lucide';
+const icon=definition=>createElement(definition,{'aria-hidden':'true','stroke-width':1.8});
 
 export function checkoutReview({cart,addresses,page,go,busy,announce,checkout}) {
   const items=cart.items.map(item=>{
     const p=item.products;
-    if (!p || !p.active || p.status!=='published' || !p.categories?.active) return el('li',{},'Produto indisponível');
-    return el('li',{},`${p.name} · ${item.quantity} × ${money(p.sale_price_cents ?? p.price_cents)}`);
+    if (!p || !p.active || p.status!=='published' || !p.categories?.active) return el('li',{className:'checkout-item'},[icon(Package),el('p',{},'Produto indisponível')]);
+    return el('li',{className:'checkout-item'},[el('span',{className:'checkout-item-icon'},icon(Package)),el('div',{},[el('strong',{},p.name),el('span',{className:'muted'},`${item.quantity} × ${money(p.sale_price_cents ?? p.price_cents)}`)]),el('strong',{},money(item.quantity*(p.sale_price_cents ?? p.price_cents)))]);
   });
-  const results=el('div',{'aria-live':'polite'});
+  const results=el('div',{className:'checkout-delivery-results','aria-live':'polite'});
   const pending=checkout.pending();
   const confirmForm=(options,defaultId='',quotes=[])=>{
     const form=makeForm({name:'Escolher entrega',submitLabel:pending?'Verificar confirmação':'Confirmar pedido',onBusy:busy,
@@ -17,7 +19,7 @@ export function checkoutReview({cart,addresses,page,go,busy,announce,checkout}) 
         if(!values.quote || !options.some(([id])=>id===values.quote))throw new AppError('INVALID_DATA','Escolha uma entrega.');
         const id=await checkout.confirm(values.quote);await go(`/pedidos/${id}`,{force:true});announce('Pedido confirmado. O pagamento está pendente.','success');
       }});
-    const summary=el('p',{'aria-live':'polite'});
+    const summary=el('p',{className:'checkout-quote-total','aria-live':'polite'});
     const updateSummary=()=>{
       const chosen=quotes.find(q=>q.id===form.elements.namedItem('quote').value);
       summary.textContent=chosen ? `Frete: ${money(chosen.price_cents)} · Total: ${money(chosen.subtotal_cents+chosen.price_cents)}` : '';
@@ -43,13 +45,30 @@ export function checkoutReview({cart,addresses,page,go,busy,announce,checkout}) 
     }});
     quoteForm.elements.namedItem('address').addEventListener('change',()=>results.replaceChildren());
     addressContent=el('div',{},[quoteForm,pagination(page,addresses.hasMore,'/checkout',go)]);
-  } else addressContent=el('p',{},'Cadastre um endereço para continuar.');
-  return el('section',{className:'panel'},[heading('Revisar pedido','Confira seus produtos e o endereço de entrega.'),
-    el('h2',{},'Produtos'),items.length?el('ul',{},items):el('p',{},'Seu carrinho está vazio.'),
-    cart.hasMore?el('p',{},['Mostrando os primeiros 20 itens. ',link('Ver todo o carrinho','#/carrinho')]):null,
-    el('p',{},`${cart.subtotalIncomplete?'Subtotal dos itens disponíveis':'Subtotal'}: ${money(cart.subtotalCents)}`),
-    cart.subtotalIncomplete?el('p',{className:'muted'},'Itens indisponíveis ou não carregados não estão incluídos.'):null,
-    el('p',{className:'muted'},'Os preços e a disponibilidade serão conferidos na confirmação. O pagamento ficará pendente.'),
-    el('h2',{},'Entrega'),addressContent,results,link('Gerenciar endereços','#/enderecos',{className:'button button-secondary'}),
-    link('Voltar ao carrinho','#/carrinho',{className:'button button-secondary'})]);
+  } else addressContent=el('div',{className:'checkout-empty-address'},[el('p',{},'Onde seu pet vai receber o pedido? Adicione um endereço para consultar as opções de entrega.'),link('Adicionar endereço','#/enderecos/novo',{className:'button button-primary'})]);
+  return el('section',{className:'checkout-page'},[
+    link([icon(ArrowLeft),'Voltar ao carrinho'],'#/carrinho',{className:'order-back-link'}),
+    heading('Revisar pedido','Falta pouco. Confira os produtos e escolha a melhor entrega.'),
+    el('ol',{className:'checkout-steps','aria-label':'Etapas da compra'},[
+      el('li',{},[icon(Package),'Carrinho']),el('li',{'aria-current':'step'},[icon(MapPin),'Entrega']),el('li',{},[icon(CreditCard),'Pagamento']),
+    ]),
+    el('div',{className:'checkout-layout'},[
+      el('section',{className:'checkout-delivery'},[
+        el('div',{className:'checkout-card-heading'},[icon(MapPin),el('h2',{},'Entrega')]),
+        el('p',{className:'muted'},'Selecione o endereço e consulte as opções disponíveis.'),
+        items.length||pending?addressContent:el('p',{},'Adicione produtos ao carrinho antes de escolher a entrega.'),
+        results,
+        link('Gerenciar endereços','#/enderecos',{className:'checkout-address-link'}),
+      ]),
+      el('aside',{className:'checkout-summary'},[
+        el('div',{className:'checkout-card-heading'},[icon(Package),el('h2',{},'Produtos')]),
+        items.length?el('ul',{className:'checkout-items'},items):el('p',{},['Seu carrinho está vazio. ',link('Explorar a loja','#/loja')]),
+        cart.hasMore?el('p',{className:'muted'},['Mostrando os primeiros 20 itens. ',link('Ver todo o carrinho','#/carrinho')]):null,
+        el('dl',{className:'checkout-subtotal'},[el('dt',{},cart.subtotalIncomplete?'Subtotal dos itens disponíveis':'Subtotal'),el('dd',{},money(cart.subtotalCents))]),
+        cart.subtotalIncomplete?el('p',{className:'muted'},'Itens indisponíveis ou não carregados não estão incluídos.'):null,
+        el('p',{className:'checkout-shipping-note'},'O valor do frete aparece ao consultar a entrega.'),
+        el('div',{className:'checkout-next-step'},[icon(ShieldCheck),el('p',{},'Os preços e o estoque serão conferidos ao confirmar. O pagamento acontece na próxima etapa.')]),
+      ]),
+    ]),
+  ]);
 }

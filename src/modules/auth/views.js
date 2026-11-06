@@ -6,14 +6,14 @@ const email = { name: 'email', label: 'E-mail', type: 'email', required: true, a
 const password = { name: 'password', label: 'Senha', type: 'password', required: true, autocomplete: 'current-password' };
 const newPassword = { ...password, autocomplete: 'new-password', hint: 'De 12 a 128 caracteres, com maiúscula, minúscula e número.' };
 const confirmation = { name: 'confirmation', label: 'Confirme a senha', type: 'password', required: true, autocomplete: 'new-password' };
-const accepted = { name: 'accepted', label: 'Li o aviso de testes e quero criar uma conta neste ambiente.', type: 'checkbox', required: true };
-const noticeLink = () => link('Ler aviso de testes', '#/aviso', { target: '_blank', rel: 'noopener' });
+const accepted = { name: 'accepted', label: 'Li as informações de uso e quero criar minha conta.', type: 'checkbox', required: true };
+const noticeLink = () => link('Ler informações de uso', '#/aviso', { target: '_blank', rel: 'noopener' });
 
 export function authView(route, context) {
   const { auth, busy, go, onLogin, announce, googleButton } = context;
   let form; let title; let intro; let footer;
   if (route === '/cadastro') {
-    title = 'Crie sua conta'; intro = 'Cadastre-se para testar a área do cliente do Pupi.';
+    title = 'Crie sua conta'; intro = 'Cuide das suas compras e acompanhe cada pedido por aqui.';
     form = makeForm({ name: 'Criar conta', submitLabel: 'Criar conta', onBusy: busy,
       fields: [{ name: 'full_name', label: 'Nome completo', required: true, autocomplete: 'name', maxLength: 160 }, email, newPassword, confirmation, accepted],
       onSubmit: async (values, formNode) => {
@@ -35,7 +35,7 @@ export function authView(route, context) {
     });
     footer = link('Voltar para entrar', '#/entrar');
   } else if (route === '/nova-senha') {
-    title = 'Escolha uma nova senha'; intro = 'A alteração será confirmada pelo serviço de autenticação.';
+    title = 'Escolha uma nova senha'; intro = 'Escolha uma senha segura para proteger sua conta.';
     if (!context.recovery) {
       return el('section', { className: 'panel auth-form-card auth-recovery-required' }, [
         el('p', { className: 'auth-form-eyebrow' }, 'SEGURANÇA DA CONTA'),
@@ -73,20 +73,23 @@ export function authView(route, context) {
 }
 
 export function noticeView() {
-  return el('section', { className: 'panel' }, [heading('Aviso de testes', 'Versão testing-v1'),
-    el('p', {}, 'O Pupi está em desenvolvimento. Cadastro, perfil e endereços são gravados no projeto Supabase conectado ao aplicativo.'),
-    el('p', {}, 'Esta etapa permite testar autenticação e dados de conta. Compras e pagamentos ainda não estão disponíveis.'),
-    el('p', {}, 'O aceite confirma que você entendeu que está usando um ambiente de testes. Este aviso não substitui os Termos de Uso e a Política de Privacidade da futura loja.'),
+  return el('section', { className: 'panel usage-notice' }, [heading('Informações de uso', 'Sua conta e suas compras, com clareza.'),
+    el('h2', {}, 'Sua conta'),
+    el('p', {}, 'Nome, e-mail e dados de contato são usados para identificar sua conta. Você pode atualizar nome, telefone e endereços na área da conta.'),
+    el('h2', {}, 'Compras e entregas'),
+    el('p', {}, 'Seus pedidos preservam os produtos, preços e endereço informados na compra. Os pagamentos são processados pelo Mercado Pago e a cotação de entrega usa o Melhor Envio.'),
+    el('h2', {}, 'Documentos da loja'),
+    el('p', {}, 'Estas informações explicam o funcionamento da conta. Os Termos de Uso e a Política de Privacidade ainda serão disponibilizados pela loja; este aviso não substitui esses documentos.'),
     link('Voltar para criar conta', '#/cadastro', { className: 'button button-secondary' }),
   ]);
 }
 
 export function onboardingView(context) {
-  const form = makeForm({ name: 'Aviso de testes', submitLabel: 'Continuar para minha conta', onBusy: context.busy, fields: [accepted],
+  const form = makeForm({ name: 'Informações de uso', submitLabel: 'Continuar para minha conta', onBusy: context.busy, fields: [accepted],
     onSubmit: async values => {
-      if (!values.accepted) throw new ValidationError({ accepted: 'Leia e aceite o aviso para continuar.' });
+      if (!values.accepted) throw new ValidationError({ accepted: 'Leia e aceite as informações de uso para continuar.' });
       await context.accept();
     },
   });
-  return el('section', { className: 'panel' }, [heading('Antes de continuar', 'Seu acesso foi validado. Leia o aviso para usar este ambiente.'), noticeLink(), form]);
+  return el('section', { className: 'panel' }, [heading('Antes de continuar', 'Confira as informações de uso para concluir seu cadastro.'), noticeLink(), form]);
 }

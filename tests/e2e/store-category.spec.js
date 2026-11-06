@@ -66,7 +66,7 @@ test('vitrine mobile oferece navegação e filtros sem movimento nem rolagem hor
     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
   });
   await page.goto('/#/loja');await expect(page.getByRole('heading',{name:'Loja',exact:true})).toBeVisible();
-  const brandIconSize=await page.locator('.brand svg').evaluate(node=>Number.parseFloat(getComputedStyle(node).width));
+  const brandIconSize=await page.locator('.brand-icon').evaluate(node=>Number.parseFloat(getComputedStyle(node).width));
   const moreIconSize=await page.locator('.mobile-menu summary svg').evaluate(node=>Number.parseFloat(getComputedStyle(node).width));
   const moreLabelSize=await page.locator('.mobile-menu summary span').evaluate(node=>Number.parseFloat(getComputedStyle(node).fontSize));
   expect(brandIconSize).toBeGreaterThanOrEqual(38);expect(moreIconSize).toBeGreaterThanOrEqual(25);expect(moreLabelSize).toBeGreaterThanOrEqual(14);

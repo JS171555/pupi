@@ -59,7 +59,7 @@ export async function adminOrders(context,options) {
     filters:filterBar({search:options.search,label:'Buscar pedido',placeholder:'Número ou identificador do pedido',fields:[{name:'status',label:'Status',value:options.status,options:[['','Todos'],...Object.entries(ORDER_STATES)]}],onCommit:values=>context.go(adminURL('/admin/pedidos',{...values,page:1}))}),
     columns:[{label:'Pedido',render:o=>link(`#${o.order_number}`,`#/admin/pedidos/${o.id}`)},{label:'Cliente',render:o=>o.customer_name},
       {label:'Data',render:o=>date(o.created_at)},{label:'Status',render:o=>ORDER_STATES[o.status]},
-      {label:'Pagamento',render:o=>[o.payment_review_required?'Em conferência':({pending:'Pendente',paid:'Pago',failed:'Recusado',refunded:'Estornado',cancelled:'Cancelado'}[o.payment_status]||o.payment_status),o.payment_environment==='sandbox'?' · Teste':''].join('')},
+      {label:'Pagamento',render:o=>[o.payment_review_required?'Em conferência':({pending:'Pendente',paid:'Pago',failed:'Recusado',refunded:'Estornado',cancelled:'Cancelado'}[o.payment_status]||o.payment_status),o.payment_environment==='sandbox'?' · Sem cobrança real':''].join('')},
       {label:'Total',render:o=>money(o.total_cents)},{label:'Ações',render:o=>adminLink('Consultar pedido',`/admin/pedidos/${o.id}`)}],
   });
 }

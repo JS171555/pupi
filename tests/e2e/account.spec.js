@@ -44,10 +44,10 @@ test('cadastro valida confirmação e aceite e aguarda confirmação por e-mail'
   await page.getByLabel('Confirme a senha').fill('SenhaDiferente456');
   await page.getByRole('button', { name: 'Criar conta', exact: true }).click();
   await expect(page.getByText('As senhas precisam ser iguais.')).toBeVisible();
-  await expect(page.getByText('Leia e aceite o aviso de testes para continuar.')).toBeVisible();
+  await expect(page.getByText('Leia e aceite as informações de uso para continuar.')).toBeVisible();
   expect(api.signUps).toHaveLength(0);
   await page.getByLabel('Confirme a senha').fill(validPassword);
-  await page.getByLabel('Li o aviso').check();
+  await page.getByLabel('Li as informações').check();
   await page.getByRole('button', { name: 'Criar conta', exact: true }).click();
   await expect(page.getByText(/você receberá um e-mail/)).toBeVisible();
   expect(api.signUps).toHaveLength(1);
@@ -196,7 +196,7 @@ test('cliente recebe acesso restrito; administrador é validado por RPC', async 
 test('OAuth solicita aceite após sessão; pedidos vazios não contêm registros ilustrativos', async ({ page }) => {
   await installApi(page, { signedIn: true, notice: false }); await page.goto('/#/conta');
   await expect(page.getByRole('heading', { name: 'Antes de continuar' })).toBeVisible();
-  await page.getByLabel('Li o aviso').check();
+  await page.getByLabel('Li as informações').check();
   await page.getByRole('button', { name: 'Continuar para minha conta' }).click();
   await page.getByRole('link', { name: 'Pedidos', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Você ainda não tem pedidos' })).toBeVisible();
@@ -213,9 +213,9 @@ test('interface em 390px, teclado, foco, scrollbar e estado offline', async ({ p
   await expect(page.getByLabel(/^Senha/)).toBeFocused();
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarColor)).not.toBe('auto');
   await context.setOffline(true);
-  await expect(page.getByText(/Sem conexão · reconecte/)).toBeVisible();
+  await expect(page.locator('#connection-status')).toBeVisible();
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-  await expect(page.getByText(/Você está sem conexão/)).toBeVisible();
+  await expect(page.getByRole('alert').filter({hasText:'Você está sem conexão'})).toBeVisible();
   await context.setOffline(false);
 });
 
@@ -254,7 +254,8 @@ test('link de pular conteúdo preserva rota, e nome malicioso não vira HTML', a
   await expect(page.locator('#main')).toBeFocused();
   expect(page.url()).toContain('#/conta');
   expect(await page.evaluate(() => window.injected)).toBeUndefined();
-  await expect(page.locator('img')).toHaveCount(0);
+  await expect(page.locator('#main img')).toHaveCount(0);
+  await expect(page.locator('[onerror]')).toHaveCount(0);
 });
 
 test('pedido exibe itens, total e endereço históricos sem criar entrega inexistente', async ({ page }) => {

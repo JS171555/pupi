@@ -60,7 +60,7 @@ export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
     }
     cleanupChallenge();cleanupChallenge=()=>{};
     if(!data.submission||data.submission.state==='failed') {
-      const message=result?.reason==='test_attempt_released'?'Tentativa de teste encerrada após conferência. Você pode preencher os dados novamente.':result?'Pagamento não aprovado. Confira os dados ou escolha outro meio de pagamento.':'Pronto para preencher seus dados.';
+      const message=result?.reason==='test_attempt_released'?'Tentativa encerrada após conferência. Você pode preencher os dados novamente.':result?'Pagamento não aprovado. Confira os dados ou escolha outro meio de pagamento.':'Pronto para preencher seus dados.';
       pending=null;stopMonitoring();await disposeBrick();content.replaceChildren(el('p',{},message),button('Tentar novamente',()=>initialize(true),'primary'));return;
     }
     await disposeBrick();content.replaceChildren();
@@ -76,7 +76,7 @@ export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
     }else if(result?.status==='pending'&&result.qr_code){
       if(expired(result))content.append(el('h3',{},'Pix vencido'),el('p',{},'O prazo deste código terminou. Verifique o resultado antes de tentar novamente.'));
       else{
-        content.append(el('h3',{},data.test_mode?'Pix de teste':'Pague com Pix'),el('p',{},data.test_mode?'Ambiente de teste: o Mercado Pago simulará a confirmação, sem pagamento pelo aplicativo do banco. Use “Verificar pagamento” para acompanhar.':'Use o QR Code ou copie o código para pagar. O resultado será atualizado nesta tela.'));
+        content.append(el('h3',{},'Pague com Pix'),el('p',{},data.test_mode?'Este código não gera uma cobrança real. Não pague pelo banco; use Verificar pagamento para acompanhar.':'Use o QR Code ou copie o código para pagar. O resultado será atualizado nesta tela.'));
         if(typeof result.qr_code_base64==='string'&&result.qr_code_base64.startsWith('iVBOR')&&/^[A-Za-z0-9+/=]+$/.test(result.qr_code_base64))content.append(el('img',{className:'payment-pix',src:`data:image/png;base64,${result.qr_code_base64}`,alt:'QR Code para pagar este pedido com Pix',width:240,height:240}));
         const code=el('textarea',{'aria-label':'Código Pix copia e cola',readonly:true,rows:4},result.qr_code);
         content.append(code,button('Copiar código Pix',async()=>{if(expired(result)){notify('O prazo do código terminou. Verifique o pagamento.');return;}try{await navigator.clipboard.writeText(result.qr_code);notify('Código Pix copiado.','success');}catch{code.focus();code.select();notify('Selecione e copie o código Pix.');}}));
@@ -94,7 +94,7 @@ export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
       if(data.payment_status==='paid'){stopLoading();await showResult(data);return;}
       if(data.submission&&(!retry||data.submission.state!=='failed')){stopLoading();await showResult(data.submission.result?.requires_action?await repository.refreshPayment(order.id):data);return;}
       const MercadoPago=await loadMercadoPago();if(disposed||version!==mountVersion)return;
-      const id=`pupi-payment-${++sequence}`,container=el('div',{id});content.replaceChildren(...(data.test_mode?[el('span',{className:'badge'},'Ambiente de teste')]:[]),el('p',{className:'payment-total'},['Total do pedido: ',el('strong',{},money(data.total_cents))]),container);
+      const id=`pupi-payment-${++sequence}`,container=el('div',{id});content.replaceChildren(...(data.test_mode?[el('p',{className:'payment-context-note'},'Este pagamento não gera uma cobrança real.')]:[]),el('p',{className:'payment-total'},['Total do pedido: ',el('strong',{},money(data.total_cents))]),container);
       const mp=new MercadoPago(data.public_key,{locale:'pt-BR'});
       let timedOut=false;
       localTimer=setTimeout(()=>{timedOut=true;stopLoading();if(!disposed&&version===mountVersion){status.textContent='O formulário demorou para carregar. Tente novamente.';content.append(button('Tentar carregar novamente',()=>initialize(true)));}},15000);

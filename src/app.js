@@ -30,6 +30,15 @@ import './styles/feedback.css';
 const main = document.querySelector('#main');
 const header = document.querySelector('#header');
 const status = document.querySelector('#connection-status');
+// Um único valor acompanha altura real do menu, zoom e banner de conexão.
+const syncHeaderGeometry=()=>{
+  const height=header.getBoundingClientRect().height;
+  const notice=status.hidden?0:status.getBoundingClientRect().height;
+  const menuBottom=header.querySelector('.mobile-menu[open] .mobile-menu-panel')?.getBoundingClientRect().bottom||0;
+  document.documentElement.style.setProperty('--app-header-height',`${height}px`);
+  document.documentElement.style.setProperty('--feedback-top',`${Math.max(height+notice,menuBottom)+12}px`);
+};
+const shellObserver=new ResizeObserver(syncHeaderGeometry);shellObserver.observe(header);shellObserver.observe(status);
 const state = { user: null, profile: null, role: null, busy: false, booting: true, generation: 0, controller: null,
   currentHash: location.hash || '#/entrar', recovery: false, destination: '/conta' };
 let client; let auth; let repository;let adminRepository;let adminMedia;let catalogRepository;let catalogMedia;let cartRepository;
@@ -58,11 +67,12 @@ function rememberRecovery() {
 }
 function connectionStatus() {
   status.dataset.offline = String(!navigator.onLine);
-  status.textContent = navigator.onLine ? 'Ambiente de testes · alterações confirmadas são salvas na sua conta' :
-    'Sem conexão · reconecte para entrar ou salvar alterações';
+  status.hidden = navigator.onLine;
+  status.textContent = navigator.onLine ? '' : 'Você está sem conexão. Reconecte para continuar.';
+  syncHeaderGeometry();
 }
 function renderHeader(route = '') {
-  const brand = link([icon(PawPrint), 'pupi'], state.user ? '#/conta' : '#/entrar', { className: 'brand', 'aria-label': 'Pupi, minha conta' });
+  const brand = link([el('img',{src:'/icons/pupi-192.png',alt:'',width:42,height:42,className:'brand-icon'}),el('span',{},'pupi')], '#/loja', { className: 'brand', 'aria-label': 'Pupi, ir à loja' });
   const navigation = el('nav', { className: 'navigation', 'aria-label': 'Navegação principal' });
   const routes = state.user ? [['Meus dados', '/conta'], ['Endereços', '/enderecos'], ['Pedidos', '/pedidos']] : [['Entrar', '/entrar'], ['Criar conta', '/cadastro']];
   routes.unshift(['Loja', '/loja']);
@@ -71,8 +81,8 @@ function renderHeader(route = '') {
   for (const [label, path] of routes) navigation.append(link(label, `#${path}`, { 'aria-current': route.startsWith(path) ? 'page' : undefined }));
   if (state.user) navigation.append(button([icon(LogOut), 'Sair'], logout, 'ghost'));
   const mobileMenu = el('details', {className:'mobile-menu'}, [
-    el('summary', {'aria-label':'Mais opções'}, [icon(Menu),el('span',{},'Mais')]),
-    el('nav', {className:'mobile-menu-panel','aria-label':'Links adicionais'}, [
+    el('summary', {'aria-label':'Mais opções','aria-expanded':'false','aria-controls':'mobile-navigation'}, [icon(Menu),el('span',{},'Mais')]),
+    el('nav', {id:'mobile-navigation',className:'mobile-menu-panel','aria-label':'Links adicionais'}, [
       ...routes.filter(([,path])=>!['/loja','/carrinho','/pedidos','/conta'].includes(path)).map(([label,path])=>link(label,`#${path}`,{'aria-current':route.startsWith(path)?'page':undefined})),
       state.user ? button([icon(LogOut),'Sair'],logout,'ghost') : null,
     ]),
@@ -81,6 +91,8 @@ function renderHeader(route = '') {
   const bottom=el('nav',{className:'mobile-tabs','aria-label':'Navegação inferior'},tabs.map(([label,path,image])=>
     link([icon(image),el('span',{},label)],`#${path}`,{'aria-current':route.startsWith(path)?'page':undefined})));
   header.replaceChildren(brand, navigation, mobileMenu, bottom);
+  mobileMenu.addEventListener('toggle',()=>{mobileMenu.querySelector('summary').setAttribute('aria-expanded',String(mobileMenu.open));syncHeaderGeometry();});
+  syncHeaderGeometry();
 }
 async function canLeave() {
   if (state.busy) { notify('Aguarde a confirmação da operação antes de sair desta tela.'); return false; }
@@ -94,8 +106,10 @@ async function go(route, { force = false } = {}) {
   if (!force && !await canLeave()) return;
   if (force) discardChanges(main);
   const target = `#${route}`;
-  if (location.hash !== target) history.pushState(null, '', target);
+  const changed=location.hash!==target;
+  if (changed) history.pushState(null, '', target);
   await render();
+  if(changed)window.scrollTo({top:0,behavior:'instant'});
 }
 async function logout() {
   if (!auth || !await canLeave()) return;
@@ -146,7 +160,7 @@ function unavailable(title, message, destination = '/conta') {
   return el('section', { className: 'panel' }, [heading(title, message), link('Voltar', `#${destination}`, { className: 'button button-secondary' })]);
 }
 const routeTitles = { '/entrar': 'Entrar', '/cadastro': 'Criar conta', '/recuperar': 'Recuperar acesso', '/nova-senha': 'Nova senha',
-  '/checkout': 'Revisar pedido', '/carrinho': 'Carrinho', '/conta': 'Meus dados', '/enderecos': 'Meus endereços', '/pedidos': 'Meus pedidos', '/admin': 'Administração', '/aviso': 'Aviso de testes' };
+  '/checkout': 'Revisar pedido', '/carrinho': 'Carrinho', '/conta': 'Meus dados', '/enderecos': 'Meus endereços', '/pedidos': 'Meus pedidos', '/admin': 'Administração', '/aviso': 'Informações de uso' };
 
 async function render() {
   const generation = ++state.generation;
@@ -210,9 +224,9 @@ async function render() {
       main.replaceChildren(authLayout(authView(route, authContext()))); return;
     }
     if (!profile.terms_accepted_at || profile.terms_version !== TEST_NOTICE_VERSION) {
-      document.title = 'Aviso de testes | Pupi';
+      document.title = 'Informações de uso | Pupi';
       main.replaceChildren(onboardingView({ busy, accept: async () => {
-        await repository.acceptTestNotice(); await go('/conta', { force: true }); notify('Aviso de testes registrado.', 'success');
+        await repository.acceptTestNotice(); await go('/conta', { force: true }); notify('Sua conta está pronta.', 'success');
       } }));
       return;
     }
@@ -281,10 +295,16 @@ async function render() {
 }
 
 document.addEventListener('click', async event => {
+  const menu=header.querySelector('.mobile-menu[open]');
+  if(menu&&!menu.contains(event.target))menu.open=false;
   const anchor = event.target.closest('a');
   if (anchor?.getAttribute('href') === '#main') { event.preventDefault(); main.focus(); main.scrollIntoView(); return; }
   if (!anchor || anchor.target || !anchor.getAttribute('href')?.startsWith('#/') || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
   event.preventDefault(); await go(anchor.getAttribute('href').slice(1));
+});
+document.addEventListener('keydown',event=>{
+  const menu=header.querySelector('.mobile-menu[open]');
+  if(event.key==='Escape'&&menu){event.preventDefault();menu.open=false;menu.querySelector('summary').focus();}
 });
 window.addEventListener('hashchange', async () => {
   if (!auth || state.booting) return;
@@ -344,8 +364,8 @@ async function start() {
   } catch (error) {
     state.booting = false;
     document.title = 'Configuração necessária | Pupi';
-    main.replaceChildren(el('section', { className: 'panel' }, [heading('Configure a conexão para testar', toAppError(error).message),
-      el('p', {}, 'Copie .env.example para .env, confira a URL e a chave pública do projeto Pupi e reinicie npm run dev.'),
+    main.replaceChildren(el('section', { className: 'panel' }, [heading('Não foi possível conectar à loja', 'Tente novamente em instantes.'),
+      el('p', {}, 'Se o problema continuar, entre em contato com a loja.'),
       button('Tentar novamente', () => location.reload(), 'primary')]));
   }
 }

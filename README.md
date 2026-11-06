@@ -46,7 +46,7 @@ O Pupi reúne catálogo, conta do cliente, carrinho, checkout e administração 
 | <img src="docs/assets/readme/payment.svg" alt="" width="20" height="20"> Pagamento | Cartão e Pix no pedido, desafio 3DS incorporado, recuperação de tentativa, consulta automática limitada e webhook assinado. |
 | <img src="docs/assets/readme/admin.svg" alt="" width="20" height="20"> Administração | Resumo, categorias, produtos, imagens, movimentações de estoque, pedidos, clientes, configurações e associação de chave NF-e. |
 | <img src="docs/assets/readme/shipping.svg" alt="" width="20" height="20"> Logística | Cotação Melhor Envio, preparação de remessa no carrinho do provedor, receptor de eventos assinados e acompanhamento manual. Registro e eventos dependem de configuração e homologação próprias. |
-| <img src="docs/assets/readme/mobile.svg" alt="" width="20" height="20"> Experiência | Interface responsiva, navegação mobile, fontes locais DM Sans e Nunito Sans, feedback centralizado, loading, movimento reduzido e PWA instalável em navegadores compatíveis. |
+| <img src="docs/assets/readme/mobile.svg" alt="" width="20" height="20"> Experiência | Interface responsiva, navegação mobile, fontes locais DM Sans e Nunito Sans, notificações compactas abaixo do menu, loading, movimento reduzido e PWA instalável em navegadores compatíveis. |
 | <img src="docs/assets/readme/security.svg" alt="" width="20" height="20"> Integridade | RLS, permissões explícitas, operações transacionais, auditoria, snapshots de pedido e identificação de compras de teste. |
 
 <a id="arquitetura"></a>
@@ -505,7 +505,7 @@ A base atual está preparada para testes controlados. Permanecem as seguintes et
 - Homologar em produção cartão, Pix, 3DS, entrega do webhook, recusa, estorno e recuperação de conexão conforme o [roteiro financeiro](docs/payment-production.md).
 - Configurar e homologar remetente, registro de remessa e eventos Melhor Envio. Compra de frete/emissão de etiqueta seguem no provedor.
 - Implementar consulta automática de rastreamento, reconciliação de registro de remessa incerto e os casos logísticos de múltiplos volumes/XML descritos acima.
-- Substituir o aviso provisório `testing-v1` pelos Termos de Uso e Política de Privacidade definitivos, com atualização do controle de versão/aceite antes do lançamento público.
+- Substituir as informações provisórias de uso e o identificador histórico `testing-v1` pelos Termos de Uso e Política de Privacidade definitivos, com atualização do controle de versão/aceite antes do lançamento público.
 - Validar SMTP, OAuth, Storage e experiência real nos domínios/navegadores da implantação.
 
 Não há emissão fiscal própria, compra automática de etiqueta, notificações push ou compra offline implementadas. A instalação como PWA não transforma essas funções em recursos disponíveis sem conexão.
@@ -525,6 +525,7 @@ Não há emissão fiscal própria, compra automática de etiqueta, notificaçõe
 | [Configuração da fundação](docs/setup.md) | Banco, CLI, Storage e histórico inicial. |
 | [Arquitetura da fundação](docs/architecture.md) | Modelo de dados e decisões originais de integridade. |
 | [Permissões e segurança](docs/security.md) | Fronteiras de acesso e proteção dos recursos. |
+| [Polimento da interface](docs/interface-polish.md) | Alterações visuais, decisões preservadas e verificações. |
 | [Design](DESIGN.md) e [UX](UX-CONTRACT.md) | Identidade visual, componentes e comportamento das telas. |
 
 Os documentos de fases preservam o contexto da época e podem citar branches ou pendências já superadas. Para instalar e operar a versão atual, siga este README; para pagamentos, use primeiro `docs/payment-production.md`. Não execute uma instrução antiga de API Payments ou reaplicação de banco como se fosse a configuração atual de Orders.

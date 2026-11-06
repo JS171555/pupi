@@ -54,7 +54,7 @@ export async function productForm(context,id) {
     {name:'short_description',label:'Descrição curta',value:value('short_description'),type:'textarea',rows:3,maxLength:500},
     {name:'description',label:'Descrição completa',value:value('description'),type:'textarea',rows:7,maxLength:30000},
     {name:'minimum_stock',label:'Estoque mínimo',value:product?.minimum_stock??minimum,inputmode:'numeric',required:true},
-    {name:'weight_grams',label:'Peso (g)',value:value('weight_grams'),inputmode:'numeric',hint:'Opcional nesta fase.'},
+    {name:'weight_grams',label:'Peso (g)',value:value('weight_grams'),inputmode:'numeric',hint:'Informe para calcular o frete deste produto.'},
     {name:'width_mm',label:'Largura (mm)',value:value('width_mm'),inputmode:'numeric'},
     {name:'height_mm',label:'Altura (mm)',value:value('height_mm'),inputmode:'numeric'},
     {name:'length_mm',label:'Comprimento (mm)',value:value('length_mm'),inputmode:'numeric'},

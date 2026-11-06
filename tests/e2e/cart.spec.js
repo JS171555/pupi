@@ -93,8 +93,8 @@ test('revisão informa indisponibilidade de frete sem criar pedido',async({page}
   });
   await page.goto('/#/carrinho');await page.getByRole('link',{name:'Continuar para entrega'}).click();
   await expect(page.getByRole('heading',{name:'Revisar pedido'})).toBeVisible();
-  await expect(page.getByText('Subtotal: R$ 50,00')).toBeVisible();
-  await expect(page.getByText('Cadastre um endereço para continuar.')).toBeVisible();
+  await expect(page.locator('.checkout-subtotal dd')).toHaveText('R$ 50,00');
+  await expect(page.getByRole('link',{name:'Adicionar endereço'})).toBeVisible();
   await expect(page.getByRole('button',{name:/confirmar pedido/i})).toHaveCount(0);
 });
 

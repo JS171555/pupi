@@ -1,14 +1,16 @@
 import {gsap} from 'gsap';
 
 const reduced=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-export function enter(node) {
+export function enter(node,{kind='surface'}={}) {
   if(reduced())return;
-  gsap.fromTo(node,{opacity:0,y:8,scale:.97},{opacity:1,y:0,scale:1,duration:.22,ease:'power2.out',clearProps:'opacity,transform',overwrite:true});
+  const toast=kind==='toast';
+  gsap.fromTo(node,{opacity:0,x:toast?12:0,y:toast?-4:8,scale:toast?1:.97},{opacity:1,x:0,y:0,scale:1,duration:toast ? .28 : .22,ease:'power3.out',clearProps:'opacity,transform',overwrite:true});
 }
-export function leave(node,done) {
+export function leave(node,done,{kind='surface'}={}) {
   gsap.killTweensOf(node);
   if(reduced()){done();return;}
-  gsap.to(node,{opacity:0,y:4,scale:.98,duration:.18,ease:'power1.in',onComplete:done,overwrite:true});
+  const toast=kind==='toast';
+  gsap.to(node,{opacity:0,x:toast?8:0,y:toast?-2:4,scale:toast?1:.98,duration:.16,ease:'power1.in',onComplete:done,overwrite:true});
 }
 export function pulse(node) {
   const preference=window.matchMedia('(prefers-reduced-motion: reduce)');
