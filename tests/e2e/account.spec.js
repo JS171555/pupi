@@ -33,6 +33,11 @@ test('perfil mantém formulário e atalhos legíveis em mobile sem rolagem horiz
   const mainPanel = await page.locator('.profile-main').boundingBox();
   const accountPanel = await page.locator('.profile-sidebar').boundingBox();
   expect(accountPanel.y).toBeGreaterThan(mainPanel.y);
+  await expect(page.locator('.profile-shortcuts a')).toHaveText(['Gerenciar endereços','Consultar pedidos','Informações de uso']);
+  await expect(page.getByRole('contentinfo')).toHaveCount(0);
+  await page.getByRole('link',{name:'Informações de uso',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Informações de uso',exact:true})).toBeVisible();
+  await expect(page.getByRole('contentinfo')).toHaveCount(0);
 });
 
 test('cadastro valida confirmação e aceite e aguarda confirmação por e-mail', async ({ page }) => {

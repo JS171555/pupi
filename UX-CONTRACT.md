@@ -41,6 +41,8 @@ Clientes brasileiros, pt-BR, celular e desktop. Datas de conta em America/Sao_Pa
 
 ## Navegação e permissões
 
+Todas as rotas usam o layout sem rodapé global. Informações de uso fica nos Atalhos da conta, depois de Consultar pedidos, com o mesmo padrão de link, ícone e foco. A rota pública `/aviso` e os links de cadastro/onboarding permanecem disponíveis; conteúdo e aceite não mudam.
+
 No celular, a navegação inferior apresenta Loja, Carrinho, Pedidos e Conta/Entrar com texto e ícones Lucide. O menu de opções no canto superior direito usa apenas o ícone Menu de 28px, centralizado em um alvo de 48px, com nome acessível Mais opções. Preserva acesso a endereços, administração, cadastro e saída conforme a sessão; desktop mantém a navegação principal visível. Os links usam o mesmo controle de alterações não salvas e permissões das rotas existentes. Na vitrine, os filtros podem ser abertos por teclado e toque; filtros ativos permanecem visíveis. As transições GSAP respeitam `prefers-reduced-motion` e não impedem interação.
 
 Rotas por hash, títulos por página e botão Voltar preservado. Conta, endereços e pedidos exigem usuário validado com getUser. Acesso administrativo consulta função no banco e uma RPC; cliente recebe página 403 ao acessar diretamente. Nenhuma decisão usa user_metadata. RLS e GRANTs continuam sendo a autorização real do backend.

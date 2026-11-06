@@ -69,6 +69,8 @@ A paleta oficial usa `primary`/`brand` #A78BFA, `lavender` #DDD2FF, `soft` #EDE5
 
 ## Layout
 
+Não há rodapé global. O acesso a Informações de uso fica em Sua conta → Atalhos da conta, abaixo de Consultar pedidos, usando o mesmo estilo e ícones Lucide dos demais atalhos. Cadastro e onboarding preservam seus links e informações de aceite.
+
 Conteúdo de até `page-max`, margens de 1rem em celular e 2rem em desktop. Formulários estreitos, fluxo natural do documento e navegação que quebra linha. Autenticação usa um cartão central único; endereço dispensa painel lateral de dicas. Títulos, campos e ações substituem subtítulos e overlines redundantes. Breakpoint de 48rem para duas colunas. Nenhum ancestral impõe altura fixa aos formulários. Cabeçalho fixo informa sua altura via ResizeObserver para notificações, âncoras e resumos sticky. O checkout usa cartões de entrega e resumo em duas colunas, empilhados no celular. Erros e estados de carregamento têm região reservada; botões preservam largura quando ocupados.
 
 ## Elevation & Depth

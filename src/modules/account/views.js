@@ -2,7 +2,7 @@ import { el, link, button, heading, empty, date, money } from '../../ui/dom.js';
 import { makeForm, cleanForm } from '../../ui/forms.js';
 import { STATES } from '../auth/validation.js';
 import { confirmAction } from '../../ui/feedback.js';
-import { createElement, UserRound, Mail, CalendarDays, MapPin, ShoppingBag, ArrowUpRight, Package, ArrowLeft, ArrowRight, CreditCard, Truck, Plus, Pencil, Trash2 } from 'lucide';
+import { createElement, UserRound, Mail, CalendarDays, MapPin, ShoppingBag, ArrowUpRight, Package, ArrowLeft, ArrowRight, CreditCard, Truck, Plus, Pencil, Trash2, FileText } from 'lucide';
 
 const statusLabels = {
   confirmed: 'Pedido confirmado', preparing: 'Preparando pedido', shipped: 'Enviado', in_transit: 'Em trânsito',
@@ -43,6 +43,7 @@ export function profileView({ user, profile, role, repository, busy, announce, r
       el('h3', {}, 'Atalhos da conta'),
       link([profileIcon(MapPin),el('span', {}, 'Gerenciar endereços'),profileIcon(ArrowUpRight)], '#/enderecos', { className: 'profile-shortcut' }),
       link([profileIcon(ShoppingBag),el('span', {}, 'Consultar pedidos'),profileIcon(ArrowUpRight)], '#/pedidos', { className: 'profile-shortcut' }),
+      link([profileIcon(FileText),el('span', {}, 'Informações de uso'),profileIcon(ArrowUpRight)], '#/aviso', { className: 'profile-shortcut' }),
     ]),
   ]);
   return el('div', { className: 'account-grid profile-layout' }, [main, aside]);
