@@ -31,6 +31,7 @@ export function inspectProviderPayment(payment,{paymentId,orderId,totalCents,col
   if(payment.status==='refunded' && refunded===totalCents)return {valid:true,status:'refunded'};
   if(payment.status==='approved' && refunded===0)return {valid:true,status:'paid'};
   if(['pending','in_process','in_mediation','authorized'].includes(payment.status)&&refunded===0)return {valid:true,status:'pending'};
-  if(['rejected','cancelled','charged_back','refunded'].includes(payment.status))return {valid:true,status:'review'};
+  if(['rejected','cancelled'].includes(payment.status)&&refunded===0)return {valid:true,status:'failed'};
+  if(['charged_back','refunded'].includes(payment.status))return {valid:true,status:'review'};
   return {valid:true,status:'review'};
 }

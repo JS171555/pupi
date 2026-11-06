@@ -14,6 +14,9 @@ export function createAdminRepository(client) {
     saveInvoice(orderId,key,expected=null) {
       return unwrap(client.rpc('admin_invoice_save',{p_order_id:orderId,p_access_key:key,p_expected:expected}).abortSignal(deadline()));
     },
+    paymentReview(orderId,signal) {
+      return unwrap(client.rpc('admin_payment_review',{p_order_id:orderId}).abortSignal(deadline(signal)));
+    },
     shippingRegistrationStatus(orderId,signal) {
       return unwrap(client.rpc('admin_shipping_registration_status',{p_order:orderId}).abortSignal(deadline(signal)));
     },

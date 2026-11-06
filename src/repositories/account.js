@@ -53,6 +53,18 @@ export function createAccountRepository(client) {
         .eq('updated_at', address.updated_at).select('id').abortSignal(timeout()));
       if (!data.length) throw new AppError('CONFLICT', 'Este endereço mudou ou já foi excluído. Recarregue a lista.');
     },
+    async startPayment(orderId) {
+      const {data,error}=await client.functions.invoke('pupi-mercadopago-checkout',{body:{order_id:orderId}});
+      if(error) {
+        let detail;try{detail=await error.context?.json();}catch{/* mensagem segura */}
+        if(detail?.code==='CONFIG_MISSING')throw new AppError('CONFIG_MISSING','Pagamento ainda não está disponível.');
+        if(detail?.code==='ORDER_UNAVAILABLE')throw new AppError('ORDER_UNAVAILABLE','Este pedido não está disponível para pagamento.');
+        throw new AppError('PAYMENT_UNCERTAIN','Não foi possível confirmar a preparação do pagamento. Consulte o pedido antes de tentar novamente.');
+      }
+      let url;try{url=new URL(data?.checkout_url);}catch{throw new AppError('REQUEST_FAILED','Não foi possível abrir o pagamento.');}
+      if(url.protocol!=='https:'||url.username||url.password||url.port||!/^(www|sandbox)\.mercadopago\.(com|com\.br)$/.test(url.hostname))throw new AppError('REQUEST_FAILED','Não foi possível abrir o pagamento.');
+      return url.href;
+    },
     async listOrders(userId, page = 1, signal) {
       const [from, to] = pageRange(page);
       const data = await unwrap(client.from('orders').select(orderFields).eq('user_id', userId)

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { installApi, validPassword } from './api.js';
+import { installApi, validPassword, user } from './api.js';
 
 test('login, perfil persistido e logout, com senha mascarada e sem promover metadata', async ({ page }) => {
   const api = await installApi(page);
@@ -259,4 +259,14 @@ test('resposta atrasada do CEP anterior não altera o endereço atual', async ({
   await page.getByLabel('CEP').fill('20040020');
   await expect(page.getByLabel('Rua ou avenida')).toHaveValue('Endereço novo');
   await expect(page.getByLabel('UF')).toHaveValue('RJ');
+});
+
+
+test('pedido pendente informa pagamento indisponível sem configurar credenciais',async({page})=>{
+  const api=await installApi(page,{signedIn:true});
+  const id='50000000-0000-4000-8000-000000000001';
+  api.orders.push({id,order_number:9,user_id:user.id,status:'confirmed',payment_status:'pending',subtotal_cents:3000,shipping_cents:500,total_cents:3500,created_at:'2026-11-05T12:00:00Z',address_snapshot:{recipient:'Pessoa Teste',street:'Rua teste',number:'1',neighborhood:'Centro',city:'São Paulo',state:'SP',postal_code:'01001000'},items:[],shipment:null});
+  await page.goto(`/#/pedidos/${id}`);await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
+  await expect(page.getByText('Pagamento ainda não está disponível.')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Pagar com Mercado Pago'})).toBeEnabled();
 });

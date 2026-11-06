@@ -212,6 +212,14 @@ async function render() {
       const id = route.split('/')[2];
       const data = /^[0-9a-f-]{36}$/i.test(id) ? await repository.getOrder(user.id, id, signal) : null;
       view = data ? orderView(data) : unavailable('Pedido indisponível', 'Este pedido não está disponível para sua conta.', '/pedidos');
+      if(data && data.payment_status==='pending' && ['confirmed','preparing'].includes(data.status)) {
+        const pay=button('Pagar com Mercado Pago',async()=>{
+          if(state.busy)return;busy(true);pay.disabled=true;
+          try {const url=await repository.startPayment(data.id);location.assign(url);}
+          catch(error){notify(toAppError(error).message,'error');pay.disabled=false;busy(false);}
+        },'primary');
+        view.append(el('section',{className:'admin-order-actions'},[el('h2',{},'Pagamento'),el('p',{className:'muted'},'O pagamento será confirmado após a resposta do Mercado Pago.'),pay]));
+      }
     } else if (route === '/admin' || route.startsWith('/admin/')) {
       const allowed = await repository.adminAccess(signal);
       if (!allowed || role !== 'admin') {
@@ -310,3 +318,7 @@ async function start() {
   }
 }
 start();
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+}

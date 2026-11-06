@@ -23,8 +23,9 @@ test('pagamento aprovado exige vendedor, ambiente, moeda, pedido e valor correto
   assert.deepEqual(inspectProviderPayment(payment,options),{valid:true,status:'paid'});
   for(const update of [{collector_id:1},{currency_id:'USD'},{live_mode:true},{transaction_amount:34.98},{external_reference:'outro'},{id:3},{transaction_amount:34.999},{transaction_amount_refunded:undefined}])assert.deepEqual(inspectProviderPayment({...payment,...update},options),{valid:false});
 });
-test('estorno parcial, contestação e recusa exigem reconciliação antes de alterar pedido',()=>{
-  for(const update of [{status:'approved',transaction_amount_refunded:1},{status:'charged_back'},{status:'rejected'}])assert.deepEqual(inspectProviderPayment({...payment,...update},options),{valid:true,status:'review'});
+test('estorno parcial e contestação exigem reconciliação; recusa permite nova tentativa',()=>{
+  for(const update of [{status:'approved',transaction_amount_refunded:1},{status:'charged_back'}])assert.deepEqual(inspectProviderPayment({...payment,...update},options),{valid:true,status:'review'});
+  assert.deepEqual(inspectProviderPayment({...payment,status:'rejected'},options),{valid:true,status:'failed'});
   assert.deepEqual(inspectProviderPayment({...payment,status:'refunded',transaction_amount_refunded:34.99},options),{valid:true,status:'refunded'});
   assert.deepEqual(inspectProviderPayment({...payment,status:'in_process'},options),{valid:true,status:'pending'});
 });

@@ -644,3 +644,29 @@ test('pagamento em andamento impede cancelamento e devolução de estoque',()=>r
 test('pedido cancelado não aceita tentativa de pagamento',()=>rejectsCode(()=>as('service_role',null,async()=>{
   const order=await createOrder();await rows("update public.orders set status='cancelled' where id=$1",[order]);await rows('select public.service_begin_payment_attempt($1,$2,$3)',[A,order,genKey()]);
 }),'22023'));
+
+test('reconciliação financeira aplica aprovação e estorno somente uma vez e ignora evento antigo',()=>as('service_role',null,async()=>{
+  const order=await createOrder(),attempt=genKey();await rows('select public.service_begin_payment_attempt($1,$2,$3)',[A,order,attempt]);
+  const total=Number((await rows('select total_cents from public.orders where id=$1',[order]))[0].total_cents);
+  const apply=async(state,time)=> (await rows('select public.service_apply_provider_payment($1,$2,$3,$4,$5) as result',[order,'12345',state,time,total]))[0].result;
+  assert.equal(await apply('paid','2026-01-01T12:00:00Z'),'paid');assert.equal(await apply('paid','2026-01-01T12:00:00Z'),'duplicate');
+  assert.equal(await apply('pending','2026-01-01T11:00:00Z'),'stale');assert.equal((await rows('select payment_status from public.orders where id=$1',[order]))[0].payment_status,'paid');
+  assert.equal(await apply('refunded','2026-01-02T12:00:00Z'),'refunded');assert.equal((await rows('select payment_status from public.orders where id=$1',[order]))[0].payment_status,'refunded');
+}));
+test('valores divergentes e acesso pelo cliente não podem aplicar pagamento',async()=>{
+  await rejectsCode(()=>as('authenticated',A,()=>rows('select public.service_apply_provider_payment($1,$2,$3,now(),$4)',[KEY,'123','paid',100])),'42501');
+  await rejectsCode(()=>as('service_role',null,async()=>{const order=await createOrder();await rows('select public.service_begin_payment_attempt($1,$2,$3)',[A,order,genKey()]);await rows('select public.service_apply_provider_payment($1,$2,$3,now(),$4)',[order,'123','paid',1]);}),'22023');
+});
+test('dois pagamentos no mesmo pedido são encaminhados para revisão',()=>as('service_role',null,async()=>{
+  const order=await createOrder();await rows('select public.service_begin_payment_attempt($1,$2,$3)',[A,order,genKey()]);const total=Number((await rows('select total_cents from public.orders where id=$1',[order]))[0].total_cents);
+  await rows("select public.service_apply_provider_payment($1,'123','paid',now(),$2)",[order,total]);
+  assert.equal((await rows("select public.service_apply_provider_payment($1,'456','paid',now(),$2) as result",[order,total]))[0].result,'review');
+  assert.equal((await rows('select count(*) as n from private.provider_payments where order_id=$1',[order]))[0].n,2);
+}));
+
+test('recusa anterior não impede aprovação posterior no mesmo pedido',()=>as('service_role',null,async()=>{
+  const order=await createOrder();await rows('select public.service_begin_payment_attempt($1,$2,$3)',[A,order,genKey()]);const total=Number((await rows('select total_cents from public.orders where id=$1',[order]))[0].total_cents);
+  await rows("select public.service_apply_provider_payment($1,'123','failed',now(),$2)",[order,total]);
+  assert.equal((await rows("select public.service_apply_provider_payment($1,'456','paid',now(),$2) as result",[order,total]))[0].result,'paid');
+  assert.equal((await rows('select payment_status from public.orders where id=$1',[order]))[0].payment_status,'paid');
+}));

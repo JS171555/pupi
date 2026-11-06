@@ -66,7 +66,9 @@ export async function adminOrders(context,options) {
 export async function adminOrder(context,id) {
   const order=await context.admin.query('order',{id},context.signal);if(!order)return notFound('Pedido indisponível','/admin/pedidos');
   let invoice=await context.admin.invoice(id,context.signal);
+  const paymentReview=await context.admin.paymentReview(id,context.signal);
   const view=orderView(order,{backHref:'#/admin/pedidos'});
+  if(paymentReview)view.append(el('p',{role:'alert'},'Pagamento requer conferência no Mercado Pago: há uma contestação, estorno parcial ou mais de um pagamento para este pedido.'));
   const customer=order.customer;
   view.append(el('section',{className:'admin-customer-summary'},[el('h2',{},'Cliente'),el('p',{},customer.full_name),
     el('p',{},customer.email||'E-mail não informado'),el('p',{},customer.phone||'Telefone não informado'),adminLink('Histórico do cliente',`/admin/clientes/${customer.id}`)]));

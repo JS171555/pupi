@@ -1,39 +1,33 @@
-# Fase 5 — planejamento
+# Fase 5 — andamento
 
-A Fase 5 mantém o objetivo de transformar a experiência do Pupi em uma interface mobile-first, conforme o briefing original. A pedido do usuário, inclui também o seguinte tópico:
+A fase 5 inclui o pagamento via Mercado Pago solicitado pelo usuário, instalação como PWA e, por último, o trabalho de UI/UX e identidade visual.
 
-## Integração de pagamentos com Mercado Pago
+## Implementado
 
-Integrar a API do Mercado Pago ao checkout para receber pagamentos pelos produtos, após a conclusão das dependências da Fase 4.
+- O Checkout Pro cria a preferência a partir dos itens, valores e frete registrados no banco. A tentativa é única por pedido; perda da resposta não dispara nova preferência automaticamente. A função exige usuário autenticado e verifica a titularidade.
+- O receptor de webhook valida a assinatura, consulta o pagamento diretamente no Mercado Pago e confere pedido, vendedor, valor, moeda e ambiente. O banco registra pagamentos com processamento idempotente e ignora eventos antigos. Recusas permitem nova tentativa no mesmo checkout; estornos parciais, contestações e múltiplos pagamentos exigem conferência administrativa. O pedido só é marcado como pago mediante confirmação do provedor.
+- A migration `20261106064442_pupi_payment_reconciliation.sql` foi aplicada ao Supabase. As funções `pupi-mercadopago-checkout` e `pupi-mercadopago-webhook` foram implantadas. A primeira exige JWT; a segunda valida a assinatura do provedor.
+- O detalhe do pedido oferece acesso ao pagamento quando estiver configurado. O PWA tem manifesto, ícones e service worker que guarda somente o shell público; chamadas de APIs e dados de conta não são adicionados ao cache offline.
+- Os testes locais usam dados fictícios. Foi verificado o funcionamento offline do shell em navegador e a ausência de rotas privadas no cache. A API real do Mercado Pago ainda não foi testada.
 
-- Definir as modalidades de pagamento a oferecer e configurar as credenciais e os ambientes de teste e produção.
-- Criar e acompanhar pagamentos a partir do pedido e dos valores validados no servidor, com credenciais secretas protegidas no backend.
-- Processar notificações do provedor com verificação de autenticidade e operações idempotentes; refletir no pedido apenas estados confirmados pelo provedor.
-- Tratar pagamentos pendentes, aprovados, recusados, cancelados e estornados, mantendo o histórico e as regras de estoque consistentes.
-- Homologar o fluxo em ambiente de testes, incluindo falhas, retentativas e notificações repetidas, antes de habilitar pagamentos reais.
+## Configuração para depois
 
-## Progresso inicial
+No Supabase, configurar os seguintes segredos para o ambiente de teste do Mercado Pago, sem adicioná-los ao código ou enviá-los no chat:
 
-A verificação local de notificações assinadas do Mercado Pago e a conferência de pagamentos consultados diretamente na API foram preparadas em `supabase/functions/_shared/mercado-pago/verification.js`. A conferência exige correspondência entre identificador do pagamento, pedido, vendedor, ambiente, moeda e valor; estornos parciais, contestações e recusas são encaminhados para revisão. Nenhuma função de pagamento foi implantada e essas verificações ainda não alteram pedidos. Os testes usam dados fictícios.
+- `MERCADO_PAGO_ACCESS_TOKEN`: token da conta de vendedor de teste.
+- `MERCADO_PAGO_WEBHOOK_SECRET`: assinatura secreta configurada no Mercado Pago.
+- `MERCADO_PAGO_COLLECTOR_ID`: identificador numérico da conta de vendedor correspondente ao token.
+- `MERCADO_PAGO_ENV`: `sandbox` para testes ou `production` para produção.
+- `PUPI_STORE_ORIGIN`: origem HTTPS da loja na Vercel, sem caminho final ou barra adicional.
+- `MERCADO_PAGO_CHECKOUT_ENABLED`: manter ausente ou `false` até concluir a configuração; `true` permite criar preferências no ambiente configurado.
 
-O usuário informou que a cotação e a confirmação do pedido no Melhor Envio funcionaram e que o pagamento permaneceu pendente. O registro de remessa e o rastreamento continuam com pendências próprias na Fase 4.
+Configurar o evento de pagamentos no webhook `https://loifqxmmnmhpwnwcvrak.supabase.co/functions/v1/pupi-mercadopago-webhook`. Homologar com contas de teste distintas, inclusive pagamento pendente, aprovado, recusado, duplicado e estorno, antes de usar produção. Consulte a [documentação oficial do Checkout Pro](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro-preferences/overview) e de [notificações](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro-preferences/payment-notifications).
 
-A migration `20261106062644_pupi_payment_attempts.sql` foi aplicada ao Supabase. Ela prepara um registro privado e único de tentativa por pedido, captura os valores e itens do banco, verifica a titularidade e impede cancelamento e devolução do estoque enquanto houver uma tentativa em aberto. A função é restrita ao backend e ainda não é chamada pela aplicação: não cria preferência, não cobra e não altera o pagamento. Repetições retornam a mesma tentativa; a recuperação e o encerramento seguros ainda precisam ser implementados antes do uso.
+## Pendências e limites
 
-Os testes locais cobriram titularidade, repetição, pedido cancelado e bloqueio de cancelamento; os privilégios foram conferidos no banco hospedado. Nenhuma credencial do Mercado Pago é necessária nesta etapa.
-
-A montagem da preferência do Checkout Pro foi preparada em `supabase/functions/_shared/mercado-pago/preference.js`. Ela recebe somente o snapshot do pedido que deverá ser recuperado pelo backend, confere produtos, quantidade, moeda e soma em centavos, inclui o frete e constrói os endereços de retorno e notificação a partir de origens configuradas no servidor. O construtor é isolado: ainda não chama o Mercado Pago nem está conectado à aplicação. O endpoint de notificação indicado ainda precisa ser criado antes de ativar o pagamento. Os testes usam dados fictícios.
-
-O fluxo básico de recepção de notificações foi preparado em `supabase/functions/_shared/mercado-pago/webhook.js`: verifica a assinatura, consulta o pagamento na API do Mercado Pago e só responde com sucesso após um processador confirmar a gravação durável. Falhas de consulta ou processamento retornam erro para permitir nova notificação. Testes com dados fictícios cobrem assinatura inválida, falhas do provedor e processamento pendente.
-
-Esse código ainda não está implantado nem conectado a um processador real. Antes de ativá-lo, é necessário implementar a conferência do pagamento contra o pedido e o vendedor, a persistência idempotente e a reconciliação transacional. Ele não altera o status dos pedidos.
-
-## Próximas etapas
-
-1. Integrar a montagem da preferência à função autenticada de backend, criar a preferência no Mercado Pago e implementar armazenamento e recuperação segura de tentativas simultâneas ou respostas perdidas. Não ativar cobranças antes do receptor e da reconciliação estarem completos.
-2. Conectar o receptor preparado a um processador que verifique o pedido e persista eventos de pagamento de forma idempotente; implantar e homologar somente depois da reconciliação transacional.
-3. Completar as regras transacionais para encerrar ou reconciliar tentativas, pagamentos duplicados, estornos e contestações. O bloqueio inicial de cancelamento e devolução de estoque já foi preparado.
-4. Adicionar o acesso ao pagamento no pedido e os estados de espera e recuperação.
-5. Configurar credenciais e webhook posteriormente, e homologar com contas de teste antes de permitir pagamentos reais.
-
-Pagamentos ainda não estão disponíveis e não são simulados no aplicativo. Documentação oficial: [Checkout Pro](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro-preferences/overview), [criação de preferência](https://www.mercadopago.com.br/developers/pt/reference/online-payments/checkout-pro-preferences/create-preference/post) e [notificações](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro-preferences/payment-notifications).
+- A integração não foi homologada com o Mercado Pago real e não deve ser considerada pronta para produção antes desses testes.
+- Uma tentativa com resultado de criação incerto permanece bloqueada para evitar cobrança duplicada e exige reconciliação técnica com o provedor; ainda não há recuperação automática nem ação de cancelamento segura no painel. Pedidos com uma tentativa aberta também não podem ser cancelados ou ter o estoque devolvido automaticamente.
+- Um alerta no pedido administrativo indica múltiplos pagamentos, contestações ou estornos parciais; a resolução financeira e o estorno continuam a cargo do Mercado Pago e de conferência manual.
+- É necessário homologar a instalação PWA nos navegadores e dispositivos alvo. O cache contém apenas os arquivos públicos da aplicação; operações que precisam da rede permanecem indisponíveis offline.
+- O acabamento visual, a navegação de aplicativo, as animações e demais melhorias de UI/UX ficam para a última etapa, conforme solicitado.
+- A Fase 4 ainda requer homologação do registro de remessa e implementação da consulta de rastreamento; o usuário já confirmou a cotação e criação de pedido com pagamento pendente.

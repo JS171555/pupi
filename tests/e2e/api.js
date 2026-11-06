@@ -50,6 +50,8 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
     }
     if (url.pathname === '/rest/v1/user_roles') return respond(object ? { role: data.role } : [{ role: data.role }]);
     if (url.pathname === '/rest/v1/rpc/admin_access_status') return respond(data.role === 'admin');
+    if (url.pathname === '/functions/v1/pupi-mercadopago-checkout') return respond({code:'CONFIG_MISSING',error:'Pagamento ainda não está configurado.'},503);
+    if (url.pathname === '/rest/v1/rpc/admin_payment_review') return respond(false);
     if (url.pathname === '/rest/v1/rpc/admin_shipping_registration_status') return respond(data.shipping.registration||null);
     if (url.pathname === '/functions/v1/pupi-shipping-register') {
       data.shipping.body=body;data.shipping.registration={status:'registered',external_id:'87654321-1234-1234-1234-123456789012'};
