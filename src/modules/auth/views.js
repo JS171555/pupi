@@ -37,7 +37,9 @@ export function authView(route, context) {
   } else if (route === '/nova-senha') {
     title = 'Escolha uma nova senha'; intro = 'A alteração será confirmada pelo serviço de autenticação.';
     if (!context.recovery) {
-      return el('section', { className: 'panel' }, [heading('Link de recuperação necessário', 'Abra um link válido recebido por e-mail neste navegador.'),
+      return el('section', { className: 'panel auth-form-card auth-recovery-required' }, [
+        el('p', { className: 'auth-form-eyebrow' }, 'SEGURANÇA DA CONTA'),
+        heading('Link de recuperação necessário', 'Abra um link válido recebido por e-mail neste navegador.'),
         link('Pedir outro link', '#/recuperar', { className: 'button button-primary' })]);
     }
     form = makeForm({ name: 'Nova senha', submitLabel: 'Salvar nova senha', onBusy: busy, fields: [newPassword, confirmation],
@@ -57,7 +59,15 @@ export function authView(route, context) {
     });
     footer = el('div', { className: 'form-links' }, [link('Esqueci minha senha', '#/recuperar'), link('Criar conta', '#/cadastro')]);
   }
-  const card = el('section', { className: 'panel' }, [heading(title, intro), form, footer]);
+  form.classList.add('auth-form');
+  footer.classList.add('auth-footer');
+  const eyebrow = route === '/cadastro' ? 'CRIE SUA CONTA' : route === '/recuperar' ? 'RECUPERAÇÃO DA CONTA' : route === '/nova-senha' ? 'NOVA SENHA' : 'ACESSO À SUA CONTA';
+  const card = el('section', { className: 'panel auth-form-card' }, [
+    el('p', { className: 'auth-form-eyebrow' }, eyebrow),
+    heading(title, intro),
+    form,
+    footer,
+  ]);
   if (route === '/entrar' || route === '/cadastro') card.append(el('div', { className: 'separator' }, 'ou'), googleButton());
   return card;
 }

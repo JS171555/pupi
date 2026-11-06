@@ -82,6 +82,27 @@ test('Google não configurado mantém a alternativa de e-mail e senha', async ({
   await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeEnabled();
 });
 
+test('login, cadastro e senha responsivos sem rolagem horizontal em mobile ou desktop', async ({ page }) => {
+  await installApi(page);
+  for (const route of ['/entrar', '/cadastro', '/recuperar', '/nova-senha']) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/#${route}`);
+    const intro = page.locator('.auth-intro');
+    const card = page.locator('.auth-layout > .auth-form-card');
+    await expect(intro).toBeVisible();
+    await expect(card).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const mobileIntro = await intro.boundingBox();
+    const mobileCard = await card.boundingBox();
+    expect(mobileCard.y).toBeGreaterThan(mobileIntro.y);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const desktopIntro = await intro.boundingBox();
+    const desktopCard = await card.boundingBox();
+    expect(desktopCard.x).toBeGreaterThanOrEqual(desktopIntro.x + desktopIntro.width - 1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});
+
 test('endereço: criar, abrir select nativo, editar e excluir com confirmação', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const api = await installApi(page, { signedIn: true });

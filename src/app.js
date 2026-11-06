@@ -121,13 +121,14 @@ function authContext() {
         catch (error) { notify(toAppError(error).message, 'error'); google.disabled = false; busy(false); }
       });
       google.classList.add('full-width');
-      google.prepend(el('span', { 'aria-hidden': 'true' }, 'G'));
+      google.prepend(el('span', { className: 'auth-google-mark', 'aria-hidden': 'true' }, 'G'));
       return google;
     },
   };
 }
 function authLayout(view) {
   const intro = el('aside', { className: 'auth-intro' }, [el('p', { className: 'eyebrow' }, 'Sua conta Pupi'),
+    el('div', { className: 'auth-intro-mark', 'aria-hidden': 'true' }, icon(PawPrint)),
     el('h2', {}, 'Tudo sobre a sua conta, em um só lugar.'),
     el('p', { className: 'muted' }, 'Cadastre seus dados e acompanhe o que importa para você e seu pet.'),
     el('ul', { className: 'intro-list' }, [[UserRound, 'Seus dados de contato'], [MapPin, 'Endereços da sua conta'], [Package, 'Histórico e acompanhamento de pedidos']]
