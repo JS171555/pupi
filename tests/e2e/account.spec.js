@@ -225,13 +225,22 @@ test('pedido exibe itens, total e endereço históricos sem criar entrega inexis
       neighborhood: 'Centro', city: 'São Paulo', state: 'SP', postal_code: '01001000', country: 'BR' },
     items: [{ id: 'item-1', product_name: 'Produto registrado na compra', product_sku: 'TEST-1', quantity: 2, unit_price_cents: 1500, line_total_cents: 3000 }],
   });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/pedidos');
+  await expect(page.getByRole('heading', { name: 'Meus pedidos' })).toBeVisible();
+  await expect(page.locator('.order-card-total strong')).toHaveText('R$ 35,00');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('link', { name: 'Ver detalhes' }).click();
   await expect(page.getByRole('heading', { name: 'Pedido #7', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Produto registrado na compra' })).toBeVisible();
   await expect(page.getByText(/Rua histórica, 10 · Sala 2/)).toBeVisible();
   await expect(page.getByText(/A entrega ainda não foi registrada/)).toBeVisible();
   await expect(page.locator('main')).toContainText('R$ 35,00');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const totalsBox = await page.locator('.order-summary-card').boundingBox();
+  const productsBox = await page.locator('.order-products-card').boundingBox();
+  expect(totalsBox.x).toBeGreaterThan(productsBox.x);
 });
 
 test('CEP preenche endereço pelo ViaCEP e preserva campos digitados', async ({ page }) => {

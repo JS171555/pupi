@@ -2,7 +2,7 @@ import { el, link, button, heading, empty, date, money } from '../../ui/dom.js';
 import { makeForm, cleanForm } from '../../ui/forms.js';
 import { STATES } from '../auth/validation.js';
 import { confirmAction } from '../../ui/feedback.js';
-import { createElement, UserRound, Mail, CalendarDays, MapPin, ShoppingBag, ArrowUpRight } from 'lucide';
+import { createElement, UserRound, Mail, CalendarDays, MapPin, ShoppingBag, ArrowUpRight, Package, ArrowLeft, ArrowRight, CreditCard, Truck } from 'lucide';
 
 const statusLabels = {
   confirmed: 'Pedido confirmado', preparing: 'Preparando pedido', shipped: 'Enviado', in_transit: 'Em trânsito',
@@ -149,40 +149,70 @@ function setupPostalLookup(form) {
 }
 
 export function ordersView({ items, hasMore, page, go }) {
-  const list = el('ul', { className: 'record-list' }, items.map(order => el('li', { className: 'record-card' }, [
-    el('h2', {}, `Pedido #${order.order_number}`), el('span', { className: 'badge' }, statusLabel(order.status)),order.payment_environment==='sandbox'?el('span',{className:'badge'},'Pedido de teste'):null,
-    el('p', { className: 'muted' }, date(order.created_at)), el('p', {}, ['Total: ', el('strong', {}, money(order.total_cents))]),
-    link('Ver detalhes', `#/pedidos/${order.id}`, { className: 'button button-secondary' }),
+  const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
+  const list = el('ul', { className: 'orders-list' }, items.map(order => el('li', { className: 'order-list-card' }, [
+    el('div', { className: 'order-card-main' }, [
+      el('div', { className: 'order-card-title' }, [el('div', {}, [el('span', { className: 'order-card-eyebrow' }, 'PEDIDO'),el('h2', {}, `#${order.order_number}`)]),el('span', { className: 'order-status-pill' }, statusLabel(order.status))]),
+      order.payment_environment==='sandbox'?el('span',{className:'badge order-test-badge'},'Pedido de teste'):null,
+      el('p', { className: 'order-card-date' }, [icon(CalendarDays),`Registrado em ${date(order.created_at)}`]),
+    ]),
+    el('div', { className: 'order-card-footer' }, [
+      el('div', { className: 'order-card-total' }, [el('span', {}, 'Total do pedido'),el('strong', {}, money(order.total_cents))]),
+      link(['Ver detalhes',icon(ArrowRight)], `#/pedidos/${order.id}`, { className: 'button button-secondary order-details-link' }),
+    ]),
   ])));
-  return el('section', { className: 'panel' }, [heading('Meus pedidos', 'Consulte compras e acompanhe as entregas da sua conta.'),
+  return el('section', { className: 'orders-page' }, [heading('Meus pedidos', 'Consulte compras e acompanhe as entregas da sua conta.'),
     items.length ? list : empty('Você ainda não tem pedidos', 'Quando houver uma compra registrada, ela aparecerá aqui. A loja será implementada nas próximas fases.'),
     pagination(page, hasMore, '/pedidos', go),
   ]);
 }
 
 export function orderView(order,options={}) {
+  const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
   const address = order.address_snapshot;
-  const items = el('ul', { className: 'record-list' }, order.items.map(item => el('li', { className: 'record-card' }, [
-    el('h3', {}, item.product_name), el('p', { className: 'muted' }, `SKU ${item.product_sku} · ${item.quantity} × ${money(item.unit_price_cents)}`),
-    el('p', {}, money(item.line_total_cents)),
+  const items = el('ul', { className: 'order-detail-items' }, order.items.map(item => el('li', { className: 'order-line-item' }, [
+    el('span', { className: 'order-product-icon', 'aria-hidden': 'true' }, icon(Package)),
+    el('div', { className: 'order-line-description' }, [el('h3', {}, item.product_name),el('p', { className: 'muted' }, `SKU ${item.product_sku} · ${item.quantity} × ${money(item.unit_price_cents)}`)]),
+    el('strong', { className: 'order-line-total' }, money(item.line_total_cents)),
   ])));
-  const timeline = el('ol', {}, order.events.map(event => el('li', {}, [el('strong', {}, statusLabel(event.status)),
-    el('p', {}, event.description), el('small', { className: 'muted' }, date(event.occurred_at))])));
-  return el('section', { className: 'panel' }, [link('Voltar aos pedidos', options.backHref||'#/pedidos'),
-    heading(`Pedido #${order.order_number}`, `Registrado em ${date(order.created_at)}`),
-    el('p', {}, ['Pedido: ', statusLabel(order.status), ' · Pagamento: ', order.payment_review_required?'Em conferência':statusLabel(order.payment_status)]),
-    order.payment_environment==='sandbox'?el('p',{className:'muted',role:'note'},'Pedido de teste: a aprovação foi simulada no ambiente de testes.'):null,
-    order.payment_review_required?el('p',{role:'alert'},'Este pagamento precisa de conferência pela loja. Aguarde a atualização do pedido.'):null,items,
-    el('dl', { className: 'details-list' }, [el('dt', {}, 'Subtotal'), el('dd', {}, money(order.subtotal_cents)),
-      el('dt', {}, 'Frete'), el('dd', {}, money(order.shipping_cents)), el('dt', {}, 'Total'), el('dd', {}, el('strong', {}, money(order.total_cents)))]),
-    el('h2', {}, 'Endereço da compra'), el('p', {}, address.recipient),
-    el('p', {}, `${address.street}, ${address.number}${address.complement ? ` · ${address.complement}` : ''}`),
-    el('p', {}, `${address.neighborhood} · ${address.city}/${address.state} · CEP ${address.postal_code}`),
-    el('h2', {}, 'Acompanhamento'), order.shipment ? el('div', {}, [
-      el('p', {}, ['Entrega: ', statusLabel(order.shipment.status)]),
-      el('p', {}, ['Transportadora: ', order.shipment.carrier || 'Ainda não informada']),
-      el('p', {}, ['Rastreamento: ', order.shipment.tracking_code || 'Ainda não informado']),
-      order.events.length ? timeline : el('p', { className: 'muted' }, 'Nenhuma atualização de transporte registrada.'),
-    ]) : el('p', { className: 'muted' }, 'A entrega ainda não foi registrada. Não há eventos de rastreamento para exibir.'),
+  const timeline = el('ol', { className: 'order-timeline' }, order.events.map(event => el('li', { className: 'order-timeline-entry' }, [el('span', { className: 'order-timeline-marker', 'aria-hidden': 'true' }),el('div', {}, [el('strong', {}, statusLabel(event.status)),
+    el('p', {}, event.description),el('small', { className: 'muted' }, date(event.occurred_at))])])));
+  const orderStatus = order.payment_review_required?'Em conferência':statusLabel(order.payment_status);
+  const shippingDetails = order.shipment ? el('div', { className: 'order-shipment-details' }, [
+    el('p', {}, ['Entrega ',el('strong', {}, statusLabel(order.shipment.status))]),
+    el('p', {}, ['Transportadora ',el('strong', {}, order.shipment.carrier || 'Ainda não informada')]),
+    el('p', {}, ['Rastreamento ',el('strong', {}, order.shipment.tracking_code || 'Ainda não informado')]),
+    order.events.length ? timeline : el('p', { className: 'muted' }, 'Nenhuma atualização de transporte registrada.'),
+  ]) : el('p', { className: 'muted' }, 'A entrega ainda não foi registrada. Não há eventos de rastreamento para exibir.');
+  const addressCard = el('section', { className: 'order-info-card order-address-card' }, [
+    el('div', { className: 'order-info-heading' }, [icon(MapPin),el('h2', {}, 'Endereço da compra')]),
+    el('div', { className: 'order-address-content' }, [el('strong', {}, address.recipient),el('p', {}, `${address.street}, ${address.number}${address.complement ? ` · ${address.complement}` : ''}`),el('p', { className: 'muted' }, `${address.neighborhood} · ${address.city}/${address.state} · CEP ${address.postal_code}`)]),
+  ]);
+  const trackingCard = el('section', { className: 'order-info-card order-tracking-card' }, [
+    el('div', { className: 'order-info-heading' }, [icon(Truck),el('h2', {}, 'Acompanhamento')]),shippingDetails,
+  ]);
+  const summary = el('aside', { className: 'order-summary-card' }, [
+    el('p', { className: 'order-summary-eyebrow' }, 'RESUMO DO PEDIDO'),
+    el('dl', { className: 'details-list order-totals' }, [el('dt', {}, 'Subtotal'), el('dd', {}, money(order.subtotal_cents)),
+      el('dt', {}, 'Frete'), el('dd', {}, money(order.shipping_cents)), el('dt', { className: 'order-grand-total-label' }, 'Total'), el('dd', { className: 'order-grand-total' }, el('strong', {}, money(order.total_cents)))]),
+  ]);
+  return el('section', { className: 'order-detail-page' }, [
+    link([icon(ArrowLeft),'Voltar aos pedidos'], options.backHref||'#/pedidos', { className: 'order-back-link' }),
+    el('header', { className: 'order-detail-header' }, [
+      heading(`Pedido #${order.order_number}`, `Registrado em ${date(order.created_at)}`),
+      el('div', { className: 'order-detail-statuses' }, [
+        el('div', { className: 'order-status-value' }, [el('span', {}, 'Pedido'),el('strong', {}, statusLabel(order.status))]),
+        el('div', { className: 'order-status-value' }, [icon(CreditCard),el('div', {}, [el('span', {}, 'Pagamento'),el('strong', {}, orderStatus)])]),
+      ]),
+    ]),
+    order.payment_environment==='sandbox'?el('p',{className:'order-test-notice',role:'note'},'Pedido de teste: a aprovação foi simulada no ambiente de testes.'):null,
+    order.payment_review_required?el('p',{className:'order-review-alert',role:'alert'},'Este pagamento precisa de conferência pela loja. Aguarde a atualização do pedido.'):null,
+    el('div', { className: 'order-detail-grid' }, [
+      el('div', { className: 'order-detail-main' }, [
+        el('section', { className: 'order-info-card order-products-card' }, [el('div', { className: 'order-info-heading' }, [icon(Package),el('h2', {}, 'Produtos do pedido')]),items]),
+        trackingCard,
+      ]),
+      el('div', { className: 'order-detail-aside' }, [summary,addressCard]),
+    ]),
   ]);
 }
