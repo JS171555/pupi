@@ -14,7 +14,7 @@ A fase 5 inclui o pagamento via Mercado Pago solicitado pelo usuário, instalaç
 
 No Supabase, configurar os seguintes segredos para o ambiente de teste do Mercado Pago, sem adicioná-los ao código ou enviá-los no chat:
 
-- `MERCADO_PAGO_ACCESS_TOKEN`: token privado da conta de vendedor de teste.
+- `MERCADO_PAGO_ACCESS_TOKEN`: Access Token das credenciais de teste da aplicação da conta principal (usuário de produção) para este fluxo via Payments API, conforme o guia oficial de compra teste. Não confundir com a credencial de produção da conta de teste nem com Client ID/Client Secret.
 - `MERCADO_PAGO_PUBLIC_KEY`: Public Key da mesma aplicação Checkout Transparente; é disponibilizada ao SDK no navegador. Nunca usar o Access Token neste campo.
 - `MERCADO_PAGO_WEBHOOK_SECRET`: assinatura secreta configurada no Mercado Pago.
 - `MERCADO_PAGO_COLLECTOR_ID`: identificador numérico da conta de vendedor correspondente ao token.
@@ -73,3 +73,12 @@ A interface reconhece o encerramento manual de teste e permite reabrir o formul�
 Falhas de autorização HTTP 401/403 passam a mostrar configuração incompatível, preservando a tentativa. Os diagnósticos classificam erros conhecidos em categorias fixas de autorização, usuários incompatíveis, token de cartão e idempotência; nenhum texto arbitrário do provedor é registrado ou devolvido. Um conflito de idempotência, inclusive HTTP 400, permanece incerto e não libera outra cobrança.
 
 Próximo passo: após a publicação na Vercel, abrir novamente o pedido #4 e enviar uma única tentativa com cartão de teste. Usar APRO para simular aprovação e e-mail diferente do vendedor, conforme a [documentação oficial de testes](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-payments/integration-test/make-test-purchase) e a [tabela oficial de cartões](https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/integration-test/test-cards). Conferir o resultado real e os diagnósticos; os testes locais não comprovam homologação financeira. Não pedir credenciais nem dados de cartão pelo chat.
+
+
+## Diagnóstico confirmado de autorização — 06/11/2026, 15:17 UTC
+
+A nova tentativa do pedido #4 registrou `PAYMENT_AUTHORIZATION_REJECTED`, HTTP 401, na criação em `/v1/payments`. A consulta autenticada `/users/me` e a comparação do vendedor passaram. Portanto, a credencial permitiu consultar a conta, mas não autorizou criar esse pagamento; não há evidência suficiente para distinguir falta de permissão de combinação incorreta de credenciais/aplicação/ambiente. O corpo privado da resposta não foi armazenado.
+
+A tentativa foi criada às 15:17:30.503704 UTC e a rejeição foi registrada às 15:17:30.797 UTC. Após conferir ausência de pagamentos vinculados, somente essa tentativa foi encerrada com `reason: provider_authorization_rejected` e `provider_http_status: 401`. Histórico, impressão digital e chave de idempotência foram mantidos; o pedido continua pendente. A consulta posterior confirmou estado failed e payment_id nulo. Nenhum pagamento foi criado para diagnosticar o problema.
+
+A orientação anterior para usar token da conta de vendedor de teste foi corrigida: para testes via Payments API, a [documentação oficial](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-payments/integration-test/make-test-purchase) pede credenciais de teste do usuário de produção. Próximo passo manual: obter Access Token e Public Key do ambiente Teste da mesma aplicação compatível com Payments API na conta principal; atualizar os respectivos segredos no Supabase, manter MERCADO_PAGO_ENV=sandbox e conferir MERCADO_PAGO_COLLECTOR_ID correspondente à conta do token. Não copiar valores para o repositório/chat. Se persistir 401 com a combinação correta, verificar a habilitação/permissão da API Payments com o Mercado Pago. Retomar somente após ajustar as credenciais, no mesmo pedido #4 com novo cartão de teste tokenizado pelo SDK.
