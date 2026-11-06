@@ -77,7 +77,7 @@ Cartões têm borda discreta e elevação suave já estabelecida no catálogo e 
 
 ## Shapes
 
-Controles usam `rounded.DEFAULT`; painéis usam `rounded.card`. Ícones Lucide de 20px em controles e 28px na navegação mobile, com rótulos de 12px e alvos de 64px. Ações importantes têm rótulos textuais. A marca no cabeçalho usa o ícone Pupi já presente em `public/icons`, sem edição da imagem. O menu é fixo no topo e os alvos permanecem acessíveis por teclado e toque.
+Controles usam `rounded.DEFAULT`; painéis usam `rounded.card`. Ícones Lucide de 20px em controles e 28px na navegação mobile, com rótulos de 12px e alvos de 64px. Ações importantes têm rótulos textuais. A marca no cabeçalho usa o ícone Pupi já presente em `public/icons`, sem edição da imagem. Login e cadastro compartilham o botão Google com a imagem original enviada pelo proprietário em `public/icons/google-logo.png`, exibida a 24px, sem moldura adicional. O menu é fixo no topo e os alvos permanecem acessíveis por teclado e toque.
 
 ## Components
 

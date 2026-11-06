@@ -136,7 +136,7 @@ function authContext() {
         catch (error) { notify(toAppError(error).message, 'error'); google.disabled = false; busy(false); }
       });
       google.classList.add('full-width');
-      google.prepend(el('span', { className: 'auth-google-mark', 'aria-hidden': 'true' }, 'G'));
+      google.prepend(el('img', { className: 'auth-google-mark', src: '/icons/google-logo.png', alt: '', width: 24, height: 24, 'aria-hidden': 'true' }));
       return google;
     },
   };

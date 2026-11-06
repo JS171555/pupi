@@ -697,7 +697,8 @@ input[aria-invalid="true"],select[aria-invalid="true"],textarea[aria-invalid="tr
 .auth-footer a {font-size:.81rem;font-weight:650;text-decoration-color:color-mix(in srgb,var(--color-primary) 55%,transparent);text-underline-offset:3px;}
 .auth-form-card>.separator {margin:.2rem 0;color:var(--color-muted);font-size:.73rem;}
 .auth-form-card>.full-width {min-height:48px;border-radius:12px;font-size:.84rem;font-weight:700;}
-.auth-google-mark {display:grid;place-items:center;width:23px;height:23px;border:1px solid var(--color-border);border-radius:50%;background:var(--color-surface);color:var(--color-text);font-size:.78rem;font-weight:800;}
+.auth-google-mark {display:block;flex:none;width:24px;height:24px;object-fit:contain;}
+.button.is-loading>.auth-google-mark {visibility:hidden;}
 .auth-recovery-required>.button {min-height:48px;width:max-content;margin-top:.25rem;border-radius:13px;}
 @media(max-width:60rem) and (min-width:48rem) {
   .auth-layout {grid-template-columns:minmax(0,1fr) minmax(21rem,.95fr);gap:1.25rem;}
