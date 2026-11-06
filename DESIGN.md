@@ -93,6 +93,8 @@ Senhas são mascaradas com botão Mostrar/Ocultar e autocomplete apropriado. For
 
 Conteúdo descreve operações reais. Não há dados de demonstração no aplicativo. A interface não mostra faixas de ambiente de teste. Informações de uso descrevem o cadastro e a compra sem se apresentar como Termos ou Política oficiais. Credenciais e estados financeiros permanecem inalterados; uma operação sem cobrança real recebe apenas a informação contextual necessária no pagamento/pedido.
 
+O carregamento inicial de rota usa uma patinha centralizada na área visível abaixo do cabeçalho medido: 72px no celular e 80px no desktop. No celular, reserva a área da navegação inferior e a área segura. A centralização acompanha a janela, inclusive durante rolagem, sem bloquear menus. Mantém a pulsação GSAP e a preferência por movimento reduzido. Indicadores dentro de botões continuam com 23px.
+
 ## Do's and Don'ts
 
 - Usar nomes de ações consistentes: Entrar, Criar conta, Salvar alterações, Salvar endereço e Excluir endereço.

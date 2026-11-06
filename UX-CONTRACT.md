@@ -123,7 +123,7 @@ Busca de catálogo mantém filtros explícitos e oferece Limpar filtros e recupe
 
 A interface mantém títulos, rótulos, preços, dados, status, validações e instruções que mudam uma decisão. Foram retirados hero promocional, sobrelinhas repetidas, descrições genéricas de página, dicas laterais de endereço e frases decorativas. Conteúdo legal, requisitos de senha, limitações financeiras/fiscais e recuperação de erro permanecem disponíveis.
 
-Ações mostram apenas uma patinha dentro do botão, após 200ms, preservando nome acessível, dimensões e prevenção de duplicação. Formulários e diálogos não exibem um segundo indicador embaixo. `buttonLoading` compartilha a mesma instância por botão com limpeza por consumidor. O carregamento da página sem ação usa uma patinha com `aria-label`; o SDK de pagamento mantém o próprio indicador e o Pupi não o duplica. O botão de carregamento do pagamento permanece até o formulário ficar pronto.
+Ações mostram apenas uma patinha dentro do botão, após 200ms, preservando nome acessível, dimensões e prevenção de duplicação. Formulários e diálogos não exibem um segundo indicador embaixo. `buttonLoading` compartilha a mesma instância por botão com limpeza por consumidor. O carregamento da página sem ação usa uma patinha com `aria-label`, centralizada na área visível abaixo do cabeçalho, a 72px no celular e 80px no desktop. Reserva a navegação inferior e a área segura no celular, acompanha rolagem e não intercepta cliques. O loading dos botões mantém 23px; pulsação respeita movimento reduzido. O SDK de pagamento mantém o próprio indicador e o Pupi não o duplica. O botão de carregamento do pagamento permanece até o formulário ficar pronto.
 
 ## Banners da loja
 

@@ -31,6 +31,12 @@
 .loading-indicator>svg {width:24px;height:24px;flex:none;color:var(--color-primary);}
 .loading>.loading-indicator {flex-direction:column;gap:14px;padding:24px;}
 .loading>.loading-indicator>svg {width:42px;height:42px;}
+#main>.loading>.loading-indicator {position:fixed;inset:calc(var(--feedback-top,94px) - 12px) env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px);display:grid;place-items:center;margin:0;padding:24px;pointer-events:none;}
+#main>.loading>.loading-indicator>svg {width:80px;height:80px;}
+@media(max-width:47.99rem) {
+  #main>.loading>.loading-indicator {bottom:calc(84px + env(safe-area-inset-bottom));}
+  #main>.loading>.loading-indicator>svg {width:72px;height:72px;}
+}
 .button.is-loading {position:relative;color:transparent;}
 .button.is-loading>svg {visibility:hidden;}
 .button-progress {position:absolute;inset:0;display:grid;place-items:center;color:var(--color-primary);}
