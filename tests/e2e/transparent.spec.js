@@ -10,7 +10,7 @@ async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false,orde
     bricks(){return {create:async(type,id,settings)=>{
       window.brickSettings.push({type,initialization:settings.initialization,paymentMethods:settings.customization.paymentMethods});
       const node=document.getElementById(id),button=document.createElement('button');button.textContent=pix?'Gerar Pix de teste':'Pagar cartão de teste';button.type='button';
-      button.addEventListener('click',()=>settings.callbacks.onSubmit({selectedPaymentMethod:pix?'bank_transfer':'credit_card',formData:{payment_method_id:pix?'pix':'master',token:'a'.repeat(32),installments:1,payer:{email:'buyer@example.test',identification:{type:'CPF',number:'12345678909'}}}}));node.append(button);settings.callbacks.onReady();
+      button.addEventListener('click',()=>settings.callbacks.onSubmit({selectedPaymentMethod:pix?'bank_transfer':'credit_card',formData:pix?{payment_method_id:'pix',payer:{email:'buyer@example.test'}}:{payment_method_id:'master',token:'a'.repeat(32),installments:1,payer:{email:'buyer@example.test',identification:{type:'CPF',number:'12345678909'}}}}));node.append(button);settings.callbacks.onReady();
       return {unmount:async()=>{window.brickUnmounts++;node.replaceChildren();}};
     }}};
   };
@@ -34,7 +34,8 @@ test('cartão paga na própria tela sem redirecionar e bloqueia envio repetido',
  const settings=await page.evaluate(()=>window.brickSettings[0]);expect(settings.type).toBe('payment');expect(settings.initialization.preferenceId).toBeUndefined();expect(settings.paymentMethods.mercadoPago).toBeUndefined();
 });
 test('Pix exibe código dentro do Pupi, recupera na recarga e verifica confirmação',async({page})=>{
- await setup(page,{pix:true});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Gerar Pix de teste'}).click();
+ const {requests}=await setup(page,{pix:true});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Gerar Pix de teste'}).click();
+ expect(requests.find(body=>body.action==='pay').form_data.payer.identification).toBeUndefined();expect(requests.find(body=>body.action==='pay').form_data.token).toBeUndefined();
  await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
  await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');await page.getByRole('button',{name:'Verificar pagamento',exact:true}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();
 });

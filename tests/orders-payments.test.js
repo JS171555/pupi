@@ -19,7 +19,7 @@ function fixture({status=201,error=null,recover=false,network=false,pix=false,ac
   if(url.includes('/payments/search?'))return Response.json({results:[],paging:{total:0}});
   throw Error('unexpected endpoint');
  }});
- const run=(action='pay',values={})=>handler(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer valid'},body:JSON.stringify({action,order_id:order,request_key:key,form_data:pix?{...form,payment_method_id:'pix'}:form,...values})}));
+ const run=(action='pay',values={})=>handler(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer valid'},body:JSON.stringify({action,order_id:order,request_key:key,form_data:pix?{payment_method_id:'pix',payer:{email:form.payer.email}}:form,...values})}));
  return {run,calls,events,config,details,admin};
 }
 test('Orders cria formato oficial com total do banco e confirma pelo GET canônico',async()=>{
@@ -79,4 +79,22 @@ test('Pix pendente passa a pago pela consulta canônica sem gerar outro pagament
  const f=fixture({pix:true});const pending=await(await f.run()).json();assert.equal(pending.submission.result.status,'pending');assert.equal(pending.test_mode,true);
  f.details.status=f.details.transactions.payments[0].status='processed';f.details.status_detail=f.details.transactions.payments[0].status_detail='accredited';f.details.total_paid_amount='15.00';f.details.last_updated_date='2026-11-06T16:01:00Z';
  const result=await(await f.run('refresh')).json();assert.equal(result.payment_status,'paid');assert.equal(result.submission.result.status,'paid');assert.equal(result.submission.result.qr_code,undefined);assert.equal(f.calls.filter(c=>c.name==='fetch'&&c.options.method==='POST').length,1);
+});
+
+test('Pix Orders aceita documento ausente ou campo opcional vazio sem inventar identificação',async()=>{
+ for(const identification of [undefined,null,{}, {type:'CPF',number:''}]){
+  const f=fixture({pix:true});const response=await f.run('pay',{form_data:{payment_method_id:'pix',payer:{email:form.payer.email,identification}}});assert.equal(response.status,200);
+  const sent=JSON.parse(f.calls.find(c=>c.name==='fetch'&&c.options.method==='POST').options.body);assert.equal(sent.payer.identification,undefined);assert.equal(sent.payer.email,form.payer.email);
+ }
+});
+test('Pix valida documento preenchido e e-mail; cartão continua exigindo documento',async()=>{
+ for(const [formData,stage] of [
+  [{payment_method_id:'pix',payer:{email:form.payer.email,identification:{type:'CPF',number:'invalid-private-value'}}},'PAYMENT_INPUT_DOCUMENT_INVALID'],
+  [{payment_method_id:'pix',payer:{email:'invalid-private-email'}},'PAYMENT_INPUT_EMAIL_INVALID'],
+  [{...form,payer:{email:form.payer.email}},'PAYMENT_INPUT_DOCUMENT_INVALID'],
+ ]){
+  const f=fixture();const response=await f.run('pay',{form_data:formData});assert.equal(response.status,400);assert.equal((await response.json()).code,'INVALID_DATA');assert.deepEqual(f.events,[{stage}]);
+  assert.ok(!f.calls.some(c=>c.name==='service_begin_order_payment'||(c.name==='fetch'&&c.options.method==='POST')));assert.ok(!JSON.stringify(f.events).includes('private'));
+ }
+ const f=fixture({pix:true});assert.equal((await f.run('pay',{form_data:{payment_method_id:'pix',payer:form.payer}})).status,200);const sent=JSON.parse(f.calls.find(c=>c.name==='fetch'&&c.options.method==='POST').options.body);assert.deepEqual(sent.payer.identification,form.payer.identification);
 });

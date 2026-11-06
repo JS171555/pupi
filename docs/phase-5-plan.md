@@ -137,3 +137,12 @@ A resposta autenticada informa test_mode e a interface identifica o Pix de teste
 Validação local desta etapa: 89 testes de aplicação, 97 de banco, 49 de navegador, build, tokens e auditoria estática. Cobertura nova: APRO ausente de produção/cartão; Pix pendente para pago sem segundo POST; aviso de sandbox preservado após recarga. A aprovação real do Pix no sandbox ainda depende do teste do usuário; os testes automatizados usam respostas fictícias.
 
 Próximo passo: abrir um pedido pendente na conta correspondente, selecionar Pix e enviar uma única tentativa. Conferir o código retornado ou a aprovação já concluída e usar Verificar pagamento para acompanhar a simulação. O pedido #4, já pago por cartão, não deve receber outra tentativa. Registrar o resultado real desta homologação quando confirmado. Nenhuma credencial nova foi solicitada e nenhum estado financeiro foi alterado manualmente nesta etapa.
+
+
+## Correção da validação do Pix — documento opcional
+
+Após a mensagem Confira os dados de pagamento, a inspeção identificou uma exigência incorreta no validador compartilhado: CPF/CNPJ era obrigatório para todos os métodos, inclusive Pix na API Orders. A [requisição oficial de Pix](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/payment-integration/websites/pix) aceita o pagador somente com e-mail. Os pedidos pendentes consultados não tinham tentativa registrada, compatível com rejeição antes da reserva/envio.
+
+O Pix via Orders agora aceita identificação ausente, nula ou campo opcional vazio e envia somente os dados disponíveis, sem inventar CPF/CNPJ. Documento preenchido continua validado. E-mail segue obrigatório; cartão e o contrato Payments histórico preservam suas exigências. Diagnósticos de validação usam somente estágios fixos para e-mail, documento, método, token, parcelas e emissor, sem registrar valores ou o formulário.
+
+Os testes agora reproduzem o retorno mínimo do SDK para Pix: método e e-mail, sem documento nem token de cartão. Verificam também identificação preenchida, dados inválidos bloqueados antes da reserva e manutenção da validação de cartão. Validação desta correção: 91 testes de aplicação, 97 de banco e os 8 testes de navegador do pagamento incorporado. A homologação do Pix ainda aguarda a resposta real do teste do usuário. Próximo passo: retentar Pix no mesmo pedido pendente; não é necessário gerar outro pedido devido a essa rejeição local. Nenhum estado financeiro foi alterado manualmente.

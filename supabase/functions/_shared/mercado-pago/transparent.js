@@ -5,16 +5,23 @@ const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'au
 const reply=(status,code,error,extra={})=>new Response(JSON.stringify({code,error,...extra}),{status,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
 const uuid=value=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
 const uncertain=()=>reply(503,'PAYMENT_UNCERTAIN','Pagamento em verificação. Consulte o resultado antes de tentar novamente.');
-function fields(form) {
-  if(!form||typeof form!=='object')throw Error('invalid');
+function fields(form,{allowMissingPixDocument=false,diagnose=()=>{}}={}) {
+  const invalid=stage=>{diagnose(stage);throw Error('invalid');};
+  if(!form||typeof form!=='object')invalid('PAYMENT_INPUT_INVALID');
   const email=form.payer?.email,doc=form.payer?.identification,method=form.payment_method_id;
-  if(typeof email!=='string'||email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!['CPF','CNPJ'].includes(doc?.type)||typeof doc.number!=='string'||!(doc.type==='CPF'?/^\d{11}$/:/^\d{14}$/).test(doc.number))throw Error('invalid');
-  if(typeof method!=='string'||!/^[a-z0-9_]{1,40}$/.test(method)||['account_money','mercado_credit','bolbradesco'].includes(method))throw Error('invalid');
-  const result={payment_method_id:method,payer:{email,identification:{type:doc.type,number:doc.number}}};
+  if(typeof email!=='string'||email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))invalid('PAYMENT_INPUT_EMAIL_INVALID');
+  if(typeof method!=='string'||!/^[a-z0-9_]{1,40}$/.test(method)||['account_money','mercado_credit','bolbradesco'].includes(method))invalid('PAYMENT_INPUT_METHOD_INVALID');
+  const result={payment_method_id:method,payer:{email}};
+  const missingDocument=doc===undefined||doc===null||(typeof doc==='object'&&(doc.number===undefined||doc.number===null||doc.number===''));
+  if(!(allowMissingPixDocument&&method==='pix'&&missingDocument)){
+    if(!['CPF','CNPJ'].includes(doc?.type)||typeof doc.number!=='string'||!(doc.type==='CPF'?/^\d{11}$/:/^\d{14}$/).test(doc.number))invalid('PAYMENT_INPUT_DOCUMENT_INVALID');
+    result.payer.identification={type:doc.type,number:doc.number};
+  }
   if(method!=='pix') {
-    if(typeof form.token!=='string'||!/^[a-zA-Z0-9_-]{20,200}$/.test(form.token)||!Number.isSafeInteger(form.installments)||form.installments<1||form.installments>12)throw Error('invalid');
+    if(typeof form.token!=='string'||!/^[a-zA-Z0-9_-]{20,200}$/.test(form.token))invalid('PAYMENT_INPUT_TOKEN_INVALID');
+    if(!Number.isSafeInteger(form.installments)||form.installments<1||form.installments>12)invalid('PAYMENT_INPUT_INSTALLMENTS_INVALID');
     result.token=form.token;result.installments=form.installments;
-    if(form.issuer_id!==undefined&&form.issuer_id!==null&&form.issuer_id!==''){if(!/^\d{1,20}$/.test(String(form.issuer_id)))throw Error('invalid');result.issuer_id=String(form.issuer_id);}
+    if(form.issuer_id!==undefined&&form.issuer_id!==null&&form.issuer_id!==''){if(!/^\d{1,20}$/.test(String(form.issuer_id)))invalid('PAYMENT_INPUT_ISSUER_INVALID');result.issuer_id=String(form.issuer_id);}
   }
   return result;
 }
@@ -55,7 +62,7 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
 
       const activeApi=body.action==='refresh'&&data.submission?(data.submission.api_kind||'payments'):apiKind;
       if(activeApi==='orders'){
-        let input;if(body.action==='pay'){try{input=fields(body.form_data);}catch{return reply(400,'INVALID_DATA','Confira os dados de pagamento.');}}
+        let input;if(body.action==='pay'){try{input=fields(body.form_data,{allowMissingPixDocument:true,diagnose});}catch{return reply(400,'INVALID_DATA','Confira os dados de pagamento.');}}
         return await runOrdersCheckout({body,data,user,input,account,admin,env,fetchImpl,diagnose,reply,ready,uncertain});
       }
 
@@ -91,7 +98,7 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
       if(data.submission?.result?.reason==='test_attempt_released'&&mode!=='sandbox'){diagnose('PAYMENT_TEST_RECOVERY_REQUIRES_SANDBOX');return reply(503,'CONFIG_MISMATCH','Este pedido foi liberado somente para teste.');}
       if(!['confirmed','preparing'].includes(data.order_status)||data.payment_status!=='pending')return reply(409,'ORDER_UNAVAILABLE','Pedido indisponível para pagamento.');
       if(!uuid(body.request_key))return reply(400,'INVALID','Solicitação inválida.');
-      let input;try{input=fields(body.form_data);}catch{return reply(400,'INVALID_DATA','Confira os dados de pagamento.');}
+      let input;try{input=fields(body.form_data,{diagnose});}catch{return reply(400,'INVALID_DATA','Confira os dados de pagamento.');}
       const payload={...input,transaction_amount:data.total_cents/100,description:`Pedido Pupi #${data.order_number}`,external_reference:body.order_id,notification_url:`${url}/functions/v1/pupi-mercadopago-webhook`,metadata:{pupi_submission_id:body.request_key,pupi_order_id:body.order_id}};
       const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(payload)));const fingerprint=Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('');
       const begin=await admin.rpc('service_begin_transparent_payment',{p_user_id:user.id,p_order_id:body.order_id,p_request_key:body.request_key,p_fingerprint:fingerprint});
