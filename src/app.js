@@ -130,7 +130,7 @@ async function render() {
   try {
     if (route === '/loja' || /^\/loja\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(route)) {
       document.title = 'Loja | Pupi';
-      const view = route === '/loja' ? await storeCatalog(catalogRepository, address.searchParams, go, catalogMedia) : await storeProduct(catalogRepository, route.slice(6), catalogMedia);
+      const view = route === '/loja' ? await storeCatalog(catalogRepository, address.searchParams, go, catalogMedia) : await storeProduct(catalogRepository, route.slice(6), catalogMedia, address.searchParams);
       if (generation === state.generation) main.replaceChildren(view);
       return;
     }

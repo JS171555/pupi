@@ -16,9 +16,13 @@ Busca por nome e ordenação por nome ou recentes, no servidor, preservadas ao p
 
 Imagem principal na vitrine e no detalhe do produto, usando URLs assinadas de curta duração e as políticas existentes. Caso a imagem esteja ausente ou falhe, a tela continua utilizável. A galeria completa e a verificação real de Storage continuam pendentes.
 
+## Etapa 4
+
+Galeria no detalhe do produto, ordenada com a imagem principal primeiro e paginada em até 20 fotos. Falhas de leitura e imagens indisponíveis têm mensagens próprias. A verificação com imagens reais no Storage continua pendente.
+
 ## Falta para concluir
 
-1. Acrescentar destaque/promoções e galeria de imagens na vitrine; completar detalhes de produto e testar com produtos publicados reais.
+1. Acrescentar destaque/promoções na vitrine; completar detalhes de produto e testar com produtos publicados reais.
 2. Carrinho persistente por usuário: adicionar, alterar, remover, validar estoque e calcular subtotal; testar isolamento de contas e concorrência.
 3. Frete: integrar Melhor Envio em backend confiável com credenciais protegidas, cotações e seleção válida; definir configuração e tratar indisponibilidade. Nunca confiar em frete enviado pelo navegador.
 4. Checkout autenticado: endereço, revisão, estoque e preços recalculados no backend; confirmar pedido idempotente e gravar cotação/entrega com segurança. Não expor service_role nem aceitar total fornecido pelo cliente.

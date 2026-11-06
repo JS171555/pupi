@@ -52,11 +52,26 @@ export async function storeCatalog(repository, params, go, media) {
     el('nav',{className:'pagination','aria-label':'Páginas do catálogo'},[page>1?pageLink(page-1,'Anterior'):null,el('span',{},`Página ${page}`),products.length===20?pageLink(page+1,'Próxima'):null])]);
 }
 
-export async function storeProduct(repository, slug, media) {
+export async function storeProduct(repository, slug, media, params = new URLSearchParams()) {
   const product=await repository.getProductBySlug(slug);
   if(!product)return el('section',{className:'panel'},[heading('Produto indisponível','Confira a loja para ver os produtos disponíveis.'),link('Voltar à loja','#/loja')]);
-  const images=await primaryImages(repository,media,[product]);
-  return el('section',{className:'panel'},[heading(product.name,product.title),productImage(images.get(product.id),product.name),el('p',{},product.description||product.short_description),
+  const parsedPage=Number(params.get('fotos') || 1);
+  const page=Number.isSafeInteger(parsedPage) && parsedPage>0 && parsedPage<=100000 ? parsedPage : 1;
+  let gallery;
+  try {
+    const records=await repository.listProductImages(product.id,page);
+    const images=await Promise.all(records.map(async image=>{
+      try {return {...image,url:(await media.signedUrl('product-images',image.storage_path)).signedUrl};}
+      catch {return null;}
+    }));
+    gallery=el('section',{'aria-label':'Fotos do produto'},[
+      images.length ? el('ul',{className:'media-grid'},images.map(image=>el('li',{className:'record-card'},productImage(image,product.name)))) : el('p',{},'Nenhuma foto disponível nesta página.'),
+      el('nav',{className:'pagination','aria-label':'Páginas das fotos'},[
+        page>1 ? link('Fotos anteriores',`#/loja/${slug}?fotos=${page-1}`,{className:'button button-secondary'}) : null,
+        records.length===20 ? link('Mais fotos',`#/loja/${slug}?fotos=${page+1}`,{className:'button button-secondary'}) : null,
+      ])]);
+  } catch {gallery=el('p',{role:'status'},'Não foi possível carregar as fotos. Recarregue a página para tentar novamente.');}
+  return el('section',{className:'panel'},[heading(product.name,product.title),gallery,el('p',{},product.description||product.short_description),
     product.sale_price_cents!==null?el('p',{},[el('del',{},money(product.price_cents)),' ',el('strong',{},money(product.sale_price_cents))]):el('p',{},money(product.price_cents)),
     el('p',{},product.stock_quantity>0?'Disponível':'Indisponível'),link('Voltar à loja','#/loja',{className:'button button-secondary'})]);
 }

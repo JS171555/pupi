@@ -45,6 +45,11 @@ test('cliente usa configuração pública e consulta catálogo com campos e pagi
   assert.equal(requests[2].url.pathname, '/rest/v1/product_images');
   assert.equal(requests[2].url.searchParams.get('is_primary'), 'eq.true');
   assert.equal(requests[2].url.searchParams.get('product_id'), `in.(${productId})`);
+  await catalog.listProductImages(productId, 2);
+  assert.equal(requests[3].url.searchParams.get('offset'), '20');
+  assert.equal(requests[3].url.searchParams.get('limit'), '20');
+  assert.equal(requests[3].url.searchParams.get('order'), 'is_primary.desc,sort_order.asc,id.asc');
+  assert.throws(() => catalog.listProductImages(productId, 0), { code: 'INVALID_DATA' });
   assert.throws(() => catalog.listPrimaryImages(['invalid']), { code: 'INVALID_DATA' });
   assert.throws(() => catalog.listProducts({ sort: 'unexpected' }), { code: 'INVALID_DATA' });
   assert.throws(() => catalog.listProducts({ pageSize: 1000 }), { code: 'INVALID_DATA' });
