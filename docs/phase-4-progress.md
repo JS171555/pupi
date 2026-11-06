@@ -91,3 +91,7 @@ Testes locais cobrem preparo dos dados, acesso, rejeição, falha de rede, dupli
 3. Homologar a operação completa em navegador com dois usuários, concorrência, falhas de rede, estoque e cotações expiradas; conferir políticas de cancelamento e estorno.
 4. Integrar Mercado Pago na Fase 5, conforme `docs/phase-5-plan.md`. Pedidos permanecem com pagamento pendente.
 5. Regularizar o histórico da migration inicial aplicada manualmente antes de futuro `supabase db push`.
+
+## Teste informado pelo usuário
+
+O usuário configurou `MELHOR_ENVIO_ENV`, `MELHOR_ENVIO_TOKEN` e `MELHOR_ENVIO_USER_AGENT` e informou que conseguiu consultar frete e confirmar um pedido até o status de pagamento pendente. Isso confirma o fluxo relatado de cotação e pedido; não confirma registro de remessa, webhook ou rastreamento, que continuam pendentes de configuração e homologação.
