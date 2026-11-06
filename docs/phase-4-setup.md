@@ -19,7 +19,7 @@ Os testes de navegador usam respostas fictícias interceptadas. A API real do Me
 
 ## Nota fiscal eletrônica
 
-O Pupi usará NF-e, conforme escolha do usuário. Depois de emitir a nota no emissor fiscal da loja, um administrador pode informar os 44 dígitos da chave na tela do pedido. O aplicativo confere formato, modelo 55 e dígito verificador; isso não emite a nota nem verifica sua autorização na SEFAZ. A chave fica restrita à administração. O registro automático da remessa com a NF-e ainda precisa ser implementado e homologado.
+O Pupi usará NF-e emitida por um sistema fiscal externo, conforme escolha do usuário. Depois de emitir a nota no emissor fiscal da loja, um administrador pode informar os 44 dígitos da chave na tela do pedido. O aplicativo confere formato, modelo 55 e dígito verificador; isso não emite a nota nem verifica sua autorização na SEFAZ. A chave fica restrita à administração. O registro automático da remessa com a NF-e ainda precisa ser implementado e homologado.
 
 ## Limites atuais
 

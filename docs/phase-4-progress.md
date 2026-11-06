@@ -64,7 +64,7 @@ As configurações do Melhor Envio ainda não foram fornecidas; o usuário escol
 
 ## Etapa 15 — NF-e
 
-O usuário escolheu NF-e. A migration `20261106032930_pupi_order_invoices.sql` foi aplicada ao Supabase Pupi. Na administração de cada pedido, é possível registrar a chave de uma nota já emitida; a chave modelo 55 e o dígito verificador são conferidos, com acesso apenas a administradores e controle de versão. Isso não emite NF-e nem consulta sua autorização na SEFAZ.
+O usuário escolheu NF-e emitida em sistema fiscal externo, com a chave registrada no Pupi. A migration `20261106032930_pupi_order_invoices.sql` foi aplicada ao Supabase Pupi. Na administração de cada pedido, é possível registrar a chave de uma nota já emitida; a chave modelo 55 e o dígito verificador são conferidos, com acesso apenas a administradores e controle de versão. Isso não emite NF-e nem consulta sua autorização na SEFAZ.
 
 ## Falta para concluir
 

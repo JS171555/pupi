@@ -6,7 +6,7 @@ As migrations de conta, administração e checkout estão aplicadas no Supabase 
 
 ## Abrir o front-end de testes
 
-Use a branch `codex/pupi-fase-4` e Node.js 24+:
+Use a branch `main` e Node.js 24+:
 
 ```sh
 npm ci
@@ -17,6 +17,16 @@ npm run dev
 Abra **http://localhost:3000**. No Windows, copie o arquivo pelo editor ou use `copy .env.example .env`. Não abra o index por file://. A [configuração da Fase 2](docs/phase-2-setup.md) explica redirects, Google Cloud, e-mails e as rotas de teste.
 
 Depois de entrar como administrador, abra **Administração** ou **http://localhost:3000/#/admin**. Veja o [roteiro da Fase 3](docs/phase-3-setup.md). O checkout e a cotação foram preparados; a operação real exige configuração do Melhor Envio. Não há integração financeira; pagamentos ficam pendentes. O registro de remessa e o rastreamento automáticos ainda não estão implementados. Veja a [configuração da fase 4](docs/phase-4-setup.md). Nenhum sucesso é simulado na aplicação.
+
+## Testar na Vercel
+
+Importe o repositório `JS171555/pupi` e selecione a branch `main`. A configuração do projeto usa Vite, `npm run build` e a pasta `dist` (definidos em `vercel.json`); selecione Node.js 24 nas configurações se necessário.
+
+Nas variáveis de ambiente da Vercel, para o ambiente de teste desejado, configure `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` com os valores públicos de `.env.example`. Redeploy após alterar variáveis, pois elas são incorporadas ao build. Não configure service role ou tokens do Melhor Envio no front-end. Esses tokens ficam somente nos segredos da Edge Function do Supabase.
+
+Cadastre a origem da Vercel e as URLs de callback/redirect nas configurações do Supabase Auth e do provedor OAuth antes de testar login Google e recuperação de senha. O domínio da Vercel precisa ser conhecido para configurar esses endereços; veja [a configuração de Auth](docs/phase-2-setup.md).
+
+A NF-e será emitida em um sistema fiscal externo, conforme escolha do usuário; o administrador associa a chave da nota emitida ao pedido no Pupi. O Melhor Envio requer configuração de credenciais; registro automático de remessa e rastreamento também permanecem pendentes. Leia [o roteiro da fase 4](docs/phase-4-setup.md).
 
 ## Executar os testes
 
