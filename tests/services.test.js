@@ -36,6 +36,10 @@ test('cliente usa configuração pública e consulta catálogo com campos e pagi
   assert.equal(requests[0].url.searchParams.get('limit'), '12');
   assert.equal(requests[0].url.searchParams.get('status'), 'eq.published');
   assert.ok(!requests[0].url.searchParams.get('select').includes('*'));
+  await catalog.listProducts({ search: 'ração', sort: 'name' });
+  assert.equal(requests[1].url.searchParams.get('name'), 'ilike.%ração%');
+  assert.equal(requests[1].url.searchParams.get('order'), 'name.asc,id.asc');
+  assert.throws(() => catalog.listProducts({ sort: 'unexpected' }), { code: 'INVALID_DATA' });
   assert.throws(() => catalog.listProducts({ pageSize: 1000 }), { code: 'INVALID_DATA' });
   assert.throws(() => catalog.getProductBySlug('../admin'), { code: 'INVALID_DATA' });
 });
