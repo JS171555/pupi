@@ -57,3 +57,18 @@ test('consulta do carrinho limita página e preserva titular e itens indisponív
   assert.equal(result.items[0].products,null);
   await assert.rejects(()=>repository.listItems(user,0),{code:'INVALID_DATA'});
 });
+
+test('edição recusada quando a versão do item mudou',async()=>{
+  const item='40000000-0000-4000-8000-000000000001';const calls=[];
+  const client=createPupiClient({SUPABASE_URL:'https://pupi.example.com',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test'}, {
+    auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:async(url,options)=>{
+      const parsed=new URL(url);calls.push({url:parsed,options});
+      const result=parsed.pathname.endsWith('/products')?[{id:product,stock_quantity:3}]:parsed.pathname.endsWith('/carts')?[{id:cart}]:null;
+      return new Response(JSON.stringify(result),{status:200,headers:{'Content-Type':'application/json'}});
+    }},
+  });
+  const repository=createCartRepository(client);
+  await assert.rejects(()=>repository.updateItemQuantity(user,item,product,2,'2026-11-05T12:00:00Z'),{code:'CONFLICT'});
+  assert.equal(calls[2].url.searchParams.get('updated_at'),'eq.2026-11-05T12:00:00Z');
+  assert.equal(calls[2].url.searchParams.get('cart_id'),`eq.${cart}`);
+});

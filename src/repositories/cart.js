@@ -14,11 +14,25 @@ export function createCartRepository(client) {
       const cart = await unwrap(cartQuery);
       if (!cart) return {items:[],hasMore:false};
       let itemsQuery = client.from('cart_items')
-        .select('id,product_id,quantity,products(id,name,slug,price_cents,sale_price_cents,stock_quantity,active,status,categories(active))')
+        .select('id,product_id,quantity,updated_at,products(id,name,slug,price_cents,sale_price_cents,stock_quantity,active,status,categories(active))')
         .eq('cart_id',cart.id).order('id').range((page-1)*20,page*20);
       if (signal) itemsQuery = itemsQuery.abortSignal(signal);
       const items = await unwrap(itemsQuery);
       return {items:items.slice(0,20),hasMore:items.length>20};
+    },
+    async updateItemQuantity(userId, itemId, productId, quantity, expected) {
+      if (!uuid(userId) || !uuid(itemId) || !uuid(productId) || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 999 || typeof expected !== 'string' || !expected) {
+        throw new AppError('INVALID_DATA', 'Informe uma quantidade inteira entre 1 e 999.');
+      }
+      const product = await unwrap(client.from('products').select('id,stock_quantity,categories!inner(active)')
+        .eq('id',productId).eq('active',true).eq('status','published').eq('categories.active',true).maybeSingle());
+      if (!product) throw new AppError('NOT_FOUND', 'Este produto não está disponível.');
+      if (quantity > product.stock_quantity) throw new AppError('INVALID_DATA', 'A quantidade solicitada supera o estoque disponível.');
+      const cart = await unwrap(client.from('carts').select('id').eq('user_id',userId).maybeSingle());
+      if (!cart) throw new AppError('NOT_FOUND', 'Este item não está mais no carrinho.');
+      const updated = await unwrap(client.from('cart_items').update({quantity})
+        .eq('id',itemId).eq('cart_id',cart.id).eq('product_id',productId).eq('updated_at',expected).select('id').maybeSingle());
+      if (!updated) throw new AppError('CONFLICT', 'Este item mudou ou foi removido. Recarregue antes de salvar.');
     },
     async removeItem(userId, itemId) {
       if (!uuid(userId) || !uuid(itemId)) throw new AppError('INVALID_DATA', 'Item do carrinho inválido.');
