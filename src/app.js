@@ -3,6 +3,7 @@ import { createPupiClient } from './services/supabase.js';
 import { readPublicConfig } from './config/environment.js';
 import { createAuthService, TEST_NOTICE_VERSION } from './modules/auth/service.js';
 import { createAccountRepository } from './repositories/account.js';
+import { createCheckoutService } from './services/checkout.js';
 import { createCartRepository } from './repositories/cart.js';
 import { createCatalogRepository } from './repositories/catalog.js';
 import { createMediaService } from './services/media.js';
@@ -185,7 +186,7 @@ async function render() {
     let view;
     if (route === '/checkout') {
       const [cart, addresses] = await Promise.all([cartRepository.listItems(user.id, 1, signal), repository.listAddresses(user.id, page, signal)]);
-      view = checkoutReview({cart, addresses, page, go});
+      view = checkoutReview({cart, addresses, page, go, busy, announce:notify, checkout:createCheckoutService(client,user.id)});
     } else if (route === '/carrinho') {
       const data = await cartRepository.listItems(user.id, page, signal);
       if (!data.items.length && page > 1) { await go(`/carrinho?pagina=${page - 1}`, {force:true}); return; }

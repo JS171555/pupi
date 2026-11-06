@@ -47,7 +47,7 @@ components:
 
 Público: clientes de petshop no Brasil. Clientes criam e acessam a conta; administradores gerenciam catálogo, estoque e operação dos pedidos. Interface pt-BR, uso prioritário em celular, registro de produto. O briefing e `docs/security.md` definem as restrições; não há tela irmã anterior.
 
-A referência é uma ficha de atendimento acolhedora: nome da pessoa, dados legíveis, seções curtas. A assinatura é a palavra `pupi` acompanhada de uma patinha discreta. A Fase 3 mantém o caráter funcional, sem antecipar animações ou o acabamento da Fase 5. O resumo administrativo usa indicadores reais, com significado explícito para pagamentos. Evitar anúncios e estatísticas ilustrativas.
+A referência é uma ficha de atendimento acolhedora: nome da pessoa, dados legíveis, seções curtas. A assinatura é a palavra `pupi` acompanhada de uma patinha discreta. A loja e o checkout da Fase 4 mantêm o caráter funcional, sem antecipar animações ou o acabamento da Fase 5. O resumo administrativo usa indicadores reais, com significado explícito para pagamentos. Evitar anúncios e estatísticas ilustrativas.
 
 Fonte normativa dos tokens: frontmatter deste arquivo. `scripts/design-tokens.js` gera `src/styles/tokens.css`; componentes consomem apenas essas variáveis. `npm run design:check` detecta divergência. Não editar o arquivo CSS gerado à mão. Tema claro; modo de alto contraste usa cores de sistema.
 

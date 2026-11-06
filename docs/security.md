@@ -41,3 +41,11 @@ O controle aqui presume schema `private` não exposto, credenciais de backend pr
 A fila de mídia só aceita caminhos do catálogo sem vínculo, serializa vínculo/remoção pelo caminho e bloqueia novos vínculos enquanto a remoção estiver pendente. Arquivos são excluídos pela API Storage e a fila só é concluída quando o metadado não existir. URLs assinadas já emitidas podem permanecer válidas por até cinco minutos. As permissões administrativas diretas de catálogo da fundação continuam disponíveis ao admin confiável; o painel usa os contratos RPC. Uploads fora do painel precisam seguir a mesma disciplina de vínculos/limpeza.
 
 A primeira conta administrativa foi indicada explicitamente pelo usuário e conferida no Auth. Não existe promoção automática do primeiro usuário, nem autorização baseada em e-mail no código do aplicativo.
+
+## Checkout — Fase 4
+
+A Edge Function `pupi-checkout` valida o usuário com Auth e o aviso de testes antes de operar. Apenas `service_role` executa as funções `service_quote_snapshot`, `service_register_shipping_quote` e `service_confirm_shipping_order`; identificadores do cliente vêm da sessão validada. O token do Melhor Envio fica somente no servidor.
+
+As cotações ficam na tabela privada `shipping_quotes`, com RLS e sem acesso de tabela a anon/authenticated. O snapshot inclui endereço, CEPs, itens, preços e dimensões. A confirmação bloqueia os registros relevantes, confere expiração e snapshot, reutiliza o pedido para a mesma chave e faz baixa de estoque, criação da entrega pendente e limpeza do carrinho na mesma transação. Um UUID de cotação não concede acesso a outra conta.
+
+As respostas externas e o sandbox ainda precisam de homologação com credenciais próprias; a confirmação não compra frete, gera etiqueta ou aprova pagamento. Registro de remessa e rastreamento automático ainda não estão implementados.

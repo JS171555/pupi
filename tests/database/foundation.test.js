@@ -496,3 +496,34 @@ test('consulta administrativa de clientes inclui somente dados necessários e hi
   const list=await adminQuery('customers');assert.equal(list.total,3);assert.equal(list.items.length,3);
   const detail=await adminQuery('customer',{id:A});assert.equal(detail.customer.id,A);assert.equal(detail.total,0);assert.equal(detail.customer.encrypted_password,undefined);
 }));
+
+async function preparedQuote() {
+  await rows("insert into public.store_settings(key,value) values('origin_postal_code','\"01001000\"'::jsonb)");
+  await rows('update public.products set weight_grams=500,width_mm=100,height_mm=100,length_mm=100 where id=$1',[PA]);
+  const snapshot=(await rows('select public.service_quote_snapshot($1,$2) as data',[A,AA]))[0].data;
+  const quote=(await rows("select public.service_register_shipping_quote($1,$2,$3::jsonb,500,'Correios','PAC','1',now()+interval '10 minutes') as id",[A,AA,JSON.stringify(snapshot)]))[0].id;
+  return {quote,snapshot};
+}
+test('cotação e confirmação são exclusivas de backend confiável',async()=>{
+  await rejectsCode(()=>as('authenticated',A,()=>rows('select public.service_quote_snapshot($1,$2)',[A,AA])),'42501');
+  await rejectsCode(()=>as('anon',null,()=>rows('select public.service_confirm_shipping_order($1,$2,$3)',[A,KEY,KEY])),'42501');
+  await rejectsCode(()=>as('authenticated',ADMIN,()=>rows('select * from private.shipping_quotes')),'42501');
+});
+test('checkout confiável usa cotação, cria pedido e entrega uma vez e limpa carrinho',()=>as('service_role',null,async()=>{
+  const {quote}=await preparedQuote();
+  const order=(await rows('select public.service_confirm_shipping_order($1,$2,$3) as id',[A,quote,KEY]))[0].id;
+  const again=(await rows('select public.service_confirm_shipping_order($1,$2,$3) as id',[A,quote,KEY]))[0].id;
+  assert.equal(order,again);
+  const saved=(await rows('select subtotal_cents,shipping_cents,payment_status from public.orders where id=$1',[order]))[0];
+  assert.equal(Number(saved.subtotal_cents),1500);assert.equal(saved.shipping_cents,500);assert.equal(saved.payment_status,'pending');
+  assert.equal((await rows('select stock_quantity from public.products where id=$1',[PA]))[0].stock_quantity,9);
+  assert.equal((await rows('select count(*)::integer as n from public.cart_items where cart_id=$1',['40000000-0000-4000-8000-000000000001']))[0].n,0);
+  const shipment=(await rows('select provider,status,carrier from public.shipments where order_id=$1',[order]))[0];
+  assert.deepEqual(shipment,{provider:'melhor_envio',status:'pending',carrier:'Correios'});
+}));
+test('cotação pertence ao titular e exige carrinho e endereço inalterados',async()=>{
+  await rejectsCode(()=>as('service_role',null,async()=>{const {quote}=await preparedQuote();await rows('select public.service_confirm_shipping_order($1,$2,$3)',[B,quote,KEY]);}),'42501');
+  await rejectsCode(()=>as('service_role',null,async()=>{const {quote}=await preparedQuote();await rows('update public.cart_items set quantity=2 where cart_id=$1',['40000000-0000-4000-8000-000000000001']);await rows('select public.service_confirm_shipping_order($1,$2,$3)',[A,quote,KEY]);}),'40001');
+  await rejectsCode(()=>as('service_role',null,async()=>{const {quote}=await preparedQuote();await rows("update public.store_settings set value='\"20040020\"'::jsonb where key='origin_postal_code'");await rows('select public.service_confirm_shipping_order($1,$2,$3)',[A,quote,KEY]);}),'40001');
+  await rejectsCode(()=>as('service_role',null,async()=>{const {quote}=await preparedQuote();await rows('update private.shipping_quotes set expires_at=now()-interval \'1 second\' where id=$1',[quote]);await rows('select public.service_confirm_shipping_order($1,$2,$3)',[A,quote,KEY]);}),'40001');
+});

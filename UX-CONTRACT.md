@@ -77,3 +77,9 @@ Mídia aceita JPEG/PNG/WebP até 5 MiB, confere cabeçalho e usa caminho novo po
 Editar imagem mantém a prévia, permite texto alternativo/posição e retorna à galeria. Principal é exclusivo por produto. Remover desvincula transacionalmente e enfileira a exclusão física pela API Storage. Falha nessa segunda etapa deixa fila persistente e ação Tentar limpeza. Arquivo vinculado não pode ser enfileirado; arquivo enfileirado não pode ser revinculado. Não existe exclusão direta de Storage por SQL no projeto hospedado.
 
 Pedidos mostram pagamento somente para consulta; operação de entrega é identificada como manual. Não indica compra de frete/etiqueta. Cancelamento anterior ao envio repõe estoque uma vez; após falha de entrega, retorno físico precisa ser conferido pelo operador. Configurações aceitam apenas dados operacionais permitidos e nunca credenciais.
+
+## Loja e checkout — Fase 4
+
+Carrinho mostra subtotal estimado e sinaliza itens indisponíveis ou não incluídos. A revisão usa endereço da conta e consulta cotações ao backend. Cada opção mostra frete e total também fora do select, para que valores não fiquem truncados no celular. Trocar o endereço remove as cotações anteriores. A confirmação registra pedido com pagamento pendente e exibe o resultado somente após resposta do servidor.
+
+Uma confirmação sem resposta conserva a mesma chave por usuário na sessão do navegador. Reabrir a revisão permite verificar a tentativa sem duplicar o pedido; falha conhecida por cotação expirada libera nova consulta. Não guardar tokens de frete nem dados de endereço no armazenamento da aplicação. A cotação real exige credenciais no servidor e a remessa/rastreamento automáticos ainda não estão implementados.
