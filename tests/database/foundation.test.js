@@ -527,3 +527,25 @@ test('cotação pertence ao titular e exige carrinho e endereço inalterados',as
   await rejectsCode(()=>as('service_role',null,async()=>{const {quote}=await preparedQuote();await rows("update public.store_settings set value='\"20040020\"'::jsonb where key='origin_postal_code'");await rows('select public.service_confirm_shipping_order($1,$2,$3)',[A,quote,KEY]);}),'40001');
   await rejectsCode(()=>as('service_role',null,async()=>{const {quote}=await preparedQuote();await rows('update private.shipping_quotes set expires_at=now()-interval \'1 second\' where id=$1',[quote]);await rows('select public.service_confirm_shipping_order($1,$2,$3)',[A,quote,KEY]);}),'40001');
 });
+
+const invoiceKey='35261112345678000195550010000001231123456788';
+test('chave NF-e exige administrador e permanece em tabela privada',async()=>{
+  await rejectsCode(()=>as('authenticated',A,()=>rows('select public.admin_invoice_get($1)',[KEY])),'42501');
+  await rejectsCode(()=>as('anon',null,()=>rows('select public.admin_invoice_save($1,$2,null)',[KEY,invoiceKey])),'42501');
+  await rejectsCode(()=>as('authenticated',ADMIN,()=>rows('select * from private.order_invoices')),'42501');
+});
+test('administrador associa chave NF-e válida ao pedido de forma idempotente',()=>as('service_role',null,async()=>{
+  const id=await createOrder();await setRole('authenticated',ADMIN);
+  const first=(await rows('select public.admin_invoice_save($1,$2,null) as data',[id,invoiceKey]))[0].data;
+  const again=(await rows('select public.admin_invoice_save($1,$2,null) as data',[id,invoiceKey]))[0].data;
+  assert.deepEqual(first,again);assert.equal((await rows('select public.admin_invoice_get($1) as data',[id]))[0].data.access_key,invoiceKey);
+}));
+test('chave com dígito inválido ou modelo incompatível é recusada',async()=>{
+  for(const invalid of [invoiceKey.slice(0,43)+'0',invoiceKey.slice(0,20)+'65'+invoiceKey.slice(22)])
+    await rejectsCode(()=>as('authenticated',ADMIN,()=>rows('select public.admin_invoice_save($1,$2,null)',[KEY,invalid])),'22023');
+});
+test('edição de chave NF-e detecta versão anterior',()=>rejectsCode(()=>as('service_role',null,async()=>{
+  const id=await createOrder();await setRole('authenticated',ADMIN);
+  await rows('select public.admin_invoice_save($1,$2,null)',[id,invoiceKey]);
+  await rows("select public.admin_invoice_save($1,$2,'2000-01-01')",[id,'35261112345678000195550010000001241123456785']);
+}),'40001'));

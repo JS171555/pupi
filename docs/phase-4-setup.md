@@ -17,6 +17,10 @@ A função exige usuário autenticado e aviso de testes aceito. A conta de servi
 
 Os testes de navegador usam respostas fictícias interceptadas. A API real do Melhor Envio e o SDK hospedado ainda precisam ser homologados em sandbox com credenciais válidas. A rede deste ambiente bloqueia acesso HTTP direto ao Supabase; o banco hospedado foi testado por SQL em uma transação revertida.
 
+## Nota fiscal eletrônica
+
+O Pupi usará NF-e, conforme escolha do usuário. Depois de emitir a nota no emissor fiscal da loja, um administrador pode informar os 44 dígitos da chave na tela do pedido. O aplicativo confere formato, modelo 55 e dígito verificador; isso não emite a nota nem verifica sua autorização na SEFAZ. A chave fica restrita à administração. O registro automático da remessa com a NF-e ainda precisa ser implementado e homologado.
+
 ## Limites atuais
 
 A confirmação cria um pedido com pagamento pendente e uma entrega pendente associada à modalidade cotada; não compra frete nem gera etiqueta. **Registro da remessa no Melhor Envio, rastreamento automático e atualização de eventos ainda não estão implementados.** A área de administração permite registrar dados de entrega manualmente. O gateway financeiro ainda não foi escolhido; não há aprovação ou cobrança simulada. A consulta ao frete requer dimensões de todos os produtos. O histórico de aceite `testing-v1` continua provisório.

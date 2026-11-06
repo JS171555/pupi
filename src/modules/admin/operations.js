@@ -5,6 +5,7 @@ import {orderView} from '../account/views.js';
 import {AppError} from '../../utils/errors.js';
 import {el,link,adminURL,filterBar,adminLink,panel,listContent,listPager,dataTable,notFound} from './common.js';
 import {validateStock,validateSettings,orderOptions,ORDER_STATES} from './validation.js';
+import {isValidNfeKey} from './invoice.js';
 
 export async function dashboard(context) {
   const data=await context.admin.query('dashboard',{},context.signal);
@@ -64,6 +65,7 @@ export async function adminOrders(context,options) {
 }
 export async function adminOrder(context,id) {
   const order=await context.admin.query('order',{id},context.signal);if(!order)return notFound('Pedido indisponível','/admin/pedidos');
+  let invoice=await context.admin.invoice(id,context.signal);
   const view=orderView(order,{backHref:'#/admin/pedidos'});
   const customer=order.customer;
   view.append(el('section',{className:'admin-customer-summary'},[el('h2',{},'Cliente'),el('p',{},customer.full_name),
@@ -80,6 +82,16 @@ export async function adminOrder(context,id) {
       await confirmAction({title:`Cancelar pedido #${order.order_number}?`,description:['confirmed','preparing'].includes(order.status)?'O cancelamento é definitivo para este pedido e devolve as quantidades ao estoque uma única vez. Não realiza estorno financeiro.':'O cancelamento é definitivo. Como já houve envio, o estoque não será reposto automaticamente; confira o retorno físico antes de ajustar o saldo.',confirmLabel:'Cancelar pedido',danger:true,onConfirm:execute});
     }else await execute();
   }});
+  const invoiceForm=makeForm({name:'Nota fiscal eletrônica',submitLabel:'Salvar chave da NF-e',persist:true,onBusy:context.busy,fields:[
+    {name:'access_key',label:'Chave de acesso da NF-e',value:invoice?.access_key||'',required:true,inputmode:'numeric',maxLength:44,hint:'Informe os 44 dígitos da NF-e já emitida.'},
+  ],onSubmit:async(values,node)=>{
+    const key=values.access_key.trim();
+    if(!isValidNfeKey(key))throw new AppError('INVALID_DATA','Informe uma chave de NF-e modelo 55 com 44 dígitos e dígito verificador válido.');
+    invoice=await context.admin.saveInvoice(id,key,invoice?.updated_at??null);
+    cleanForm(node);context.announce('Chave da NF-e salva.','success');
+  }});
+  view.append(el('section',{className:'admin-order-actions'},[el('h2',{},'Nota fiscal eletrônica'),
+    el('p',{className:'muted'},'Associe a chave de uma NF-e já emitida. A chave é conferida pelo formato; a autorização da nota deve ser verificada no emissor.'),invoiceForm]));
   view.append(el('section',{className:'admin-order-actions'},[el('h2',{},'Atualizar operação e entrega'),
     el('p',{className:'muted'},'Registro manual. Esta ação não compra frete, não emite etiqueta e não aprova ou estorna pagamentos.'),
     order.payment_status==='paid'?el('p',{className:'muted'},'Cancelamento de pedido pago depende do fluxo de estorno e não está disponível nesta tela.'):null,form]));

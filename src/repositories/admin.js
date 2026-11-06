@@ -8,6 +8,12 @@ export function createAdminRepository(client) {
     query(resource,options={},signal) {
       return unwrap(client.rpc('admin_query',{p_resource:resource,p_options:options}).abortSignal(deadline(signal)));
     },
+    invoice(orderId,signal) {
+      return unwrap(client.rpc('admin_invoice_get',{p_order_id:orderId}).abortSignal(deadline(signal)));
+    },
+    saveInvoice(orderId,key,expected=null) {
+      return unwrap(client.rpc('admin_invoice_save',{p_order_id:orderId,p_access_key:key,p_expected:expected}).abortSignal(deadline()));
+    },
     async mutate(operation,id,data={},expected=null,requestKey) {
       const fingerprint=JSON.stringify([operation,id??null,data,expected]);
       let key=requestKey || attempts.get(fingerprint);

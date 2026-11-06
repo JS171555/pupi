@@ -49,3 +49,5 @@ A Edge Function `pupi-checkout` valida o usuário com Auth e o aviso de testes a
 As cotações ficam na tabela privada `shipping_quotes`, com RLS e sem acesso de tabela a anon/authenticated. O snapshot inclui endereço, CEPs, itens, preços e dimensões. A confirmação bloqueia os registros relevantes, confere expiração e snapshot, reutiliza o pedido para a mesma chave e faz baixa de estoque, criação da entrega pendente e limpeza do carrinho na mesma transação. Um UUID de cotação não concede acesso a outra conta.
 
 As respostas externas e o sandbox ainda precisam de homologação com credenciais próprias; a confirmação não compra frete, gera etiqueta ou aprova pagamento. Registro de remessa e rastreamento automático ainda não estão implementados.
+
+A chave de NF-e informada para cada pedido é guardada em `private.order_invoices`, protegida por RLS e acessível ao painel somente por RPC que verifica o papel administrativo. A validação confere modelo e dígito, não equivale a autorização fiscal. A função não emite notas nem consulta a SEFAZ.

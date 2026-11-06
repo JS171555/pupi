@@ -50,6 +50,15 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
     }
     if (url.pathname === '/rest/v1/user_roles') return respond(object ? { role: data.role } : [{ role: data.role }]);
     if (url.pathname === '/rest/v1/rpc/admin_access_status') return respond(data.role === 'admin');
+    if (url.pathname === '/rest/v1/rpc/admin_invoice_get') {
+      if(data.role!=='admin')return respond({code:'42501',message:'denied'},403);
+      return respond(data.invoice||null);
+    }
+    if (url.pathname === '/rest/v1/rpc/admin_invoice_save') {
+      if(data.role!=='admin')return respond({code:'42501',message:'denied'},403);
+      data.invoice={order_id:body.p_order_id,access_key:body.p_access_key,updated_at:new Date().toISOString()};
+      return respond(data.invoice);
+    }
     if (url.pathname === '/rest/v1/rpc/admin_query') {
       if(data.role!=='admin')return respond({code:'42501',message:'denied'},403);
       if(data.adminQuery){const result=await data.adminQuery(body);return respond(result.data,result.status||200);}

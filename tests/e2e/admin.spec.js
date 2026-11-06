@@ -75,7 +75,15 @@ test('pedido registra preparação e envio manual sem aprovar pagamento',async({
   const state=await installAdminApi(page);state.seed();const order={id:'50000000-0000-4000-8000-000000000001',order_number:9,user_id:user.id,status:'confirmed',payment_status:'pending',subtotal_cents:3000,shipping_cents:500,total_cents:3500,created_at:'2026-11-05T12:00:00Z',updated_at:'2026-11-05T12:00:00Z',
     customer:{id:user.id,full_name:'Pessoa Teste',email:user.email,phone:null},customer_name:'Pessoa Teste',items:[],shipment:null,events:[],address_snapshot:{recipient:'Pessoa Teste',street:'Rua teste',number:'1',neighborhood:'Centro',city:'São Paulo',state:'SP',postal_code:'01001000'}};
   state.orders.push(order);await page.goto(`/#/admin/pedidos/${order.id}`);
+  await page.getByRole('textbox',{name:'Chave de acesso da NF-e'}).fill('123');
+  await page.getByRole('button',{name:'Salvar chave da NF-e'}).click();
+  await expect(page.getByRole('alert').filter({hasText:'dígito verificador válido'})).toBeVisible();
+  const key='35261112345678000195550010000001231123456788';
+  await page.getByRole('textbox',{name:'Chave de acesso da NF-e'}).fill(key);
+  await page.getByRole('button',{name:'Salvar chave da NF-e'}).click();
+  await expect(page.getByText('Chave da NF-e salva.')).toBeVisible();
   await page.getByLabel('Status do pedido').selectOption('preparing');await page.getByRole('button',{name:'Salvar pedido e entrega'}).click();await expect(page.getByText('Pedido e entrega atualizados. O pagamento não foi alterado.',{exact:true})).toBeVisible();
+  await expect(page.getByRole('textbox',{name:'Chave de acesso da NF-e'})).toHaveValue(key);
   await page.getByLabel('Status do pedido').selectOption('shipped');await page.getByLabel('Transportadora / responsável pela entrega').fill('Entrega local');await page.getByLabel('Código de rastreamento').fill('TESTE-123');
   await page.getByRole('button',{name:'Salvar pedido e entrega'}).click();await expect(page.getByText('Pedido e entrega atualizados. O pagamento não foi alterado.',{exact:true})).toBeVisible();
   expect(order.status).toBe('shipped');expect(order.payment_status).toBe('pending');expect(order.shipment.tracking_code).toBe('TESTE-123');

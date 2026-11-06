@@ -83,3 +83,7 @@ Pedidos mostram pagamento somente para consulta; operação de entrega é identi
 Carrinho mostra subtotal estimado e sinaliza itens indisponíveis ou não incluídos. A revisão usa endereço da conta e consulta cotações ao backend. Cada opção mostra frete e total também fora do select, para que valores não fiquem truncados no celular. Trocar o endereço remove as cotações anteriores. A confirmação registra pedido com pagamento pendente e exibe o resultado somente após resposta do servidor.
 
 Uma confirmação sem resposta conserva a mesma chave por usuário na sessão do navegador. Reabrir a revisão permite verificar a tentativa sem duplicar o pedido; falha conhecida por cotação expirada libera nova consulta. Não guardar tokens de frete nem dados de endereço no armazenamento da aplicação. A cotação real exige credenciais no servidor e a remessa/rastreamento automáticos ainda não estão implementados.
+
+## NF-e no pedido administrativo
+
+A administração aceita a chave de 44 dígitos de uma NF-e já emitida, sem inserir dados fiscais na URL ou no armazenamento do navegador. A chave é validada no cliente e no banco, com detecção de versão anterior. Erros preservam o valor digitado; sucesso não apaga outros formulários do pedido. A interface deixa claro que não emite a nota e não verifica sua autorização na SEFAZ.
