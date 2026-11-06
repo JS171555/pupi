@@ -1,6 +1,25 @@
 import {el, link, heading, money} from '../../ui/dom.js';
 
-export async function storeCatalog(repository, params, go) {
+async function primaryImages(repository, media, products) {
+  if (!products.length) return new Map();
+  try {
+    const images = await repository.listPrimaryImages(products.map(product => product.id));
+    const entries = await Promise.all(images.map(async image => {
+      try { return [image.product_id, { ...image, url: (await media.signedUrl('product-images', image.storage_path)).signedUrl }]; }
+      catch { return [image.product_id, null]; }
+    }));
+    return new Map(entries);
+  } catch { return new Map(); }
+}
+function productImage(image, name) {
+  const placeholder = () => el('p', {className:'media-placeholder'}, 'Imagem indisponível');
+  if (!image) return placeholder();
+  const node = el('img', {src:image.url, alt:image.alt_text || name, width:180, height:180, loading:'lazy', className:'media-preview'});
+  node.addEventListener('error', () => node.replaceWith(placeholder()), {once:true});
+  return node;
+}
+
+export async function storeCatalog(repository, params, go, media) {
   const page = Math.max(1, Number.parseInt(params.get('pagina'), 10) || 1);
   const category = params.get('categoria') || '';
   const search = (params.get('busca') || '').slice(0,120);
@@ -19,7 +38,9 @@ export async function storeCatalog(repository, params, go) {
     el('button',{type:'submit',className:'button button-secondary'},'Filtrar'),
   ]);
   form.addEventListener('submit',event=>{event.preventDefault();const query=new URLSearchParams();if(select.value)query.set('categoria',select.value);if(searchInput.value.trim())query.set('busca',searchInput.value.trim());if(order.value!=='recent')query.set('ordem',order.value);go('/loja'+(query.size?'?'+query:''));});
+  const images=await primaryImages(repository, media, products);
   const cards=products.map(product=>el('li',{className:'record-card'},[
+    productImage(images.get(product.id),product.name),
     el('h2',{},link(product.name,`#/loja/${product.slug}`)),
     el('p',{},product.short_description),
     product.sale_price_cents!==null ? el('p',{},[el('del',{},money(product.price_cents)), ' ', el('strong',{},money(product.sale_price_cents))]) : el('p',{},money(product.price_cents)),
@@ -31,10 +52,11 @@ export async function storeCatalog(repository, params, go) {
     el('nav',{className:'pagination','aria-label':'Páginas do catálogo'},[page>1?pageLink(page-1,'Anterior'):null,el('span',{},`Página ${page}`),products.length===20?pageLink(page+1,'Próxima'):null])]);
 }
 
-export async function storeProduct(repository, slug) {
+export async function storeProduct(repository, slug, media) {
   const product=await repository.getProductBySlug(slug);
   if(!product)return el('section',{className:'panel'},[heading('Produto indisponível','Confira a loja para ver os produtos disponíveis.'),link('Voltar à loja','#/loja')]);
-  return el('section',{className:'panel'},[heading(product.name,product.title),el('p',{},product.description||product.short_description),
+  const images=await primaryImages(repository,media,[product]);
+  return el('section',{className:'panel'},[heading(product.name,product.title),productImage(images.get(product.id),product.name),el('p',{},product.description||product.short_description),
     product.sale_price_cents!==null?el('p',{},[el('del',{},money(product.price_cents)),' ',el('strong',{},money(product.sale_price_cents))]):el('p',{},money(product.price_cents)),
     el('p',{},product.stock_quantity>0?'Disponível':'Indisponível'),link('Voltar à loja','#/loja',{className:'button button-secondary'})]);
 }

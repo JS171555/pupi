@@ -21,6 +21,13 @@ export function createCatalogRepository(client) {
       return unwrap(query.order('id')
         .range((page - 1) * pageSize, page * pageSize - 1));
     },
+    listPrimaryImages(productIds) {
+      if (!Array.isArray(productIds) || productIds.length > 100 || productIds.some(id => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))) {
+        throw new AppError('INVALID_DATA', 'Produtos inválidos.');
+      }
+      if (!productIds.length) return Promise.resolve([]);
+      return unwrap(client.from('product_images').select('product_id,storage_path,alt_text').in('product_id', productIds).eq('is_primary', true));
+    },
     getProductBySlug(slug) {
       if (typeof slug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
         throw new AppError('INVALID_DATA', 'Identificador de produto inválido.');

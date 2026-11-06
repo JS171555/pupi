@@ -39,6 +39,13 @@ test('cliente usa configuração pública e consulta catálogo com campos e pagi
   await catalog.listProducts({ search: 'ração', sort: 'name' });
   assert.equal(requests[1].url.searchParams.get('name'), 'ilike.%ração%');
   assert.equal(requests[1].url.searchParams.get('order'), 'name.asc,id.asc');
+  const productId = '20000000-0000-4000-8000-000000000001';
+  assert.deepEqual(await catalog.listPrimaryImages([]), []);
+  await catalog.listPrimaryImages([productId]);
+  assert.equal(requests[2].url.pathname, '/rest/v1/product_images');
+  assert.equal(requests[2].url.searchParams.get('is_primary'), 'eq.true');
+  assert.equal(requests[2].url.searchParams.get('product_id'), `in.(${productId})`);
+  assert.throws(() => catalog.listPrimaryImages(['invalid']), { code: 'INVALID_DATA' });
   assert.throws(() => catalog.listProducts({ sort: 'unexpected' }), { code: 'INVALID_DATA' });
   assert.throws(() => catalog.listProducts({ pageSize: 1000 }), { code: 'INVALID_DATA' });
   assert.throws(() => catalog.getProductBySlug('../admin'), { code: 'INVALID_DATA' });

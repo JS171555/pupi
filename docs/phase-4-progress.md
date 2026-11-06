@@ -12,9 +12,13 @@ Verificação: `npm run check` (20 serviços e 70 banco), `npm run build` e `npm
 
 Busca por nome e ordenação por nome ou recentes, no servidor, preservadas ao paginar e combináveis com categoria. Aplicar filtros retorna à primeira página. O teste de serviço confere a consulta e os limites de ordenação.
 
+## Etapa 3
+
+Imagem principal na vitrine e no detalhe do produto, usando URLs assinadas de curta duração e as políticas existentes. Caso a imagem esteja ausente ou falhe, a tela continua utilizável. A galeria completa e a verificação real de Storage continuam pendentes.
+
 ## Falta para concluir
 
-1. Acrescentar destaque/promoções e imagens/galeria reais na vitrine; completar detalhes de produto e testar com produtos publicados reais.
+1. Acrescentar destaque/promoções e galeria de imagens na vitrine; completar detalhes de produto e testar com produtos publicados reais.
 2. Carrinho persistente por usuário: adicionar, alterar, remover, validar estoque e calcular subtotal; testar isolamento de contas e concorrência.
 3. Frete: integrar Melhor Envio em backend confiável com credenciais protegidas, cotações e seleção válida; definir configuração e tratar indisponibilidade. Nunca confiar em frete enviado pelo navegador.
 4. Checkout autenticado: endereço, revisão, estoque e preços recalculados no backend; confirmar pedido idempotente e gravar cotação/entrega com segurança. Não expor service_role nem aceitar total fornecido pelo cliente.

@@ -4,6 +4,7 @@ import { readPublicConfig } from './config/environment.js';
 import { createAuthService, TEST_NOTICE_VERSION } from './modules/auth/service.js';
 import { createAccountRepository } from './repositories/account.js';
 import { createCatalogRepository } from './repositories/catalog.js';
+import { createMediaService } from './services/media.js';
 import { storeCatalog, storeProduct } from './modules/store/catalog.js';
 import { authView, noticeView, onboardingView } from './modules/auth/views.js';
 import { profileView, addressesView, addressFormView, ordersView, orderView } from './modules/account/views.js';
@@ -22,7 +23,7 @@ const header = document.querySelector('#header');
 const status = document.querySelector('#connection-status');
 const state = { user: null, profile: null, role: null, busy: false, booting: true, generation: 0, controller: null,
   currentHash: location.hash || '#/entrar', recovery: false, destination: '/conta' };
-let client; let auth; let repository;let adminRepository;let adminMedia;let catalogRepository;
+let client; let auth; let repository;let adminRepository;let adminMedia;let catalogRepository;let catalogMedia;
 const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
 const busy = value => { state.busy = value; };
 function clearPrivateState() { state.user = null; state.profile = null; state.role = null;adminRepository?.clear();adminMedia?.clear();resetPrivateAdminUI(); }
@@ -129,7 +130,7 @@ async function render() {
   try {
     if (route === '/loja' || /^\/loja\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(route)) {
       document.title = 'Loja | Pupi';
-      const view = route === '/loja' ? await storeCatalog(catalogRepository, address.searchParams, go) : await storeProduct(catalogRepository, route.slice(6));
+      const view = route === '/loja' ? await storeCatalog(catalogRepository, address.searchParams, go, catalogMedia) : await storeProduct(catalogRepository, route.slice(6), catalogMedia);
       if (generation === state.generation) main.replaceChildren(view);
       return;
     }
@@ -237,7 +238,7 @@ async function start() {
     const config = readPublicConfig(__PUPI_CONFIG__);
     client = createPupiClient(__PUPI_CONFIG__, { auth: { detectSessionInUrl: false } });
     auth = createAuthService(client, location.origin, config); repository = createAccountRepository(client);
-    catalogRepository=createCatalogRepository(client);adminRepository=createAdminRepository(client);adminMedia=createAdminMediaService(client,adminRepository);
+    catalogRepository=createCatalogRepository(client);catalogMedia=createMediaService(client);adminRepository=createAdminRepository(client);adminMedia=createAdminMediaService(client,adminRepository);
     try { state.recovery = sessionStorage.getItem('pupi-password-recovery') === 'active'; } catch { /* Marcador opcional. */ }
     const callbackUrl = new URL(location.href);
     const hasCallback = callbackUrl.searchParams.has('code') || callbackUrl.searchParams.has('error')
