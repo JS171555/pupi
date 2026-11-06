@@ -2,6 +2,11 @@
 @font-face {font-family:'DM Sans';font-style:normal;font-weight:100 1000;font-display:swap;src:url('/fonts/dm-sans-latin-wght-normal.woff2') format('woff2');}
 :root {--z-navigation:400;--z-feedback:900;}
 .mobile-tabs {z-index:var(--z-navigation);}
+.nav-notification-icon {position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;}
+.navigation .nav-notification-link {gap:.45rem;}
+.navigation .nav-notification-icon svg {width:20px;height:20px;}
+.nav-notification-dot {position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--color-danger);box-shadow:0 0 0 2px var(--color-surface);pointer-events:none;}
+@media(forced-colors:active) {.nav-notification-dot {background:Highlight;outline:1px solid CanvasText;}}
 @media(max-width:47.99rem) {
   body {padding-bottom:calc(84px + env(safe-area-inset-bottom));}
   .mobile-tabs a {min-height:64px;font-size:12px;line-height:1.35;gap:4px;}

@@ -19,6 +19,8 @@ A raiz do aplicativo abre a loja. O carrossel aparece no início de `/#/loja`, a
 
 O navegador escolhe a versão mobile abaixo de 48rem; desktop usa a imagem horizontal. O quadro reserva espaço e não corta as imagens. Dois ou mais banners alternam a cada seis segundos; há seletores, anterior/próximo e pausa. O avanço pausa com foco, ponteiro, aba oculta ou carrossel fora da tela. Movimento reduzido começa sem reprodução automática. Ao sair da rota, temporizadores, observadores e animações são encerrados. Um único banner fica estático.
 
+Correção da exibição de um único banner: os controles são omitidos sem inserir `null` como texto na página. A descrição continua sendo o texto alternativo da imagem.
+
 Falha de um banner não bloqueia produtos. Uma imagem indisponível recebe uma tentativa de renovar suas URLs; se continuar indisponível, é ignorada. Se todas falharem, o carrossel é ocultado. URLs assinadas duram cinco minutos; uma URL já emitida pode continuar acessível até vencer depois de ocultar o banner.
 
 ## Banco e permissões

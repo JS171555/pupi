@@ -5,6 +5,14 @@ const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-
 /** Define a quantidade absoluta: repetir uma solicitação não soma novamente. */
 export function createCartRepository(client) {
   return {
+    async hasItems(userId,signal) {
+      if(!uuid(userId))throw new AppError('INVALID_DATA','Conta inválida.');
+      const deadline=signal?AbortSignal.any([signal,AbortSignal.timeout(5000)]):AbortSignal.timeout(5000);
+      const cart=await unwrap(client.from('carts').select('id').eq('user_id',userId).maybeSingle().abortSignal(deadline));
+      if(!cart)return false;
+      const items=await unwrap(client.from('cart_items').select('id').eq('cart_id',cart.id).gt('quantity',0).limit(1).abortSignal(deadline));
+      return Boolean(items?.length);
+    },
     async listItems(userId, page = 1, signal) {
       if (!uuid(userId) || !Number.isSafeInteger(page) || page < 1 || page > 100000) {
         throw new AppError('INVALID_DATA', 'Página do carrinho inválida.');

@@ -21,6 +21,7 @@ import { isDirty, discardChanges } from './ui/forms.js';
 import { AppError, toAppError } from './utils/errors.js';
 import {createAdminRepository} from './repositories/admin.js';
 import {createAdminMediaService} from './services/admin-media.js';
+import {createNavigationIndicators} from './services/navigation-indicators.js';
 import {renderAdmin,resetPrivateAdminUI} from './modules/admin/router.js';
 import './styles/app.css';
 import './styles/admin.css';
@@ -42,7 +43,7 @@ const syncHeaderGeometry=()=>{
 const shellObserver=new ResizeObserver(syncHeaderGeometry);shellObserver.observe(header);shellObserver.observe(status);
 const state = { user: null, profile: null, role: null, busy: false, booting: true, generation: 0, controller: null,
   currentHash: location.hash || '#/loja', recovery: false, destination: '/conta' };
-let client; let auth; let repository;let adminRepository;let adminMedia;let catalogRepository;let catalogMedia;let cartRepository;
+let client; let auth; let repository;let adminRepository;let adminMedia;let catalogRepository;let catalogMedia;let cartRepository;let navigationIndicators;
 const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
 let stopBusyButton=()=>{};
 const busy = value => { state.busy=value;if(value){stopBusyButton();const active=document.activeElement;stopBusyButton=active?.matches('button')&&!active.closest('form,dialog')?buttonLoading(active):()=>{};}else{stopBusyButton();stopBusyButton=()=>{};} };
@@ -57,7 +58,7 @@ const viewObserver=new MutationObserver(()=>{
 });
 viewObserver.observe(main,{childList:true});
 motionPreference.addEventListener('change',event=>{if(event.matches&&main.firstElementChild){const nodes=[main.firstElementChild,...main.querySelectorAll('.product-card')];gsap.killTweensOf(nodes);gsap.set(nodes,{clearProps:'opacity,transform'});}});
-function clearPrivateState() { state.user = null; state.profile = null; state.role = null;adminRepository?.clear();adminMedia?.clear();resetPrivateAdminUI(); }
+function clearPrivateState() { state.user = null; state.profile = null; state.role = null;navigationIndicators?.clear();adminRepository?.clear();adminMedia?.clear();resetPrivateAdminUI(); }
 function clearRecovery() {
   state.recovery = false;
   try { sessionStorage.removeItem('pupi-password-recovery'); } catch { /* Sessão ainda pode ser concluída sem o marcador. */ }
@@ -72,6 +73,25 @@ function connectionStatus() {
   status.textContent = navigator.onLine ? '' : 'Você está sem conexão. Reconecte para continuar.';
   syncHeaderGeometry();
 }
+function paintNavigationIndicators(values) {
+  for(const node of header.querySelectorAll('[data-nav-indicator]')){
+    const kind=node.dataset.navIndicator;const active=values[kind]===true;
+    node.querySelector('.nav-notification-dot').hidden=!active;
+    if(active)node.setAttribute('aria-describedby',`nav-${kind}-notice`);
+    else node.removeAttribute('aria-describedby');
+  }
+}
+function refreshNavigationIndicators() {
+  if(state.user&&navigator.onLine&&!document.hidden)void navigationIndicators?.refresh(state.user.id);
+}
+function navigationLink(label,path,route,definition) {
+  const kind=path==='/carrinho'?'cart':path==='/pedidos'?'orders':null;
+  const image=definition||(kind==='cart'?ShoppingBag:kind==='orders'?Package:null);
+  return link([
+    image?el('span',{className:'nav-notification-icon'},[icon(image),kind?el('span',{className:'nav-notification-dot',hidden:true,'aria-hidden':'true'}):null]):null,
+    el('span',{},label),
+  ],`#${path}`,{'aria-current':route.startsWith(path)?'page':undefined,'data-nav-indicator':kind,className:kind?'nav-notification-link':undefined});
+}
 function renderHeader(route = '') {
   const brand = link([el('img',{src:'/icons/pupi-192.png',alt:'',width:42,height:42,className:'brand-icon'}),el('span',{},'pupi')], '#/loja', { className: 'brand', 'aria-label': 'Pupi, ir à loja' });
   const navigation = el('nav', { className: 'navigation', 'aria-label': 'Navegação principal' });
@@ -79,7 +99,7 @@ function renderHeader(route = '') {
   routes.unshift(['Loja', '/loja']);
   if (state.user) routes.push(['Carrinho', '/carrinho']);
   if (state.role === 'admin') routes.push(['Administração', '/admin']);
-  for (const [label, path] of routes) navigation.append(link(label, `#${path}`, { 'aria-current': route.startsWith(path) ? 'page' : undefined }));
+  for (const [label, path] of routes) navigation.append(navigationLink(label,path,route));
   if (state.user) navigation.append(button([icon(LogOut), 'Sair'], logout, 'ghost'));
   const mobileMenu = el('details', {className:'mobile-menu'}, [
     el('summary', {'aria-label':'Mais opções','aria-expanded':'false','aria-controls':'mobile-navigation'}, [icon(Menu),el('span',{},'Mais')]),
@@ -90,8 +110,11 @@ function renderHeader(route = '') {
   ]);
   const tabs=[['Loja','/loja',Store],['Carrinho','/carrinho',ShoppingBag],['Pedidos','/pedidos',Package],[state.user?'Conta':'Entrar',state.user?'/conta':'/entrar',UserRound]];
   const bottom=el('nav',{className:'mobile-tabs','aria-label':'Navegação inferior'},tabs.map(([label,path,image])=>
-    link([icon(image),el('span',{},label)],`#${path}`,{'aria-current':route.startsWith(path)?'page':undefined})));
-  header.replaceChildren(brand, navigation, mobileMenu, bottom);
+    navigationLink(label,path,route,image)));
+  header.replaceChildren(brand, navigation, mobileMenu, bottom,
+    el('span',{id:'nav-cart-notice',hidden:true},'Há produtos no carrinho.'),
+    el('span',{id:'nav-orders-notice',hidden:true},'Há pedidos aguardando pagamento.'));
+  navigationIndicators?.show(state.user?.id);refreshNavigationIndicators();
   mobileMenu.addEventListener('toggle',()=>{mobileMenu.querySelector('summary').setAttribute('aria-expanded',String(mobileMenu.open));syncHeaderGeometry();});
   syncHeaderGeometry();
 }
@@ -194,6 +217,7 @@ async function render() {
           return;
         }
         await cartRepository.setQuantity(user.id, product.id, quantity);
+        refreshNavigationIndicators();
         notify('Quantidade salva no carrinho.', 'success');
       };
       const view = route === '/loja' ? await storeCatalog(catalogRepository, address.searchParams, go, catalogMedia,{signal}) : await storeProduct(catalogRepository, route.slice(6), catalogMedia, address.searchParams, {addToCart, busy});
@@ -322,6 +346,10 @@ async function start() {
     client = createPupiClient(__PUPI_CONFIG__, { auth: { detectSessionInUrl: false } });
     auth = createAuthService(client, location.origin, config); repository = createAccountRepository(client);
     catalogRepository=createCatalogRepository(client);cartRepository=createCartRepository(client);catalogMedia=createMediaService(client);adminRepository=createAdminRepository(client);adminMedia=createAdminMediaService(client,adminRepository);
+    navigationIndicators=createNavigationIndicators({readCart:(id,signal)=>cartRepository.hasItems(id,signal),readOrders:(id,signal)=>repository.hasPendingOrders(id,signal),onChange:paintNavigationIndicators});
+    window.addEventListener('focus',refreshNavigationIndicators);
+    window.addEventListener('online',refreshNavigationIndicators);
+    document.addEventListener('visibilitychange',refreshNavigationIndicators);
     try { state.recovery = sessionStorage.getItem('pupi-password-recovery') === 'active'; } catch { /* Marcador opcional. */ }
     const callbackUrl = new URL(location.href);
     const hasCallback = callbackUrl.searchParams.has('code') || callbackUrl.searchParams.has('error')

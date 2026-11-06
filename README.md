@@ -46,7 +46,7 @@ O Pupi reúne catálogo, conta do cliente, carrinho, checkout e administração 
 | <img src="docs/assets/readme/payment.svg" alt="" width="20" height="20"> Pagamento | Cartão e Pix no pedido, desafio 3DS incorporado, recuperação de tentativa, consulta automática limitada e webhook assinado. |
 | <img src="docs/assets/readme/admin.svg" alt="" width="20" height="20"> Administração | Resumo, categorias, produtos, imagens, banners mobile/desktop, movimentações de estoque, pedidos, clientes, configurações e associação de chave NF-e. |
 | <img src="docs/assets/readme/shipping.svg" alt="" width="20" height="20"> Logística | Cotação Melhor Envio, preparação de remessa no carrinho do provedor, receptor de eventos assinados e acompanhamento manual. Registro e eventos dependem de configuração e homologação próprias. |
-| <img src="docs/assets/readme/mobile.svg" alt="" width="20" height="20"> Experiência | Interface responsiva, navegação mobile, fontes locais DM Sans e Nunito Sans, notificações compactas abaixo do menu, loading, movimento reduzido e PWA instalável em navegadores compatíveis. |
+| <img src="docs/assets/readme/mobile.svg" alt="" width="20" height="20"> Experiência | Interface responsiva, navegação mobile, indicadores de produtos no carrinho e pedidos aguardando pagamento, fontes locais DM Sans e Nunito Sans, notificações compactas abaixo do menu, loading, movimento reduzido e PWA instalável em navegadores compatíveis. |
 | <img src="docs/assets/readme/security.svg" alt="" width="20" height="20"> Integridade | RLS, permissões explícitas, operações transacionais, auditoria, snapshots de pedido e identificação de compras de teste. |
 
 <a id="arquitetura"></a>

@@ -95,6 +95,8 @@ Conteúdo descreve operações reais. Não há dados de demonstração no aplica
 
 O carregamento inicial de rota usa uma patinha centralizada na área visível abaixo do cabeçalho medido: 72px no celular e 80px no desktop. No celular, reserva a área da navegação inferior e a área segura. A centralização acompanha a janela, inclusive durante rolagem, sem bloquear menus. Mantém a pulsação GSAP e a preferência por movimento reduzido. Indicadores dentro de botões continuam com 23px.
 
+Carrinho e Pedidos compartilham indicadores discretos de 9px no canto superior direito dos ícones, usando o vermelho `danger`, sem número ou animação contínua. Aparecem na navegação principal e inferior conforme dados da conta: produtos no carrinho e pedidos com pagamento pendente, excluindo cancelados. A descrição acessível informa o motivo sem alterar o nome do link ou roubar foco. Atualizações opcionais não mostram loading nem notificações; falhas preservam o último estado conhecido da mesma conta. Sair ou trocar de conta limpa os indicadores.
+
 ## Do's and Don'ts
 
 - Usar nomes de ações consistentes: Entrar, Criar conta, Salvar alterações, Salvar endereço e Excluir endereço.

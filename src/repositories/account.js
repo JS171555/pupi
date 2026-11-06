@@ -30,6 +30,12 @@ export function createAccountRepository(client) {
     return data;
   }
   return {
+    async hasPendingOrders(userId,signal) {
+      const deadline=signal?AbortSignal.any([signal,AbortSignal.timeout(5000)]):AbortSignal.timeout(5000);
+      const orders=await unwrap(client.from('orders').select('id').eq('user_id',userId)
+        .eq('payment_status','pending').neq('status','cancelled').limit(1).abortSignal(deadline));
+      return Boolean(orders?.length);
+    },
     async getProfile(userId, signal) {
       const data = await unwrap(client.from('profiles').select(profileFields).eq('id', userId).single().abortSignal(timeout(signal)));
       return data;

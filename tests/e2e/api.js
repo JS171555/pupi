@@ -11,7 +11,7 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
   const data = {
     profile: { id: A, full_name: 'Pessoa Teste', phone: null, terms_accepted_at: notice ? created : null,
       terms_version: notice ? 'testing-v1' : null, created_at: created, updated_at: created },
-    shipping: {}, addresses: [], orders: [], signedIn, role, signIns: 0, signUps: [], recoveries: 0,
+    shipping: {}, addresses: [], orders: [], cartItems: [], signedIn, role, signIns: 0, signUps: [], recoveries: 0,
     failSave: false, failDelete: false, expired: false, saveDelay: 0,
   };
   if (signedIn) {
@@ -50,6 +50,8 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
     }
     if (url.pathname === '/rest/v1/user_roles') return respond(object ? { role: data.role } : [{ role: data.role }]);
     if (url.pathname === '/rest/v1/home_banners') return respond([]);
+    if (url.pathname === '/rest/v1/carts') return respond(object?{id:'30000000-0000-4000-8000-000000000001'}:[{id:'30000000-0000-4000-8000-000000000001'}]);
+    if (url.pathname === '/rest/v1/cart_items') return respond(data.cartItems.filter(item=>item.quantity>0));
     if (url.pathname === '/rest/v1/rpc/admin_access_status') return respond(data.role === 'admin');
     if (url.pathname === '/functions/v1/pupi-mercadopago-checkout') return respond({code:'CONFIG_MISSING',error:'Pagamento ainda não está configurado.'},503);
     if (url.pathname === '/rest/v1/rpc/admin_payment_review') return respond(false);
@@ -99,7 +101,9 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
     }
     if (url.pathname === '/rest/v1/orders') {
       const id = url.searchParams.get('id')?.replace('eq.', '');
-      const list = id ? data.orders.filter(order => order.id === id) : data.orders;
+      const pending=url.searchParams.get('payment_status')==='eq.pending';
+      const excludeCancelled=url.searchParams.get('status')==='neq.cancelled';
+      const list = data.orders.filter(order=>(!id||order.id===id)&&(!pending||order.payment_status==='pending')&&(!excludeCancelled||order.status!=='cancelled'));
       return respond(object ? list[0] || null : list);
     }
     if (url.pathname === '/rest/v1/order_items') return respond(data.orders[0]?.items || []);

@@ -29,17 +29,24 @@ async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false,orde
  await page.goto(`/#/pedidos/${id}`);return {api,requests,approve:()=>{approved=true;}};
 }
 test('cartão paga na própria tela sem redirecionar e bloqueia envio repetido',async({page})=>{
- const {requests}=await setup(page,{delay:500});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
+ const {requests}=await setup(page,{delay:500});
+ const indicator=page.locator('.navigation [data-nav-indicator="orders"] .nav-notification-dot');await expect(indicator).toBeVisible();
+ await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
  const pay=page.getByRole('button',{name:'Pagar cartão de teste'});await expect(pay).toBeVisible();await pay.dblclick();
  await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();expect(page.url()).toContain(`/#/pedidos/${id}`);expect(requests.filter(body=>body.action==='pay')).toHaveLength(1);
+ await expect(indicator).toBeHidden();
  expect(requests.find(body=>body.action==='pay').form_data.card_number).toBeUndefined();expect(requests.find(body=>body.action==='pay').form_data.payment_type_id).toBe('credit_card');
  const settings=await page.evaluate(()=>window.brickSettings[0]);expect(settings.type).toBe('payment');expect(settings.initialization.preferenceId).toBeUndefined();expect(settings.paymentMethods.mercadoPago).toBeUndefined();
 });
 test('Pix exibe código dentro do Pupi, recupera na recarga e verifica confirmação',async({page})=>{
- const {requests}=await setup(page,{pix:true});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Gerar Pix de teste'}).click();
+ const {requests}=await setup(page,{pix:true});
+ const indicator=page.locator('.navigation [data-nav-indicator="orders"] .nav-notification-dot');await expect(indicator).toBeVisible();
+ await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Gerar Pix de teste'}).click();
+ await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');
  expect(requests.find(body=>body.action==='pay').form_data.payer.identification).toBeUndefined();expect(requests.find(body=>body.action==='pay').form_data.token).toBeUndefined();
- await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
+ await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
  await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');await page.getByRole('button',{name:'Verificar pagamento',exact:true}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();
+ await expect(indicator).toBeHidden();
 });
 test('pedido com checkout externo anterior não abre outro formulário nem redireciona',async({page})=>{
  await setup(page,{legacy:true});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await expect(page.getByText(/Este pedido já abriu um pagamento externo/)).toBeVisible();expect(await page.evaluate(()=>window.brickSettings.length)).toBe(0);expect(page.url()).toContain(`/#/pedidos/${id}`);

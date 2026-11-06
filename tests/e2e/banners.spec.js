@@ -100,6 +100,7 @@ test('mobile usa imagem quadrada; movimento reduzido desativa reprodução autom
 test('um único banner fica estático e falha de imagem preserva o catálogo',async({page})=>{
   await installStore(page,1);await page.goto('/#/loja');const carousel=page.getByRole('region',{name:'Destaques da loja'});
   await expect(carousel).toBeVisible();await expect(carousel.getByRole('button')).toHaveCount(0);
+  await expect(carousel).not.toContainText('null');
   await page.route('https://pupi-test.supabase.co/storage/v1/object/sign/banner-images/**',route=>route.fulfill({status:503,contentType:'application/json',body:'{}'}));
   await carousel.locator('img').evaluate(img=>img.dispatchEvent(new Event('error')));
   await expect(carousel).toBeHidden();await expect(page.getByRole('heading',{name:'Produtos',exact:true})).toBeVisible();

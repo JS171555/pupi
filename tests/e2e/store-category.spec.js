@@ -47,7 +47,7 @@ test('cliente salva quantidade escolhida e não grava acima do estoque',async({p
     else if(url.pathname==='/rest/v1/categories')value=object?category:[category];
     else if(url.pathname==='/rest/v1/product_images')value=[];
     else if(url.pathname==='/rest/v1/carts')value=object?{id:'30000000-0000-4000-8000-000000000001'}:[{id:'30000000-0000-4000-8000-000000000001'}];
-    else if(url.pathname==='/rest/v1/cart_items'){writes.push(request.postDataJSON());value=null;}
+    else if(url.pathname==='/rest/v1/cart_items'){if(request.method()!=='GET')writes.push(request.postDataJSON());value=request.method()==='GET'?[]:null;}
     else return route.fallback();
     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(value)});
   });

@@ -22,6 +22,7 @@ Clientes brasileiros, pt-BR, celular e desktop. Datas de conta em America/Sao_Pa
 | Pagination | src/ui/admin-list.js | UX-CONTRACT.md | previous / next | tests/e2e/admin.spec.js |
 | File Upload | src/services/admin-media.js, src/modules/admin/media.js, src/services/banner-images.js | docs/banners.md | gallery / category / banner / retry | tests/e2e/admin.spec.js, tests/e2e/banners.spec.js |
 | Carousel | src/ui/banner-carousel.js | docs/banners.md | responsive / autoplay / static | tests/e2e/banners.spec.js |
+| Navigation Indicator | src/app.js, src/services/navigation-indicators.js | docs/security.md | cart / pending orders | tests/navigation-indicators.test.js, tests/e2e/navigation-indicators.spec.js |
 
 ## Fluxos
 
@@ -132,3 +133,11 @@ Solicitação do proprietário: upload administrativo de versões mobile e deskt
 Novo banner salva um rascunho e abre a etapa de imagens. Editar reutiliza o formulário, validações associadas, prévias, aviso de alterações não salvas e loading dentro do botão. A versão mobile é 1:1; desktop é 3:1. Publicar exige ambas. Salvar retorna à lista; Ocultar preserva arquivos; Excluir pede confirmação e retorna à lista, com recuperação da limpeza física quando pendente. Busca e paginação seguem `admin-list.js`.
 
 O carrossel reserva a geometria final, troca a cada seis segundos e oferece controles de 44px, rótulos em pt-BR e atualização acessível apenas em mudanças manuais. Pausa explícita persiste durante a rota; foco, ponteiro, aba oculta e saída do viewport suspendem o avanço. Movimento reduzido começa pausado e evita o fade. Uma imagem fica estática. Eventos, observador e temporizador são encerrados pelo AbortSignal da rota. Falhas de imagem recebem uma renovação de URL e depois são ignoradas; falha total oculta o carrossel.
+
+O carrossel com um único banner omite os controles sem inserir texto substituto, mantendo apenas a imagem e a região acessível.
+
+## Indicadores de carrinho e pagamento
+
+A navegação apresenta uma bolinha vermelha quando a conta tem produtos no carrinho ou pedidos com `payment_status=pending` e `status` diferente de `cancelled`. Consultas usam apenas identificadores, filtro explícito da conta e as políticas existentes descritas em `docs/security.md`, com limite de uma linha e timeout. Não há contadores fictícios, dados privados persistidos no navegador ou mudança das regras de pagamento.
+
+Os indicadores atualizam ao renderizar a navegação, incluir/remover produtos, confirmar pedido e concluir pagamento. Retornar à aba/janela ou reconectar solicita nova leitura, sem polling. A atualização não reconstrói o menu nem rouba foco. A descrição acessível explica o indicador, mantendo Carrinho/Pedidos como nomes dos links. Falha opcional não bloqueia a página e preserva o último estado conhecido da mesma conta; logout ou troca de conta apaga os sinais e descarta respostas anteriores.

@@ -79,9 +79,9 @@ export function bannerCarousel(items,{signal,refresh}={}) {
   }
   updateToggle();
   root.dataset.index='0';
-  root.append(track,items.length>1?el('div',{className:'banner-carousel-controls'},[
+  root.append(track,...(items.length>1?[el('div',{className:'banner-carousel-controls'},[
     previous,el('div',{className:'banner-dots','aria-label':'Escolher banner'},dots),next,toggle,
-  ]):null,status);
+  ])]:[]),status);
   const options={signal:lifecycle.signal};
   root.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){hover=true;schedule();}},options);
   root.addEventListener('pointerleave',()=>{hover=false;schedule();},options);
