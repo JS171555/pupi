@@ -8,7 +8,7 @@ A fase 5 inclui o pagamento via Mercado Pago solicitado pelo usuário, instalaç
 - O receptor de webhook valida a assinatura, consulta o pagamento diretamente no Mercado Pago e confere pedido, vendedor, valor, moeda e ambiente. O banco registra pagamentos com processamento idempotente e ignora eventos antigos. Recusas permitem nova tentativa no mesmo checkout; estornos parciais, contestações e múltiplos pagamentos exigem conferência administrativa. O pedido só é marcado como pago mediante confirmação do provedor.
 - A migration `20261106064442_pupi_payment_reconciliation.sql` foi aplicada ao Supabase. As funções `pupi-mercadopago-checkout` e `pupi-mercadopago-webhook` são usadas pelo checkout e pela confirmação do pagamento. A primeira exige JWT; a segunda valida a assinatura do provedor.
 - O detalhe do pedido oferece acesso ao pagamento quando estiver configurado. O PWA tem manifesto, ícones e service worker que guarda somente o shell público; chamadas de APIs e dados de conta não são adicionados ao cache offline.
-- Os testes locais usam dados fictícios. Foi verificado o funcionamento offline do shell em navegador e a ausência de rotas privadas no cache. A homologação real do Mercado Pago está em andamento; o teste do pedido #4 permanece sem resultado confirmado.
+- Os testes locais usam dados fictícios. Foi verificado o funcionamento offline do shell em navegador e a ausência de rotas privadas no cache. O usuário confirmou aprovação no pedido #4 pela API Orders; a consulta ao Supabase confirmou pedido e tentativa pagos em sandbox, com identificador do provedor vinculado.
 
 ## Configuração atual — API Orders
 
@@ -119,3 +119,10 @@ Fontes: [migração oficial](https://www.mercadopago.com.br/developers/pt/docs/c
 Validação local: 87 testes de aplicação, 97 de banco, 48 de navegador, build, tokens e auditoria estática. Os testes usam respostas fictícias e não confirmam pagamento real. Próximo passo: conferir credenciais Orders/conta vendedora de teste e evento Order, abrir o pedido #4 e homologar uma única tentativa. Não declarar a homologação concluída sem resposta real do provedor.
 
 A última tentativa histórica do pedido #4 (Payments, criada às 16:38:38.587114 UTC e rejeitada com HTTP 401) foi encerrada com auditoria, depois de conferir ausência de pagamento vinculado e bloquear a linha do pedido. O histórico permanece e o pedido continua pending; as próximas tentativas usam Orders. Não foi criada cobrança nessa operação.
+
+
+## Cartão aprovado em sandbox — 06/11/2026
+
+O usuário confirmou pagamento aprovado e pedido pago após a correção para API Orders. A consulta posterior ao Supabase confirmou, no pedido #4: payment_status=paid, tentativa state=paid, api_kind=orders, provider_mode=sandbox e identificador do provedor vinculado. Nenhum estado financeiro foi alterado manualmente nessa conferência.
+
+O fluxo de aprovação com cartão está validado no ambiente de teste. Essa evidência não comprova isoladamente o recebimento do webhook nem os cenários de Pix, recusa, pendência, contestação e estorno. Próximo passo de homologação: testar esses cenários e as notificações assinadas antes de habilitar produção. As anotações anteriores de pedido pendente são o histórico do diagnóstico, não o estado atual do pedido #4.
