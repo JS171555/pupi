@@ -563,3 +563,21 @@ test('volumes da cotação só podem ser registrados pelo backend e mantêm o v�
     await rows('select public.service_register_shipping_quote_v2($1,$2,$3::jsonb,500,$4,$5,$6,now()+interval \'10 minutes\',$7::jsonb)',[A,AA,JSON.stringify(snapshot),'Correios','PAC','1',JSON.stringify([{width:20,height:10,length:30,weight:0}])]);
   }),'22023');
 });
+
+test('webhook de envio exige backend e aplica eventos idempotentes sem regredir o status',async()=>{
+  await rejectsCode(()=>as('authenticated',A,()=>rows("select public.service_apply_shipping_event($1,'order.posted',$2,now(),null)",['80000000-0000-4000-8000-000000000001','a'.repeat(64)])),'42501');
+  await as('service_role',null,async()=>{
+    const id=await createOrder();const external='80000000-0000-4000-8000-000000000001';
+    await rows("insert into public.shipments(order_id,provider,external_id,status) values($1,'melhor_envio',$2,'pending')",[id,external]);
+    const apply=async(event,digest,at,tracking=null)=>(await rows('select public.service_apply_shipping_event($1,$2,$3,$4,$5) as ok',[external,event,digest,at,tracking]))[0].ok;
+    assert.equal(await apply('order.posted','a'.repeat(64),'2026-01-01T10:00:00Z','COD-123'),true);
+    assert.equal(await apply('order.posted','a'.repeat(64),'2026-01-01T10:00:00Z','COD-123'),true);
+    assert.equal(await apply('order.delivered','b'.repeat(64),'2026-01-01T12:00:00Z'),true);
+    assert.equal(await apply('order.pending','c'.repeat(64),'2026-01-01T11:00:00Z','OLD-123'),true);
+    const shipment=(await rows('select id,status,tracking_code from public.shipments where order_id=$1',[id]))[0];
+    assert.equal(shipment.status,'delivered');assert.equal(shipment.tracking_code,'COD-123');
+    assert.equal((await rows('select count(*)::integer as n from public.shipment_events where shipment_id=$1',[shipment.id]))[0].n,3);
+    assert.equal((await rows('select status from public.orders where id=$1',[id]))[0].status,'confirmed');
+    assert.equal((await rows("select public.service_apply_shipping_event($1,'order.posted',$2,now(),null) as ok",['80000000-0000-4000-8000-000000000002','d'.repeat(64)]))[0].ok,false);
+  });
+});

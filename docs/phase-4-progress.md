@@ -72,10 +72,16 @@ A migration `20261106035539_pupi_shipping_packages.sql` foi aplicada e a Edge Fu
 
 O usuário informou que os testes na Vercel funcionaram; isso não confirma integração real com o Melhor Envio, que ainda requer configuração e homologação.
 
+## Etapa 17 — eventos de entrega
+
+Migration `20261106040149_pupi_shipping_webhook.sql` aplicada e Edge Function `pupi-shipping-webhook` implantada. Ela exige assinatura HMAC-SHA256 do aplicativo Melhor Envio, processa somente etiquetas já vinculadas a entregas Pupi, deduplica retentativas e evita regressão de status. Registra os eventos da etiqueta e não muda o status operacional do pedido nem o pagamento automaticamente. Se não existir data específica do evento, registra a data de recebimento da notificação. Testes com assinatura real gerada localmente e SQL hospedado com rollback passaram.
+
+O token, o segredo do webhook e a conta Melhor Envio ainda não foram configurados. Registro/vinculação de etiqueta e consulta real no sandbox continuam pendentes; portanto o webhook ainda não pode ser homologado ponta a ponta.
+
 ## Falta para concluir
 
 1. Configurar credenciais do Melhor Envio no servidor e homologar cotação e confirmação no sandbox com dados reais controlados. Verificar peso e dimensões de produtos e CEP de origem.
-2. Implementar registro de remessa, consulta de rastreamento e atualização confiável de eventos do Melhor Envio; usar os volumes efetivamente retornados na cotação. O fluxo comercial exige chave da NF-e, inscrição estadual e dados reais de remetente/destinatário ainda não coletados; não inventar dados nem simular emissão. A entrega manual do painel continua disponível.
+2. Implementar registro e vinculação de remessa e consulta de rastreamento no Melhor Envio; usar os volumes efetivamente retornados na cotação. O receptor de eventos assinado já está preparado, mas precisa da etiqueta vinculada e de homologação. O fluxo comercial exige chave da NF-e, inscrição estadual e dados reais de remetente/destinatário ainda não coletados; não inventar dados nem simular emissão. A entrega manual do painel continua disponível.
 3. Homologar o fluxo completo em navegador com dois usuários, concorrência, falhas de rede, estoque e cotações expiradas. O checkout foi exercitado localmente e em SQL hospedado com rollback; a API externa real ainda não foi testada.
 4. Definir provedor financeiro na fase apropriada. Os pedidos são criados com pagamento pendente; não há cobrança ou aprovação simulada.
 5. Regularizar o histórico da migration inicial aplicada manualmente antes de futuro `supabase db push`.

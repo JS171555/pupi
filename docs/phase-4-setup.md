@@ -25,8 +25,14 @@ O Pupi usará NF-e emitida por um sistema fiscal externo, conforme escolha do us
 
 Cotações novas preservam, no banco privado, as dimensões e pesos dos volumes retornados pelo Melhor Envio. Se o provedor não enviar volumes válidos, eles ficam ausentes e devem ser verificados antes do registro de remessa. Cotações anteriores a essa alteração não possuem volumes retroativos.
 
+## Eventos do Melhor Envio
+
+A Edge Function `pupi-shipping-webhook` recebe eventos assinados e verifica `X-ME-Signature` usando HMAC-SHA256 sobre o corpo recebido. Configure `MELHOR_ENVIO_WEBHOOK_SECRET` nos segredos do Supabase com o segredo do aplicativo Melhor Envio, sem enviá-lo pelo chat. O endpoint é `https://loifqxmmnmhpwnwcvrak.supabase.co/functions/v1/pupi-shipping-webhook`. A validação ocorre pela assinatura do provedor, não por JWT Supabase.
+
+O receptor só reconhece uma etiqueta já vinculada pelo seu ID a uma entrega Pupi. Eventos desconhecidos são rejeitados temporariamente para permitir nova tentativa do provedor. O webhook do Melhor Envio só envia eventos para etiquetas criadas pelo mesmo aplicativo; sua configuração/homologação deve ocorrer depois da implementação do registro e vínculo da etiqueta. Os eventos descrevem o ciclo da etiqueta; o status operacional do pedido e o pagamento não são alterados automaticamente.
+
 ## Limites atuais
 
-A confirmação cria um pedido com pagamento pendente e uma entrega pendente associada à modalidade cotada; não compra frete nem gera etiqueta. **Registro da remessa no Melhor Envio, rastreamento automático e atualização de eventos ainda não estão implementados.** A área de administração permite registrar dados de entrega manualmente. O gateway financeiro ainda não foi escolhido; não há aprovação ou cobrança simulada. A consulta ao frete requer dimensões de todos os produtos. O histórico de aceite `testing-v1` continua provisório.
+A confirmação cria um pedido com pagamento pendente e uma entrega pendente associada à modalidade cotada; não compra frete nem gera etiqueta. **Registro/vinculação da remessa e consulta de rastreamento ainda não estão implementados.** O receptor de eventos assinados foi preparado, mas depende dessa vinculação e da configuração/homologação do Melhor Envio. A área de administração permite registrar dados de entrega manualmente. O gateway financeiro ainda não foi escolhido; não há aprovação ou cobrança simulada. A consulta ao frete requer dimensões de todos os produtos. O histórico de aceite `testing-v1` continua provisório.
 
 Documentação do provedor: [cálculo de fretes](https://docs.melhorenvio.com.br/reference/calculo-de-fretes-por-produtos), [inserção de fretes](https://docs.melhorenvio.com.br/reference/inserir-fretes-no-carrinho) e [status de etiqueta](https://docs.melhorenvio.com.br/reference/rastreio-de-envios).

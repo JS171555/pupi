@@ -51,3 +51,5 @@ As cotações ficam na tabela privada `shipping_quotes`, com RLS e sem acesso de
 As respostas externas e o sandbox ainda precisam de homologação com credenciais próprias; a confirmação não compra frete, gera etiqueta ou aprova pagamento. Registro de remessa e rastreamento automático ainda não estão implementados.
 
 A chave de NF-e informada para cada pedido é guardada em `private.order_invoices`, protegida por RLS e acessível ao painel somente por RPC que verifica o papel administrativo. A validação confere modelo e dígito, não equivale a autorização fiscal. A função não emite notas nem consulta a SEFAZ.
+
+Eventos de etiqueta do Melhor Envio são recebidos por `pupi-shipping-webhook` sem JWT Supabase, pois usam autenticação própria do provedor: HMAC-SHA256 sobre o corpo, verificado com o segredo do aplicativo. Corpo é limitado a 64 KiB; somente o backend pode executar a RPC que registra eventos para etiquetas já vinculadas. Retentativas idênticas são deduplicadas. Nenhum evento altera pagamento ou status operacional do pedido. A integração só estará utilizável após configuração do segredo, vínculo da etiqueta e teste no sandbox.
