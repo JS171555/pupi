@@ -225,7 +225,7 @@ async function render() {
     } else if (route === '/carrinho') {
       const data = await cartRepository.listItems(user.id, page, signal);
       if (!data.items.length && page > 1) { await go(`/carrinho?pagina=${page - 1}`, {force:true}); return; }
-      view = cartView({...data, page, go, user, busy, announce:notify, repository:cartRepository});
+      view = await cartView({...data, page, go, user, busy, announce: notify, repository: cartRepository, catalogRepository, media: catalogMedia});
     } else if (route === '/conta') view = profileView(context);
     else if (route === '/enderecos') {
       const data = await repository.listAddresses(user.id, page, signal);

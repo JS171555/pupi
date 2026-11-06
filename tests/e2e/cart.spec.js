@@ -31,11 +31,18 @@ test('carrinho mostra preços atuais e item indisponível',async({page})=>{
     return route.fallback();
   });
   await page.goto('/#/carrinho');
-  await expect(page.getByRole('heading',{name:'Carrinho'})).toBeVisible();
-  await expect(page.getByText('Preço unitário: R$ 25,00')).toBeVisible();
-  await expect(page.getByText('Total do item: R$ 50,00')).toBeVisible();
-  await expect(page.getByText('Quantidade indisponível no estoque atual.')).toBeVisible();
-  await expect(page.getByText('Subtotal dos itens disponíveis: R$ 50,00')).toBeVisible();
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await expect(page.getByRole('heading',{name:'Meu carrinho'})).toBeVisible();
+  await expect(page.locator('.cart-item-unit')).toContainText('R$ 25,00');
+  await expect(page.locator('.cart-item-total strong')).toHaveText('R$ 50,00');
+  await expect(page.getByText('Estoque atual: 1 unidade. Reduza a quantidade para continuar.')).toBeVisible();
+  await expect(page.getByText('Subtotal parcial')).toBeVisible();
+  await expect(page.locator('.cart-summary-line strong')).toHaveText('R$ 50,00');
+  await expect(page.getByRole('button',{name:'Aumentar quantidade de Bola'})).toBeDisabled();
+  await page.getByRole('button',{name:'Diminuir quantidade de Bola'}).click();
+  await expect(page.locator('.cart-item-total strong')).toHaveText('R$ 25,00');
+  await expect(page.getByText('Quantidade atualizada.')).toBeVisible();
   await expect(page.getByRole('heading',{name:'Produto indisponível'})).toBeVisible();
   const quantity=page.getByRole('form',{name:'Quantidade de Bola'});
   await quantity.getByRole('textbox',{name:'Quantidade'}).fill('3');
@@ -44,7 +51,7 @@ test('carrinho mostra preços atuais e item indisponível',async({page})=>{
   await quantity.getByRole('textbox',{name:'Quantidade'}).fill('1');
   await quantity.getByRole('button',{name:'Atualizar quantidade'}).click();
   await expect(page.getByText('Quantidade atualizada.')).toBeVisible();
-  await expect(page.getByText('Total do item: R$ 25,00')).toBeVisible();
+  await expect(page.locator('.cart-item-total strong')).toHaveText('R$ 25,00');
   await page.getByRole('button',{name:'Remover produto indisponível'}).click();
   await page.getByRole('dialog').getByRole('button',{name:'Cancelar'}).click();
   await expect(page.getByRole('heading',{name:'Produto indisponível'})).toBeVisible();
@@ -60,6 +67,22 @@ test('carrinho mostra preços atuais e item indisponível',async({page})=>{
 });
 
 
+test('carrinho vazio orienta a voltar à loja e cabe em viewport mobile',async({page})=>{
+  await installApi(page,{signedIn:true});
+  await page.route('https://pupi-test.supabase.co/**',async route=>{
+    const path=new URL(route.request().url()).pathname;
+    if(path==='/rest/v1/carts')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{id:'30000000-0000-4000-8000-000000000001'}])});
+    if(path==='/rest/v1/cart_items')return route.fulfill({status:200,contentType:'application/json',body:'[]'});
+    return route.fallback();
+  });
+  await page.setViewportSize({width:360,height:780});
+  await page.goto('/#/carrinho');
+  await expect(page.getByRole('heading',{name:'Seu carrinho está vazio'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Explorar produtos'})).toHaveAttribute('href','#/loja');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+
 test('revisão informa indisponibilidade de frete sem criar pedido',async({page})=>{
   await installApi(page,{signedIn:true});
   await page.route('https://pupi-test.supabase.co/**',async route=>{
@@ -68,7 +91,7 @@ test('revisão informa indisponibilidade de frete sem criar pedido',async({page}
     if(path==='/rest/v1/cart_items')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{id:'40000000-0000-4000-8000-000000000001',quantity:2,products:{name:'Bola',slug:'bola',price_cents:3000,sale_price_cents:2500,stock_quantity:3,active:true,status:'published',categories:{active:true}}}])});
     return route.fallback();
   });
-  await page.goto('/#/carrinho');await page.getByRole('link',{name:'Revisar pedido'}).click();
+  await page.goto('/#/carrinho');await page.getByRole('link',{name:'Continuar para entrega'}).click();
   await expect(page.getByRole('heading',{name:'Revisar pedido'})).toBeVisible();
   await expect(page.getByText('Subtotal: R$ 50,00')).toBeVisible();
   await expect(page.getByText('Cadastre um endereço para continuar.')).toBeVisible();
