@@ -282,7 +282,7 @@ async function render() {
       const data = /^[0-9a-f-]{36}$/i.test(id) ? await repository.getOrder(user.id, id, signal) : null;
       view = data ? orderView(data) : unavailable('Pedido indisponível', 'Este pedido não está disponível para sua conta.', '/pedidos');
       if(data && data.payment_status==='pending' && ['confirmed','preparing'].includes(data.status)) {
-        view.append(embeddedPaymentPanel({order:data,repository,signal,busy,onPaid:async()=>{await go(`/pedidos/${data.id}`,{force:true});notify('Pagamento aprovado.','success');}}));
+        view.append(embeddedPaymentPanel({order:data,payerEmail:user.email,repository,signal,busy,onPaid:async()=>{await go(`/pedidos/${data.id}`,{force:true});notify('Pagamento aprovado.','success');}}));
       }
     } else if (route === '/admin' || route.startsWith('/admin/')) {
       const allowed = await repository.adminAccess(signal);

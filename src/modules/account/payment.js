@@ -4,7 +4,8 @@ import {notify} from '../../ui/feedback.js';
 import {toAppError} from '../../utils/errors.js';
 import {loadMercadoPago,challengeUrl} from '../../services/mercado-pago.js';
 let sequence=0;
-export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
+export function embeddedPaymentPanel({order,payerEmail,repository,signal,busy,onPaid}) {
+  const accountEmail=typeof payerEmail==='string'?payerEmail.trim():'';
   const content=el('div',{className:'payment-content'}),status=el('p',{className:'form-status',role:'status'});
   const panel=el('section',{className:'admin-order-actions payment-panel'},[el('h2',{},'Pagamento'),content,status]);
   let controller,brickTimer,pollTimer,disposed=false,pending=null,mountVersion=0,stopLoading=()=>{},submitting=false,checking=false,deadline=0,lastData=null,lastDisplay='',cleanupChallenge=()=>{};
@@ -104,7 +105,7 @@ export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
       localTimer=setTimeout(()=>{timedOut=true;stopLoading();if(!disposed&&version===mountVersion){loadingButton.remove();status.textContent='O formulário demorou para carregar. Tente novamente.';content.append(button('Tentar carregar novamente',()=>initialize(true)));}},15000);
       brickTimer=localTimer;
       const created=await mp.bricks().create('payment',id,{
-        initialization:{amount:data.total_cents/100},
+        initialization:{amount:data.total_cents/100,...(accountEmail?{payer:{email:accountEmail}}:{})},
         customization:{paymentMethods:{creditCard:'all',debitCard:'all',bankTransfer:'all',maxInstallments:12}},
         callbacks:{
           onReady:()=>{clearTimeout(localTimer);if(!disposed&&!timedOut&&version===mountVersion){stopLoading();loadingButton.remove();}},

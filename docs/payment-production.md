@@ -1,5 +1,9 @@
 # Pagamentos: teste controlado em produção
 
+## Preenchimento do e-mail
+
+O checkout passa o e-mail da conta autenticada ao Payment Brick em `initialization.payer.email`. Esse é o mesmo e-mail exibido no perfil; a origem é o usuário validado pelo Auth, sem nova consulta ou armazenamento no navegador. Pix e cartão iniciam com esse dado, conforme a [documentação oficial de inicialização](https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/payment-brick/advanced-features/initialize-data-on-the-bricks). Sem e-mail disponível, o campo continua sob controle do SDK. O callback preserva o e-mail fornecido pelo formulário, inclusive se o cliente o corrigir. Valores, confirmação financeira, idempotência e tentativas pendentes permanecem sob validação do servidor.
+
 ## Progresso — 06/11/2026
 
 - [x] Cartão aprovado no sandbox (pedido #4), confirmado no banco e pelo usuário.

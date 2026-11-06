@@ -100,6 +100,8 @@ Nunito Sans nos títulos e DM Sans no corpo, hospedadas localmente e disponívei
 
 Cartão e Pix são apresentados pelo Payment Brick oficial dentro do pedido, sem navegação para um checkout externo. A instância é desmontada ao sair da rota. Envio em andamento bloqueia cliques repetidos; o resultado é validado pelo backend. Um Pix pendente pode ser recuperado na recarga e verificado na mesma tela. Em caso de falha incerta, o cliente verifica a mesma tentativa em vez de abrir nova cobrança. Pedidos que já usaram o fluxo externo são identificados e não recebem um segundo formulário de pagamento. Atualizações da sessão preservam a rota atual; login explícito continua usando o destino validado.
 
+O formulário recebe o e-mail da conta autenticada em `initialization.payer.email`, conforme o contrato oficial do Payment Brick. Pix e cartão usam esse preenchimento inicial, inclusive ao reabrir uma tentativa permitida. Sem e-mail disponível, permanece o preenchimento pelo SDK. O envio preserva o e-mail retornado pelo formulário oficial; não o sobrescreve depois. Não há armazenamento adicional de e-mail no navegador nem criação automática de cobrança.
+
 
 O pagamento incorporado usa a API Orders, conforme `docs/phase-5-plan.md`. A configuração é conferida antes de abrir os campos de cartão. O tipo de pagamento vem do callback oficial do Brick; valores e aprovação continuam sendo conferidos pelo servidor. Tentativas incertas continuam preservadas e não geram outra cobrança durante a verificação.
 

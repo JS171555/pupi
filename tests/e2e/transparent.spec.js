@@ -37,12 +37,15 @@ test('cartão paga na própria tela sem redirecionar e bloqueia envio repetido',
  await expect(indicator).toBeHidden();
  expect(requests.find(body=>body.action==='pay').form_data.card_number).toBeUndefined();expect(requests.find(body=>body.action==='pay').form_data.payment_type_id).toBe('credit_card');
  const settings=await page.evaluate(()=>window.brickSettings[0]);expect(settings.type).toBe('payment');expect(settings.initialization.preferenceId).toBeUndefined();expect(settings.paymentMethods.mercadoPago).toBeUndefined();
+ expect(settings.initialization.payer.email).toBe(user.email);
 });
 test('Pix exibe código dentro do Pupi, recupera na recarga e verifica confirmação',async({page})=>{
  const {requests}=await setup(page,{pix:true});
  const indicator=page.locator('.navigation [data-nav-indicator="orders"] .nav-notification-dot');await expect(indicator).toBeVisible();
  await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Gerar Pix de teste'}).click();
  await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');
+ expect(await page.evaluate(()=>window.brickSettings[0].initialization.payer.email)).toBe(user.email);
+ expect(requests.find(body=>body.action==='pay').form_data.payer.email).toBe('buyer@example.test');
  expect(requests.find(body=>body.action==='pay').form_data.payer.identification).toBeUndefined();expect(requests.find(body=>body.action==='pay').form_data.token).toBeUndefined();
  await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
  await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');await page.getByRole('button',{name:'Verificar pagamento',exact:true}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();
@@ -67,6 +70,7 @@ test('tentativa de teste conferida reabre formulário no mesmo pedido sem cobran
  expect(requests.some(body=>body.action==='pay')).toBe(false);
  await page.getByRole('button',{name:'Tentar novamente',exact:true}).press('Enter');
  await expect(page.getByRole('button',{name:'Pagar cartão de teste'})).toBeVisible();
+ expect(await page.evaluate(()=>window.brickSettings[0].initialization.payer.email)).toBe(user.email);
  await page.getByRole('button',{name:'Pagar cartão de teste'}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();
  expect(page.url()).toContain(`/#/pedidos/${id}`);expect(requests.filter(body=>body.action==='pay')).toHaveLength(1);
 });
