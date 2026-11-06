@@ -8,6 +8,12 @@ export function createCatalogRepository(client) {
       return unwrap(client.from('categories').select('id,name,slug,description,sort_order')
         .eq('active', true).order('sort_order').order('id'));
     },
+    getCategoryById(id) {
+      if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        throw new AppError('INVALID_DATA', 'Categoria inválida.');
+      }
+      return unwrap(client.from('categories').select('id,name').eq('id', id).eq('active', true).maybeSingle());
+    },
     listProducts({ page = 1, pageSize = 24, categoryId, search = '', sort = 'recent', filter = '' } = {}) {
       if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100
           || !Number.isSafeInteger(page * pageSize)) {

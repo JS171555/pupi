@@ -59,6 +59,11 @@ export async function storeCatalog(repository, params, go, media) {
 export async function storeProduct(repository, slug, media, params = new URLSearchParams()) {
   const product=await repository.getProductBySlug(slug);
   if(!product)return el('section',{className:'panel'},[heading('Produto indisponível','Confira a loja para ver os produtos disponíveis.'),link('Voltar à loja','#/loja')]);
+  let category;
+  try {
+    const data = await repository.getCategoryById(product.category_id);
+    category = data ? el('p',{},['Categoria: ',link(data.name,`#/loja?categoria=${encodeURIComponent(data.id)}`)]) : el('p',{className:'muted'},'Categoria indisponível.');
+  } catch { category = el('p',{role:'status'},'Não foi possível carregar a categoria.'); }
   const parsedPage=Number(params.get('fotos') || 1);
   const page=Number.isSafeInteger(parsedPage) && parsedPage>0 && parsedPage<=100000 ? parsedPage : 1;
   let gallery;
@@ -75,7 +80,7 @@ export async function storeProduct(repository, slug, media, params = new URLSear
         records.length===20 ? link('Mais fotos',`#/loja/${slug}?fotos=${page+1}`,{className:'button button-secondary'}) : null,
       ])]);
   } catch {gallery=el('p',{role:'status'},'Não foi possível carregar as fotos. Recarregue a página para tentar novamente.');}
-  return el('section',{className:'panel'},[heading(product.name,product.title),gallery,el('p',{},product.description||product.short_description),
+  return el('section',{className:'panel'},[heading(product.name,product.title),category,gallery,el('p',{},product.description||product.short_description),
     product.sale_price_cents!==null?el('p',{},[el('del',{},money(product.price_cents)),' ',el('strong',{},money(product.sale_price_cents))]):el('p',{},money(product.price_cents)),
     el('p',{},product.stock_quantity>0?'Disponível':'Indisponível'),link('Voltar à loja','#/loja',{className:'button button-secondary'})]);
 }
