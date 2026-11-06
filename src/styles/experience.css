@@ -92,9 +92,9 @@ input[aria-invalid="true"],select[aria-invalid="true"],textarea[aria-invalid="tr
   .brand svg {width:38px;height:38px;padding:6px;}
   .navigation {display:none;}
   .mobile-menu {display:block;position:relative;margin-left:auto;}
-  .mobile-menu summary {display:flex;align-items:center;gap:.45rem;min-height:48px;padding:.5rem .75rem;border-radius:13px;color:var(--color-text);font-size:.9rem;font-weight:750;list-style:none;cursor:pointer;}
+  .mobile-menu summary {display:flex;align-items:center;justify-content:center;width:48px;min-height:48px;padding:10px;border-radius:13px;color:var(--color-text);list-style:none;cursor:pointer;}
   .mobile-menu summary::-webkit-details-marker {display:none;}
-  .mobile-menu summary svg {width:25px;height:25px;}
+  .mobile-menu summary svg {width:28px;height:28px;}
   .mobile-menu[open] summary {background:var(--color-soft);}
   .mobile-menu-panel {max-height:calc(100dvh - var(--app-header-height,68px) - 110px);overflow:auto;overscroll-behavior:contain;position:absolute;right:0;top:calc(100% + .4rem);width:12rem;display:grid;padding:.5rem;border:1px solid var(--color-border);border-radius:16px;background:white;box-shadow:0 15px 35px rgba(48,39,70,.14);}
   .mobile-menu-panel a,.mobile-menu-panel button {justify-content:flex-start;min-height:44px;padding:.55rem .7rem;color:var(--color-text);text-align:left;text-decoration:none;font-size:.9rem;}

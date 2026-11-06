@@ -102,7 +102,7 @@ function renderHeader(route = '') {
   for (const [label, path] of routes) navigation.append(navigationLink(label,path,route));
   if (state.user) navigation.append(button([icon(LogOut), 'Sair'], logout, 'ghost'));
   const mobileMenu = el('details', {className:'mobile-menu'}, [
-    el('summary', {'aria-label':'Mais opções','aria-expanded':'false','aria-controls':'mobile-navigation'}, [icon(Menu),el('span',{},'Mais')]),
+    el('summary', {'aria-label':'Mais opções','aria-expanded':'false','aria-controls':'mobile-navigation'}, icon(Menu)),
     el('nav', {id:'mobile-navigation',className:'mobile-menu-panel','aria-label':'Links adicionais'}, [
       ...routes.filter(([,path])=>!['/loja','/carrinho','/pedidos','/conta'].includes(path)).map(([label,path])=>link(label,`#${path}`,{'aria-current':route.startsWith(path)?'page':undefined})),
       state.user ? button([icon(LogOut),'Sair'],logout,'ghost') : null,
