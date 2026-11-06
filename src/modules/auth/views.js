@@ -21,7 +21,7 @@ export function authView(route, context) {
         if (result.session) await onLogin();
         else await go('/entrar', { force: true });
         announce(result.session ? 'Conta criada. Você já pode conferir seus dados.' :
-          'Se o cadastro puder ser concluído, você receberá um e-mail. Confira sua caixa de entrada e confirme o endereço antes de entrar.', 'success');
+          'Se o cadastro puder ser concluído, você receberá um e-mail. Confira sua caixa de entrada e confirme o endereço antes de entrar.', result.session ? 'success' : 'info');
       },
     });
     footer = el('div', { className: 'form-links' }, [noticeLink(), link('Já tenho conta', '#/entrar')]);
@@ -30,7 +30,7 @@ export function authView(route, context) {
     form = makeForm({ name: 'Recuperar acesso', submitLabel: 'Enviar link de recuperação', onBusy: busy, fields: [email],
       onSubmit: async values => {
         await auth.recover(values);
-        announce('Se houver uma conta com esse e-mail, você receberá um link de recuperação. Confira também a pasta de spam.', 'success');
+        announce('Se houver uma conta com esse e-mail, você receberá um link de recuperação. Confira também a pasta de spam.', 'info');
       },
     });
     footer = link('Voltar para entrar', '#/entrar');

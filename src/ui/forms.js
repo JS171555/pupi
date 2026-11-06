@@ -1,5 +1,6 @@
 import { el, button } from './dom.js';
 import { ValidationError } from '../modules/auth/validation.js';
+import {startLoading} from './loading.js';
 import { toAppError } from '../utils/errors.js';
 
 let sequence = 0;
@@ -72,7 +73,7 @@ export function makeForm({ name, fields, submitLabel, onSubmit, onBusy = () => {
     clearErrors();
     const values = formValues(form);
     busy = true; group.disabled = true; form.setAttribute('aria-busy', 'true'); onBusy(true);
-    status.textContent = 'Aguarde…';
+    const stopLoading=startLoading(status,{button:submit});
     try { await onSubmit(values, form); if (form.isConnected) status.textContent = ''; }
     catch (error) {
       if (!form.isConnected) return;
@@ -93,7 +94,7 @@ export function makeForm({ name, fields, submitLabel, onSubmit, onBusy = () => {
         if (error.code === 'INVALID_CREDENTIALS') form.querySelectorAll('input[type="password"]').forEach(control => { control.value = ''; });
         status.focus();
       }
-    } finally { busy = false; group.disabled = false; form.removeAttribute('aria-busy'); onBusy(false); }
+    } finally { stopLoading();busy = false; group.disabled = false; form.removeAttribute('aria-busy'); onBusy(false); }
   });
   return form;
 }

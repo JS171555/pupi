@@ -58,7 +58,7 @@ UF usa select nativo, sem prometer geometria própria. Nenhum date picker. Campo
 
 Gravações pessimistas, sem sucesso antecipado. Leituras de rota usam AbortController e geração de rota para rejeitar resposta antiga. Consultas têm timeout; sem conexão não há fila de gravação ou promessa de sucesso. Sessão expirada limpa estado privado e oferece login. Mudanças de sessão em outra aba atualizam a navegação.
 
-Um sistema de feedback persistente com live region; mensagens críticas não desaparecem automaticamente. Carregamento tem texto em região estável, sem skeleton. Dialog nativo showModal, foco no Cancelar, Escape quando ocioso, foco restaurado ao fechar, sem chamadas a alert/confirm/prompt.
+Um sistema compartilhado de cartões centrais com live region: sucesso fecha em 4s (7s para mensagens longas), com pausa em foco/ponteiro e aba oculta; erros e informações importantes permanecem até fechamento. Notificações não roubam foco e têm botão Fechar aviso e Escape. Mensagens disparadas dentro de uma confirmação aguardam o fechamento do diálogo. Erros de campo continuam associados aos controles. Carregamento compartilhado usa patinha e texto após 200ms, com limpeza ao concluir ou abortar, sem skeleton ou percentual fictício; o botão preserva suas dimensões e bloqueia envio repetido. Dialog nativo showModal, foco no Cancelar, Escape quando ocioso, foco restaurado ao fechar, sem chamadas a alert/confirm/prompt.
 
 Atualizações de perfil e endereço comparam updated_at para evitar sobrescrita silenciosa. Definir endereço padrão é transacional e bloqueia por usuário. Tentativa de salvar conflito mantém os dados e permite voltar/recarregar. Cadastro e e-mails não são repetidos automaticamente.
 
@@ -89,3 +89,7 @@ Uma confirmação sem resposta conserva a mesma chave por usuário na sessão do
 ## NF-e no pedido administrativo
 
 A administração aceita a chave de 44 dígitos de uma NF-e já emitida, sem inserir dados fiscais na URL ou no armazenamento do navegador. A chave é validada no cliente e no banco, com detecção de versão anterior. Erros preservam o valor digitado; sucesso não apaga outros formulários do pedido. A interface deixa claro que não emite a nota e não verifica sua autorização na SEFAZ.
+
+## Refinamento mobile e feedback
+
+Nunito Sans nos títulos e DM Sans no corpo, hospedadas localmente e disponíveis no cache público da PWA. Navegação mobile com ícones de 28px, rótulos de 12px e espaço inferior compatível com a barra e a área segura. Cartões centrais têm largura limitada, rolagem interna para conteúdo extenso e cantos definidos pelo token `notice`. GSAP anima entradas/saídas com duração curta; movimento reduzido mantém os elementos estáticos.

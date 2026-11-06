@@ -35,3 +35,7 @@ Configurar o evento de pagamentos no webhook `https://loifqxmmnmhpwnwcvrak.supab
 ## Etapa visual
 
 A vitrine apresenta categorias cadastradas, filtros acessíveis, produtos reais e estados vazios; nenhuma categoria ou produto de demonstração é criado. A navegação mobile mantém acesso a conta, pedidos, carrinho e opções adicionais, preservando as regras de sessão e alterações não salvas. As cores normativas estão em `DESIGN.md`; os tokens CSS são gerados. A biblioteca GSAP anima entradas sem movimento quando o sistema solicita redução de movimento.
+
+## Refinamento de avisos e carregamento
+
+A navegação mobile usa ícones maiores e as fontes locais Nunito Sans e DM Sans. Sucessos são apresentados em cartões centralizados com fechamento automático e pausa durante a leitura; erros e avisos importantes aguardam fechamento. As confirmações continuam modais, com teclado e foco preservados. Carregamentos usam uma patinha após 200ms e mantêm o tamanho dos botões. O cache da PWA inclui as fontes públicas, sem guardar respostas das APIs. Testes cobrem foco, tempo de exibição, avisos durante confirmação, loading, larguras de tela e movimento reduzido.

@@ -19,12 +19,13 @@ colors:
   warning: "#805218"
 typography:
   display:
-    fontFamily: "Trebuchet MS, system-ui, sans-serif"
+    fontFamily: "Nunito Sans, system-ui, sans-serif"
   body:
-    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    fontFamily: "DM Sans, system-ui, sans-serif"
 rounded:
   DEFAULT: "0.75rem"
   card: "1.25rem"
+  notice: "1.5rem"
 spacing:
   page-max: "68rem"
   section-gap: "1.5rem"
@@ -59,7 +60,7 @@ A paleta preserva exatamente o roxo, a lavanda, o rosa e o verde fornecidos no P
 
 ## Typography
 
-`display` aparece na marca e títulos; `body` em controles e conteúdo. Fontes locais, sem carregamento externo. Corpo de 1rem, entrelinha 1.6; títulos de 1.5 a 2rem. Datas em pt-BR com fuso America/Sao_Paulo e moeda BRL. Valores extensos quebram linha.
+`display` aparece na marca e títulos; `body` em controles e conteúdo. Nunito Sans em títulos e marca; DM Sans em textos, formulários e valores. Fontes variáveis WOFF2 locais em `public/fonts`, com licenças OFL incluídas, preload e cache público para uso offline. Corpo de 1rem, entrelinha 1.6; títulos de 1.5 a 2rem. Datas em pt-BR com fuso America/Sao_Paulo e moeda BRL. Valores extensos quebram linha.
 
 ## Layout
 
@@ -67,15 +68,15 @@ Conteúdo de até `page-max`, margens de 1rem em celular e 2rem em desktop. Form
 
 ## Elevation & Depth
 
-Cartões têm borda discreta, sem sombras decorativas. Dialog modal é a única camada elevada. Transições GSAP discretas acompanham a troca de telas, com respeito à preferência por movimento reduzido; sem parallax.
+Cartões têm borda discreta, sem sombras decorativas. Diálogos de confirmação e cartões centrais de aviso usam elevação discreta; avisos aguardam o fechamento do diálogo para não encobrir suas ações. Transições GSAP discretas acompanham a troca de telas, com respeito à preferência por movimento reduzido; sem parallax.
 
 ## Shapes
 
-Controles usam `rounded.DEFAULT`; painéis usam `rounded.card`. Ícones Lucide de 20px, traço 1.8. Ações importantes têm rótulos textuais. Nenhuma mudança de marca ou edição da imagem original é feita nesta fase.
+Controles usam `rounded.DEFAULT`; painéis usam `rounded.card`. Ícones Lucide de 20px em controles e 28px na navegação mobile, com rótulos de 12px e alvos de 64px. Ações importantes têm rótulos textuais. Nenhuma mudança de marca ou edição da imagem original é feita nesta fase.
 
 ## Components
 
-`src/ui/forms.js` centraliza campos, erros, foco e estado ocupado. `src/ui/feedback.js` centraliza mensagens persistentes e dialog de confirmação. Botões: sólido primário, contorno neutro e perigo para exclusões definitivas e cancelamento de pedido; aviso para arquivar produto. Estados hover, focus-visible, active, disabled e busy são compartilhados.
+`src/ui/forms.js` centraliza campos, erros, foco e estado ocupado. `src/ui/feedback.js` centraliza cartões de aviso de até 320px e diálogos de confirmação, ambos com cantos de 24px. Sucessos fecham após 4s (7s em textos longos), pausando com ponteiro, foco ou aba oculta. Erros e informações importantes permanecem até fechar. `src/ui/loading.js` centraliza a indicação após 200ms e preserva as dimensões dos botões. Botões: sólido primário, contorno neutro e perigo para exclusões definitivas e cancelamento de pedido; aviso para arquivar produto. Estados hover, focus-visible, active, disabled e busy são compartilhados.
 
 Seleção de UF usa select nativo: popup e interação pertencem ao sistema operacional. Não há date picker nem seleção de linhas em lote. Listas de endereços e pedidos têm paginação explícita. Scrollbars globais usam os tokens de borda/superfície/texto, com fallback WebKit e cores de sistema em forced-colors.
 

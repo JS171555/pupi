@@ -15,6 +15,7 @@ import { authView, noticeView, onboardingView } from './modules/auth/views.js';
 import { profileView, addressesView, addressFormView, ordersView, orderView } from './modules/account/views.js';
 import { el, link, button, heading, empty } from './ui/dom.js';
 import { notify, confirmAction } from './ui/feedback.js';
+import {startLoading,buttonLoading} from './ui/loading.js';
 import { isDirty, discardChanges } from './ui/forms.js';
 import { AppError, toAppError } from './utils/errors.js';
 import {createAdminRepository} from './repositories/admin.js';
@@ -23,6 +24,7 @@ import {renderAdmin,resetPrivateAdminUI} from './modules/admin/router.js';
 import './styles/app.css';
 import './styles/admin.css';
 import './styles/experience.css';
+import './styles/feedback.css';
 
 const main = document.querySelector('#main');
 const header = document.querySelector('#header');
@@ -31,7 +33,8 @@ const state = { user: null, profile: null, role: null, busy: false, booting: tru
   currentHash: location.hash || '#/entrar', recovery: false, destination: '/conta' };
 let client; let auth; let repository;let adminRepository;let adminMedia;let catalogRepository;let catalogMedia;let cartRepository;
 const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
-const busy = value => { state.busy = value; };
+let stopBusyButton=()=>{};
+const busy = value => { state.busy=value;if(value){stopBusyButton();const active=document.activeElement;stopBusyButton=active?.matches('button')&&!active.closest('form,dialog')?buttonLoading(active):()=>{};}else{stopBusyButton();stopBusyButton=()=>{};} };
 // Transições curtas não atrasam leitura, interação ou navegação sem movimento.
 const motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
 const viewObserver=new MutationObserver(()=>{
@@ -154,7 +157,9 @@ async function render() {
   state.currentHash = location.hash || '#/entrar';
   const title = routeTitles[route] || (route.startsWith('/enderecos/') ? 'Endereço' : route.startsWith('/pedidos/') ? 'Detalhes do pedido' : 'Página não encontrada');
   document.title = `${title} | Pupi`; notify(''); renderHeader(route);
-  main.replaceChildren(el('p', { className: 'loading', role: 'status' }, 'Carregando…'));
+  const loading=el('div',{className:'loading','aria-label':'Carregando página'});
+  main.replaceChildren(loading);
+  const stopLoading=startLoading(loading,{message:'Carregando…',signal});
   try {
     if (route === '/loja' || /^\/loja\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(route)) {
       document.title = 'Loja | Pupi';
@@ -273,6 +278,7 @@ async function render() {
       main.replaceChildren(unavailable('Acesso restrito','Sua conta não tem permissão para esta operação administrativa.'));
     } else failure(error, render);
   } finally {
+    stopLoading();
     if (generation === state.generation) main.querySelector('h1')?.focus({ preventScroll: true });
   }
 }

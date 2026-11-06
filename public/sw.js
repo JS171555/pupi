@@ -1,6 +1,6 @@
 // Somente arquivos públicos da aplicação; dados de conta e APIs nunca entram no cache.
-const CACHE='pupi-shell-v1';
-const shell=['/','/manifest.webmanifest','/icons/pupi-192.png','/icons/pupi-512.png'];
+const CACHE='pupi-shell-v2';
+const shell=['/','/manifest.webmanifest','/icons/pupi-192.png','/icons/pupi-512.png','/fonts/dm-sans-latin-wght-normal.woff2','/fonts/nunito-sans-latin-wght-normal.woff2'];
 self.addEventListener('install',event=>event.waitUntil((async()=>{
   const cache=await caches.open(CACHE);await cache.addAll(shell);
   const page=await cache.match('/');const html=await page.text();
@@ -16,7 +16,8 @@ self.addEventListener('fetch',event=>{
   if(request.method!=='GET'||url.origin!==self.location.origin||url.search)return;
   const navigation=request.mode==='navigate'&&url.pathname==='/';
   const asset=/^\/assets\/[A-Za-z0-9._-]+\.(?:js|css)$/.test(url.pathname);
-  if(!navigation&&!asset)return;
+  const font=url.pathname.startsWith('/fonts/')&&shell.includes(url.pathname);
+  if(!navigation&&!asset&&!font)return;
   event.respondWith((async()=>{
     const cache=await caches.open(CACHE);
     try {

@@ -1,5 +1,6 @@
 import {el,link,button,heading,empty} from '../../ui/dom.js';
 import {toAppError} from '../../utils/errors.js';
+import {buttonLoading} from '../../ui/loading.js';
 import {confirmAction} from '../../ui/feedback.js';
 import {adminURL,filterBar,dataTable,listPager,adminLink} from '../../ui/admin-list.js';
 export {el,link,button,heading,empty,adminURL,filterBar,dataTable,listPager,adminLink};
@@ -16,12 +17,12 @@ export function panel(title,intro,content,actions=[]) {
 export function actionButton(label,task,context,options={}) {
   const execute=async()=>{
     if(context.isBusy()) return;
-    control.disabled=true;context.busy(true);
+    control.disabled=true;context.busy(true);const stopLoading=buttonLoading(control);
     try {
       await task();
       if(options.reload!==false) await context.go(options.destination||context.current,{force:true});
       if(options.success) context.announce(options.success,'success');
-    }finally{control.disabled=false;context.busy(false);}
+    }finally{stopLoading();control.disabled=false;context.busy(false);}
   };
   const control=button(label,async()=>{
     if(context.isBusy() || !await context.canLeave()) return;
