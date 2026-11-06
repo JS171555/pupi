@@ -20,9 +20,13 @@ Imagem principal na vitrine e no detalhe do produto, usando URLs assinadas de cu
 
 Galeria no detalhe do produto, ordenada com a imagem principal primeiro e paginada em até 20 fotos. Falhas de leitura e imagens indisponíveis têm mensagens próprias. A verificação com imagens reais no Storage continua pendente.
 
+## Etapa 5
+
+Filtros de destaque e promoção na vitrine, combináveis com busca/categoria/ordem e preservados na paginação; produtos marcados como destaque são identificados. Testes de serviços e build aprovados. A interface ainda precisa de homologação no navegador com dados reais.
+
 ## Falta para concluir
 
-1. Acrescentar destaque/promoções na vitrine; completar detalhes de produto e testar com produtos publicados reais.
+1. Completar detalhes de produto e testar com produtos publicados reais.
 2. Carrinho persistente por usuário: adicionar, alterar, remover, validar estoque e calcular subtotal; testar isolamento de contas e concorrência.
 3. Frete: integrar Melhor Envio em backend confiável com credenciais protegidas, cotações e seleção válida; definir configuração e tratar indisponibilidade. Nunca confiar em frete enviado pelo navegador.
 4. Checkout autenticado: endereço, revisão, estoque e preços recalculados no backend; confirmar pedido idempotente e gravar cotação/entrega com segurança. Não expor service_role nem aceitar total fornecido pelo cliente.

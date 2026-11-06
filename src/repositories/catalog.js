@@ -8,14 +8,16 @@ export function createCatalogRepository(client) {
       return unwrap(client.from('categories').select('id,name,slug,description,sort_order')
         .eq('active', true).order('sort_order').order('id'));
     },
-    listProducts({ page = 1, pageSize = 24, categoryId, search = '', sort = 'recent' } = {}) {
+    listProducts({ page = 1, pageSize = 24, categoryId, search = '', sort = 'recent', filter = '' } = {}) {
       if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100
           || !Number.isSafeInteger(page * pageSize)) {
         throw new AppError('INVALID_DATA', 'Paginação inválida.');
       }
-      if (typeof search !== 'string' || search.length > 120 || !['recent', 'name'].includes(sort)) throw new AppError('INVALID_DATA', 'Busca ou ordenação inválida.');
+      if (typeof search !== 'string' || search.length > 120 || !['recent', 'name'].includes(sort) || !['', 'featured', 'sale'].includes(filter)) throw new AppError('INVALID_DATA', 'Busca ou ordenação inválida.');
       let query = client.from('products').select(fields).eq('status', 'published').eq('active', true);
       if (categoryId) query = query.eq('category_id', categoryId);
+      if (filter === 'featured') query = query.eq('featured', true);
+      if (filter === 'sale') query = query.not('sale_price_cents', 'is', null);
       if (search.trim()) query = query.ilike('name', `%${search.trim().replace(/[\\%_]/g, '\\$&')}%`);
       query = sort === 'name' ? query.order('name') : query.order('created_at', { ascending: false });
       return unwrap(query.order('id')
