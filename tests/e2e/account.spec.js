@@ -22,6 +22,19 @@ test('login, perfil persistido e logout, com senha mascarada e sem promover meta
   await expect(page.getByRole('heading', { name: 'Entre na sua conta' })).toBeVisible();
 });
 
+test('perfil mantém formulário e atalhos legíveis em mobile sem rolagem horizontal', async ({ page }) => {
+  await installApi(page, { signedIn: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/#/conta');
+  await expect(page.getByRole('heading', { name: 'Meus dados', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Gerenciar endereços' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Consultar pedidos' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const mainPanel = await page.locator('.profile-main').boundingBox();
+  const accountPanel = await page.locator('.profile-sidebar').boundingBox();
+  expect(accountPanel.y).toBeGreaterThan(mainPanel.y);
+});
+
 test('cadastro valida confirmação e aceite e aguarda confirmação por e-mail', async ({ page }) => {
   const api = await installApi(page);
   await page.goto('/#/cadastro');

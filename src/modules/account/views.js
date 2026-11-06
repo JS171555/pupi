@@ -2,6 +2,7 @@ import { el, link, button, heading, empty, date, money } from '../../ui/dom.js';
 import { makeForm, cleanForm } from '../../ui/forms.js';
 import { STATES } from '../auth/validation.js';
 import { confirmAction } from '../../ui/feedback.js';
+import { createElement, UserRound, Mail, CalendarDays, MapPin, ShoppingBag, ArrowUpRight } from 'lucide';
 
 const statusLabels = {
   confirmed: 'Pedido confirmado', preparing: 'Preparando pedido', shipped: 'Enviado', in_transit: 'Em trânsito',
@@ -11,6 +12,8 @@ const statusLabels = {
 export const statusLabel = status => statusLabels[status] || 'Status não informado';
 
 export function profileView({ user, profile, role, repository, busy, announce, refresh }) {
+  const profileIcon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
+  const initials = (profile.full_name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toLocaleUpperCase('pt-BR') || 'P';
   const form = makeForm({ name: 'Meus dados', submitLabel: 'Salvar alterações', onBusy: busy, persist: true,
     fields: [
       { name: 'full_name', label: 'Nome completo', value: profile.full_name, autocomplete: 'name', required: true, maxLength: 160 },
@@ -21,15 +24,31 @@ export function profileView({ user, profile, role, repository, busy, announce, r
       cleanForm(formNode); announce('Alterações salvas.', 'success'); refresh(profile);
     },
   });
-  const main = el('section', { className: 'panel' }, [heading('Meus dados', 'Mantenha suas informações de contato atualizadas.'),
-    el('p', {}, ['E-mail da conta: ', el('strong', {}, user.email)]), form]);
-  const aside = el('aside', { className: 'panel' }, [el('h2', {}, 'Sua conta'),
-    el('p', {}, ['Acesso: ', el('span', { className: 'badge' }, role === 'admin' ? 'Administrador' : 'Cliente')]),
-    el('p', { className: 'muted' }, `Conta criada em ${date(profile.created_at)}.`),
-    el('p', { className: 'muted' }, 'Você pode conferir seus dados e sair desta sessão a qualquer momento.'),
-    link('Gerenciar endereços', '#/enderecos'), el('br'), link('Consultar pedidos', '#/pedidos'),
+  form.classList.add('profile-form');
+  const main = el('section', { className: 'panel profile-main' }, [
+    el('p', { className: 'profile-eyebrow' }, 'DADOS PESSOAIS'),
+    heading('Meus dados', 'Mantenha suas informações de contato atualizadas.'),
+    el('div', { className: 'profile-form-intro' }, [profileIcon(UserRound),el('p', {}, 'Essas informações ajudam a manter sua conta e seus pedidos atualizados.')]),
+    form,
   ]);
-  return el('div', { className: 'account-grid' }, [main, aside]);
+  const aside = el('aside', { className: 'panel profile-sidebar' }, [
+    el('div', { className: 'profile-identity' }, [
+      el('span', { className: 'profile-avatar', 'aria-hidden': 'true' }, initials),
+      el('div', {}, [el('p', { className: 'profile-eyebrow' }, 'SUA CONTA'),el('h2', {}, profile.full_name || 'Olá!')]),
+    ]),
+    el('div', { className: 'profile-account-details' }, [
+      el('div', { className: 'profile-detail' }, [profileIcon(Mail),el('div', {}, [el('span', {}, 'E-mail da conta'),el('strong', {}, user.email)])]),
+      el('div', { className: 'profile-detail' }, [profileIcon(CalendarDays),el('div', {}, [el('span', {}, 'Membro desde'),el('strong', {}, date(profile.created_at))])]),
+      el('div', { className: 'profile-access' }, [el('span', {}, 'Tipo de acesso'),el('span', { className: 'badge' }, role === 'admin' ? 'Administrador' : 'Cliente')]),
+    ]),
+    el('div', { className: 'profile-shortcuts' }, [
+      el('h3', {}, 'Atalhos da conta'),
+      link([profileIcon(MapPin),el('span', {}, 'Gerenciar endereços'),profileIcon(ArrowUpRight)], '#/enderecos', { className: 'profile-shortcut' }),
+      link([profileIcon(ShoppingBag),el('span', {}, 'Consultar pedidos'),profileIcon(ArrowUpRight)], '#/pedidos', { className: 'profile-shortcut' }),
+    ]),
+    el('p', { className: 'profile-sidebar-note' }, 'Você pode conferir seus dados e sair desta sessão a qualquer momento.'),
+  ]);
+  return el('div', { className: 'account-grid profile-layout' }, [main, aside]);
 }
 
 export function pagination(page, hasMore, route, go) {
