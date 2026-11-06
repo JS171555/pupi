@@ -220,3 +220,43 @@ test('pedido exibe itens, total e endereço históricos sem criar entrega inexis
   await expect(page.getByText(/A entrega ainda não foi registrada/)).toBeVisible();
   await expect(page.locator('main')).toContainText('R$ 35,00');
 });
+
+test('CEP preenche endereço pelo ViaCEP e preserva campos digitados', async ({ page }) => {
+  await installApi(page, { signedIn: true });
+  await page.route('https://viacep.com.br/ws/01001000/json/', route => route.fulfill({json:{cep:'01001-000',logradouro:'Praça da Sé',bairro:'Sé',localidade:'São Paulo',uf:'SP'}}));
+  await page.goto('/#/enderecos/novo');
+  await page.getByLabel('Bairro').fill('Bairro escolhido');
+  await page.getByLabel('CEP').fill('01001-000');
+  await expect(page.getByLabel('Rua ou avenida')).toHaveValue('Praça da Sé');
+  await expect(page.getByLabel('Bairro')).toHaveValue('Bairro escolhido');
+  await expect(page.getByLabel('Cidade')).toHaveValue('São Paulo');
+  await expect(page.getByLabel('UF')).toHaveValue('SP');
+  await expect(page.getByLabel('Número', {exact:false})).toHaveValue('');
+  await page.getByLabel('Rua ou avenida').fill('Rua corrigida');
+  await expect(page.getByLabel('Rua ou avenida')).toHaveValue('Rua corrigida');
+});
+
+test('CEP desconhecido ou consulta indisponível permite preenchimento manual', async ({ page }) => {
+  await installApi(page, { signedIn: true });
+  await page.route('https://viacep.com.br/ws/**', route => route.request().url().includes('99999999') ? route.fulfill({json:{erro:true}}) : route.abort());
+  await page.goto('/#/enderecos/novo');
+  await page.getByLabel('CEP').fill('99999999');
+  await expect(page.getByText(/CEP não encontrado/)).toBeVisible();
+  await page.getByLabel('CEP').fill('01001000');
+  await expect(page.getByText(/Não foi possível consultar o CEP/)).toBeVisible();
+  await page.getByLabel('Rua ou avenida').fill('Rua manual');
+  await expect(page.getByLabel('Rua ou avenida')).toHaveValue('Rua manual');
+});
+
+test('resposta atrasada do CEP anterior não altera o endereço atual', async ({ page }) => {
+  await installApi(page, { signedIn: true });
+  await page.route('https://viacep.com.br/ws/**', async route => {
+    if(route.request().url().includes('01001000')) {await new Promise(resolve=>setTimeout(resolve,1000));return route.fulfill({json:{logradouro:'Endereço antigo',localidade:'São Paulo',uf:'SP'}}).catch(()=>{});}
+    return route.fulfill({json:{logradouro:'Endereço novo',bairro:'Centro',localidade:'Rio de Janeiro',uf:'RJ'}});
+  });
+  await page.goto('/#/enderecos/novo');
+  await page.getByLabel('CEP').fill('01001000');await expect(page.getByText('Consultando CEP…')).toBeVisible();
+  await page.getByLabel('CEP').fill('20040020');
+  await expect(page.getByLabel('Rua ou avenida')).toHaveValue('Endereço novo');
+  await expect(page.getByLabel('UF')).toHaveValue('RJ');
+});

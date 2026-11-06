@@ -69,7 +69,7 @@ export function addressFormView({ address, repository, go, busy, announce }) {
   const fields = [
     { name: 'label', label: 'Nome do endereço', value: value('label') || 'Casa', required: true, maxLength: 60, autocomplete: 'off' },
     { name: 'recipient', label: 'Destinatário', value: value('recipient'), required: true, maxLength: 160, autocomplete: 'shipping name' },
-    { name: 'postal_code', label: 'CEP', value: value('postal_code'), required: true, inputmode: 'numeric', maxLength: 9, autocomplete: 'shipping postal-code' },
+    { name: 'postal_code', label: 'CEP', value: value('postal_code'), required: true, inputmode: 'numeric', maxLength: 9, autocomplete: 'shipping postal-code', hint: 'Ao informar o CEP, consultamos o ViaCEP para preencher o endereço.' },
     { name: 'street', label: 'Rua ou avenida', value: value('street'), required: true, maxLength: 200, autocomplete: 'shipping address-line1' },
     { name: 'number', label: 'Número', value: value('number'), required: true, maxLength: 20 },
     { name: 'complement', label: 'Complemento', value: value('complement'), maxLength: 160, autocomplete: 'shipping address-line2' },
@@ -84,8 +84,49 @@ export function addressFormView({ address, repository, go, busy, announce }) {
       await go('/enderecos', { force: true }); announce('Endereço salvo.', 'success');
     },
   });
+  setupPostalLookup(form);
   return el('section', { className: 'panel' }, [heading(address ? 'Editar endereço' : 'Adicionar endereço', 'Os dados são salvos apenas na sua conta.'),
     form, link('Cancelar e voltar', '#/enderecos')]);
+}
+
+// Uma resposta antiga nunca pode substituir dados digitados durante a consulta.
+function setupPostalLookup(form) {
+  const cep=form.elements.namedItem('postal_code');
+  const status=el('small',{className:'field-help',role:'status','aria-live':'polite'});
+  cep.closest('[data-field="postal_code"]').append(status);
+  const mapping={street:'logradouro',neighborhood:'bairro',city:'localidade',state:'uf'};
+  const automatic={};let timer,controller,lastSuccess='';
+  const digits=()=>cep.value.replace(/\D/g,'');
+  async function lookup() {
+    const current=digits();if(current.length!==8 || current===lastSuccess)return;
+    controller?.abort();const request=new AbortController();controller=request;
+    const before=Object.fromEntries(Object.keys(mapping).map(name=>[name,form.elements.namedItem(name).value]));
+    status.textContent='Consultando CEP…';
+    try {
+      const response=await fetch(`https://viacep.com.br/ws/${current}/json/`,{signal:AbortSignal.any([request.signal,AbortSignal.timeout(8000)])});
+      if(!response.ok)throw new Error('unavailable');
+      const data=await response.json();
+      if(request.signal.aborted || digits()!==current || !form.isConnected)return;
+      if(data.erro) {status.textContent='CEP não encontrado. Confira o número ou preencha o endereço manualmente.';return;}
+      let filled=0;
+      for(const [name,key] of Object.entries(mapping)) {
+        const control=form.elements.namedItem(name),next=data[key];
+        if(typeof next!=='string'||!next.trim()||control.value!==before[name]||(control.value && control.value!==automatic[name]))continue;
+        if(name==='state' && !Array.from(control.options).some(option=>option.value===next))continue;
+        control.value=next;automatic[name]=next;control.dispatchEvent(new Event('input',{bubbles:true}));filled++;
+      }
+      lastSuccess=current;
+      status.textContent=filled?'Endereço consultado. Confira e complete os dados.':'Confira os dados do endereço ou preencha-os manualmente.';
+    } catch {
+      if(!request.signal.aborted && digits()===current && form.isConnected)status.textContent='Não foi possível consultar o CEP. Preencha o endereço manualmente.';
+    }
+  }
+  cep.addEventListener('input',()=>{
+    clearTimeout(timer);controller?.abort();status.textContent='';
+    if(digits().length===8)timer=setTimeout(lookup,400);
+    else lastSuccess='';
+  });
+  cep.addEventListener('blur',()=>{clearTimeout(timer);if(digits().length===8)lookup();});
 }
 
 export function ordersView({ items, hasMore, page, go }) {
