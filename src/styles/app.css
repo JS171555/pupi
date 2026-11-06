@@ -10,7 +10,7 @@ html { scrollbar-gutter: stable; }
 body { margin: 0; background: var(--color-background); color: var(--color-text); font-family: var(--font-body); font-size: 1rem; line-height: 1.6; }
 button, input, select { font: inherit; }
 button, a, select, input[type='checkbox'] { cursor: pointer; }
-a { color: var(--color-primary); text-underline-offset: 3px; }
+a { color: var(--color-text); text-underline-offset: 3px; }
 a:hover { text-decoration-thickness: 2px; }
 a:active { opacity: .8; }
 button:disabled, input:disabled, select:disabled { cursor: not-allowed; opacity: .65; }
@@ -35,15 +35,15 @@ ul { padding-left: 1.25rem; }
 .page-shell { max-width: var(--space-page-max); margin: 0 auto; padding: .5rem 1rem 2rem; }
 .feedback { min-height: 3.5rem; display: flex; align-items: center; }
 .feedback p { margin: .3rem 0; padding: .65rem .9rem; background: var(--color-soft); border-radius: var(--radius-default); width: 100%; }
-.feedback-success { color: var(--color-success); }
+.feedback-success { color: var(--color-success-ink); }
 .feedback-error { color: var(--color-danger); }
 .auth-layout { display: grid; gap: var(--space-section-gap); align-items: start; }
 .auth-intro { padding: 1rem .25rem; }
 .auth-intro p { max-width: 33rem; }
-.eyebrow { font-size: .875rem; font-weight: 700; color: var(--color-primary); margin-bottom: .65rem; }
+.eyebrow { font-size: .875rem; font-weight: 700; color: var(--color-text); margin-bottom: .65rem; }
 .intro-list { margin-top: 1.5rem; padding: 0; list-style: none; display: grid; gap: .75rem; }
 .intro-list li { display: flex; gap: .65rem; align-items: center; }
-.intro-list svg { flex: none; width: 20px; height: 20px; color: var(--color-primary); }
+.intro-list svg { flex: none; width: 20px; height: 20px; color: var(--color-text); }
 .panel { background: var(--color-surface); padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--color-border); border-radius: var(--radius-card); min-width: 0; }
 .panel-stack { display: grid; gap: 1rem; }
 .page-heading { margin-bottom: 1.5rem; }
@@ -65,11 +65,11 @@ input[aria-invalid='true'], select[aria-invalid='true'] { border-color: var(--co
 .button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .6rem 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-default); text-decoration: none; font-weight: 600; background: var(--color-surface); color: var(--color-text); }
 .button:hover:not(:disabled) { background: var(--color-soft); border-color: var(--color-primary); }
 .button:active:not(:disabled) { transform: translateY(1px); }
-.button-primary { background: var(--color-primary); color: var(--color-surface); border-color: var(--color-primary); }
+.button-primary { background: var(--color-primary); color: var(--color-text); border-color: var(--color-primary); }
 .button-primary:hover:not(:disabled) { background: var(--color-text); color: var(--color-surface); }
 .button-danger { border-color: var(--color-danger); background: var(--color-danger); color: var(--color-surface); }
 .button-danger:hover:not(:disabled) { background: var(--color-surface); color: var(--color-danger); }
-.button-ghost { border-color: transparent; background: transparent; color: var(--color-primary); }
+.button-ghost { border-color: transparent; background: transparent; color: var(--color-text); }
 .button svg { height: 18px; width: 18px; }
 .form-status { min-height: 2.25rem; margin: .5rem 0 0; color: var(--color-danger); font-size: .9375rem; }
 [aria-busy='true'] .form-status { color: var(--color-muted); }
@@ -79,7 +79,7 @@ input[aria-invalid='true'], select[aria-invalid='true'] { border-color: var(--co
 .full-width { width: 100%; }
 .actions { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; margin-top: 1rem; }
 .toolbar { display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 1.25rem; }
-.badge { display: inline-flex; padding: .2rem .65rem; border-radius: var(--radius-default); background: var(--color-soft); color: var(--color-primary); font-size: .8125rem; }
+.badge { display: inline-flex; padding: .2rem .65rem; border-radius: var(--radius-default); background: var(--color-soft); color: var(--color-text); font-size: .8125rem; }
 .record-list { list-style: none; display: grid; gap: 1rem; padding: 0; margin: 0; }
 .record-card { border: 1px solid var(--color-border); padding: 1.25rem; border-radius: var(--radius-default); overflow-wrap: anywhere; }
 .record-card p:last-child { margin-bottom: 0; }

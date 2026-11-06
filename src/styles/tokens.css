@@ -1,18 +1,21 @@
 /* Gerado por scripts/design-tokens.js a partir de DESIGN.md. */
 :root {
-  --color-primary: #6D42B5;
+  --color-primary: #A78BFA;
   --color-brand: #A78BFA;
   --color-pink: #F4B8D5;
   --color-mint: #8BCDB0;
   --color-lavender: #DDD2FF;
   --color-soft: #EDE5FF;
+  --color-lilac: #EDE5FF;
   --color-background: #FAF8FF;
   --color-surface: #FFFFFF;
+  --color-white: #FFFFFF;
   --color-text: #302746;
   --color-muted: #665D76;
   --color-border: #D7D0E3;
   --color-danger: #AA263D;
-  --color-success: #246448;
+  --color-success: #8BCDB0;
+  --color-success-ink: #302746;
   --color-warning: #805218;
   --radius-default: 0.75rem;
   --radius-card: 1.25rem;

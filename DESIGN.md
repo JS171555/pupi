@@ -3,19 +3,22 @@ version: alpha
 name: Pupi
 description: Área de conta e administração de um petshop, com testes funcionais.
 colors:
-  primary: "#6D42B5"
+  primary: "#A78BFA"
   brand: "#A78BFA"
   pink: "#F4B8D5"
   mint: "#8BCDB0"
   lavender: "#DDD2FF"
   soft: "#EDE5FF"
+  lilac: "#EDE5FF"
   background: "#FAF8FF"
   surface: "#FFFFFF"
+  white: "#FFFFFF"
   text: "#302746"
   muted: "#665D76"
   border: "#D7D0E3"
   danger: "#AA263D"
-  success: "#246448"
+  success: "#8BCDB0"
+  success-ink: "#302746"
   warning: "#805218"
 typography:
   display:
@@ -56,7 +59,7 @@ Fonte normativa dos tokens: frontmatter deste arquivo. `scripts/design-tokens.js
 
 ## Colors
 
-A paleta preserva exatamente o roxo, a lavanda, o rosa e o verde fornecidos no PDF; cores mais escuras complementam a paleta para garantir contraste no texto. `primary` é a variante escura para ações e texto com contraste. `brand`, `lavender` e `soft` são superfícies e detalhes. Erros, sucesso e avisos têm texto e ícones além de cor. Valores exatos são gerados como `--color-<nome>`.
+A paleta oficial usa `primary`/`brand` #A78BFA, `lavender` #DDD2FF, `soft` #EDE5FF, `background` #FAF8FF, `surface` #FFFFFF, `text` #302746, `pink` #F4B8D5 e `mint`/`success` #8BCDB0. Roxo e verde claros são fundos/indicadores, não cores de texto pequeno: texto em botões e estados usa `text` para contraste. Cores complementares de borda, aviso e erro ficam restritas a seus estados semânticos. Valores são gerados como `--color-<nome>`.
 
 ## Typography
 
