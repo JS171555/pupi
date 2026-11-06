@@ -5,6 +5,21 @@ const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-
 /** Define a quantidade absoluta: repetir uma solicitação não soma novamente. */
 export function createCartRepository(client) {
   return {
+    async listItems(userId, page = 1, signal) {
+      if (!uuid(userId) || !Number.isSafeInteger(page) || page < 1 || page > 100000) {
+        throw new AppError('INVALID_DATA', 'Página do carrinho inválida.');
+      }
+      let cartQuery = client.from('carts').select('id').eq('user_id',userId).maybeSingle();
+      if (signal) cartQuery = cartQuery.abortSignal(signal);
+      const cart = await unwrap(cartQuery);
+      if (!cart) return {items:[],hasMore:false};
+      let itemsQuery = client.from('cart_items')
+        .select('id,product_id,quantity,products(id,name,slug,price_cents,sale_price_cents,stock_quantity,active,status,categories(active))')
+        .eq('cart_id',cart.id).order('id').range((page-1)*20,page*20);
+      if (signal) itemsQuery = itemsQuery.abortSignal(signal);
+      const items = await unwrap(itemsQuery);
+      return {items:items.slice(0,20),hasMore:items.length>20};
+    },
     async setQuantity(userId, productId, quantity) {
       if (!uuid(userId) || !uuid(productId) || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 999) {
         throw new AppError('INVALID_DATA', 'Informe uma quantidade entre 1 e 999.');

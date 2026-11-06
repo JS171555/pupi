@@ -38,3 +38,22 @@ test('quantidade inválida ou maior que estoque não grava carrinho',async()=>{
   await assert.rejects(()=>repository.setQuantity(user,product,0),{code:'INVALID_DATA'});
   assert.equal(requests.length,1);
 });
+
+test('consulta do carrinho limita página e preserva titular e itens indisponíveis',async()=>{
+  const requests=[];
+  const client=createPupiClient({SUPABASE_URL:'https://pupi.example.com',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test'}, {
+    auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:async(url)=>{
+      const parsed=new URL(url);requests.push(parsed);
+      const data=parsed.pathname.endsWith('/carts')?[{id:cart}]:[{id:'item',quantity:1,products:null}];
+      return new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
+    }},
+  });
+  const repository=createCartRepository(client);
+  const result=await repository.listItems(user,2);
+  assert.equal(requests[0].searchParams.get('user_id'),`eq.${user}`);
+  assert.equal(requests[1].searchParams.get('cart_id'),`eq.${cart}`);
+  assert.equal(requests[1].searchParams.get('offset'),'20');
+  assert.equal(requests[1].searchParams.get('limit'),'21');
+  assert.equal(result.items[0].products,null);
+  await assert.rejects(()=>repository.listItems(user,0),{code:'INVALID_DATA'});
+});

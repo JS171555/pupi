@@ -7,6 +7,7 @@ import { createCartRepository } from './repositories/cart.js';
 import { createCatalogRepository } from './repositories/catalog.js';
 import { createMediaService } from './services/media.js';
 import { storeCatalog, storeProduct } from './modules/store/catalog.js';
+import { cartView } from './modules/store/cart.js';
 import { authView, noticeView, onboardingView } from './modules/auth/views.js';
 import { profileView, addressesView, addressFormView, ordersView, orderView } from './modules/account/views.js';
 import { el, link, button, heading, empty } from './ui/dom.js';
@@ -46,6 +47,7 @@ function renderHeader(route = '') {
   const navigation = el('nav', { className: 'navigation', 'aria-label': 'Navegação principal' });
   const routes = state.user ? [['Meus dados', '/conta'], ['Endereços', '/enderecos'], ['Pedidos', '/pedidos']] : [['Entrar', '/entrar'], ['Criar conta', '/cadastro']];
   routes.unshift(['Loja', '/loja']);
+  if (state.user) routes.push(['Carrinho', '/carrinho']);
   if (state.role === 'admin') routes.push(['Administração', '/admin']);
   for (const [label, path] of routes) navigation.append(link(label, `#${path}`, { 'aria-current': route.startsWith(path) ? 'page' : undefined }));
   if (state.user) navigation.append(button([icon(LogOut), 'Sair'], logout, 'ghost'));
@@ -114,7 +116,7 @@ function unavailable(title, message, destination = '/conta') {
   return el('section', { className: 'panel' }, [heading(title, message), link('Voltar', `#${destination}`, { className: 'button button-secondary' })]);
 }
 const routeTitles = { '/entrar': 'Entrar', '/cadastro': 'Criar conta', '/recuperar': 'Recuperar acesso', '/nova-senha': 'Nova senha',
-  '/conta': 'Meus dados', '/enderecos': 'Meus endereços', '/pedidos': 'Meus pedidos', '/admin': 'Administração', '/aviso': 'Aviso de testes' };
+  '/carrinho': 'Carrinho', '/conta': 'Meus dados', '/enderecos': 'Meus endereços', '/pedidos': 'Meus pedidos', '/admin': 'Administração', '/aviso': 'Aviso de testes' };
 
 async function render() {
   const generation = ++state.generation;
@@ -180,7 +182,11 @@ async function render() {
     const context = { user, profile, role, repository, busy, announce: notify, go,
       reload: render, refresh: next => { state.profile = next; } };
     let view;
-    if (route === '/conta') view = profileView(context);
+    if (route === '/carrinho') {
+      const data = await cartRepository.listItems(user.id, page, signal);
+      if (!data.items.length && page > 1) { await go(`/carrinho?pagina=${page - 1}`, {force:true}); return; }
+      view = cartView({...data, page, go});
+    } else if (route === '/conta') view = profileView(context);
     else if (route === '/enderecos') {
       const data = await repository.listAddresses(user.id, page, signal);
       if (!data.items.length && page > 1) { await go(`/enderecos?pagina=${page - 1}`, { force: true }); return; }

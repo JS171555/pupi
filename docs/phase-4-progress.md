@@ -36,10 +36,14 @@ Repositório de carrinho permite definir uma quantidade absoluta de produto publ
 
 Detalhe do produto permite definir quantidade no carrinho autenticado, com validação, feedback e pedido de login quando necessário. A quantidade informada substitui a anterior; estoque é conferido novamente ao gravar. A consulta/edição do carrinho ainda falta.
 
+## Etapa 9
+
+Consulta autenticada e paginada do carrinho, com preços atuais e indicação de produtos indisponíveis ou com saldo insuficiente. Produtos ocultos por políticas permanecem identificados como indisponíveis; a tela não calcula total nem reserva estoque. Alterar/remover itens permanece pendente.
+
 ## Falta para concluir
 
 1. Testar vitrine e detalhes com produtos publicados reais.
-2. Carrinho persistente por usuário: consultar, alterar, remover, validar estoque e calcular subtotal; testar isolamento de contas e concorrência.
+2. Carrinho persistente por usuário: alterar, remover, validar estoque e calcular subtotal; testar isolamento de contas e concorrência.
 3. Frete: integrar Melhor Envio em backend confiável com credenciais protegidas, cotações e seleção válida; definir configuração e tratar indisponibilidade. Nunca confiar em frete enviado pelo navegador.
 4. Checkout autenticado: endereço, revisão, estoque e preços recalculados no backend; confirmar pedido idempotente e gravar cotação/entrega com segurança. Não expor service_role nem aceitar total fornecido pelo cliente.
 5. Estrutura de pagamento pendente, sem aprovar/simular transações. Conectar registro/rastreamento de remessa e eventos reais quando credenciais estiverem disponíveis.
