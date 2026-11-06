@@ -93,3 +93,7 @@ A administração aceita a chave de 44 dígitos de uma NF-e já emitida, sem ins
 ## Refinamento mobile e feedback
 
 Nunito Sans nos títulos e DM Sans no corpo, hospedadas localmente e disponíveis no cache público da PWA. Navegação mobile com ícones de 28px, rótulos de 12px e espaço inferior compatível com a barra e a área segura. Cartões centrais têm largura limitada, rolagem interna para conteúdo extenso e cantos definidos pelo token `notice`. GSAP anima entradas/saídas com duração curta; movimento reduzido mantém os elementos estáticos.
+
+## Pagamento incorporado
+
+Cartão e Pix são apresentados pelo Payment Brick oficial dentro do pedido, sem navegação para um checkout externo. A instância é desmontada ao sair da rota. Envio em andamento bloqueia cliques repetidos; o resultado é validado pelo backend. Um Pix pendente pode ser recuperado na recarga e verificado na mesma tela. Em caso de falha incerta, o cliente verifica a mesma tentativa em vez de abrir nova cobrança. Pedidos que já usaram o fluxo externo são identificados e não recebem um segundo formulário de pagamento. Atualizações da sessão preservam a rota atual; login explícito continua usando o destino validado.

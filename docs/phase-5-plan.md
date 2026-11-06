@@ -4,9 +4,9 @@ A fase 5 inclui o pagamento via Mercado Pago solicitado pelo usuário, instalaç
 
 ## Implementado
 
-- O Checkout Pro cria a preferência a partir dos itens, valores e frete registrados no banco. A tentativa é única por pedido; após perda da resposta, o serviço busca uma preferência existente e só a vincula quando os dados do pedido, conta, valores e URLs correspondem. Ele não cria outra automaticamente. A função exige usuário autenticado e verifica a titularidade.
+- O checkout atual é Transparente, com o Payment Brick oficial incorporado à tela do pedido: cartão e Pix são enviados ao backend com o total do banco, sessão verificada e chave de idempotência. A página do Pupi não redireciona para o checkout externo. A resposta perdida pode ser verificada usando a mesma tentativa ou por consulta autenticada ao provedor.
 - O receptor de webhook valida a assinatura, consulta o pagamento diretamente no Mercado Pago e confere pedido, vendedor, valor, moeda e ambiente. O banco registra pagamentos com processamento idempotente e ignora eventos antigos. Recusas permitem nova tentativa no mesmo checkout; estornos parciais, contestações e múltiplos pagamentos exigem conferência administrativa. O pedido só é marcado como pago mediante confirmação do provedor.
-- A migration `20261106064442_pupi_payment_reconciliation.sql` foi aplicada ao Supabase. As funções `pupi-mercadopago-checkout` e `pupi-mercadopago-webhook` foram implantadas. A primeira exige JWT; a segunda valida a assinatura do provedor.
+- A migration `20261106064442_pupi_payment_reconciliation.sql` foi aplicada ao Supabase. As funções `pupi-mercadopago-checkout` e `pupi-mercadopago-webhook` são usadas pelo checkout e pela confirmação do pagamento. A primeira exige JWT; a segunda valida a assinatura do provedor.
 - O detalhe do pedido oferece acesso ao pagamento quando estiver configurado. O PWA tem manifesto, ícones e service worker que guarda somente o shell público; chamadas de APIs e dados de conta não são adicionados ao cache offline.
 - Os testes locais usam dados fictícios. Foi verificado o funcionamento offline do shell em navegador e a ausência de rotas privadas no cache. A API real do Mercado Pago ainda não foi testada.
 
@@ -14,19 +14,20 @@ A fase 5 inclui o pagamento via Mercado Pago solicitado pelo usuário, instalaç
 
 No Supabase, configurar os seguintes segredos para o ambiente de teste do Mercado Pago, sem adicioná-los ao código ou enviá-los no chat:
 
-- `MERCADO_PAGO_ACCESS_TOKEN`: token da conta de vendedor de teste.
+- `MERCADO_PAGO_ACCESS_TOKEN`: token privado da conta de vendedor de teste.
+- `MERCADO_PAGO_PUBLIC_KEY`: Public Key da mesma aplicação Checkout Transparente; é disponibilizada ao SDK no navegador. Nunca usar o Access Token neste campo.
 - `MERCADO_PAGO_WEBHOOK_SECRET`: assinatura secreta configurada no Mercado Pago.
 - `MERCADO_PAGO_COLLECTOR_ID`: identificador numérico da conta de vendedor correspondente ao token.
 - `MERCADO_PAGO_ENV`: `sandbox` para testes ou `production` para produção.
-- `PUPI_STORE_ORIGIN`: origem HTTPS da loja na Vercel, sem caminho final ou barra adicional.
-- `MERCADO_PAGO_CHECKOUT_ENABLED`: manter ausente ou `false` até concluir a configuração; `true` permite criar preferências no ambiente configurado.
+- `PUPI_STORE_ORIGIN`: configuração histórica do Checkout Pro; não é necessária ao formulário incorporado.
+- `MERCADO_PAGO_CHECKOUT_ENABLED`: manter ausente ou `false` até concluir a configuração; `true` permite iniciar pagamentos no ambiente configurado.
 
-Configurar o evento de pagamentos no webhook `https://loifqxmmnmhpwnwcvrak.supabase.co/functions/v1/pupi-mercadopago-webhook`. Homologar com contas de teste distintas, inclusive pagamento pendente, aprovado, recusado, duplicado e estorno, antes de usar produção. Consulte a [documentação oficial do Checkout Pro](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro-preferences/overview) e de [notificações](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro-preferences/payment-notifications).
+Configurar o evento de pagamentos no webhook `https://loifqxmmnmhpwnwcvrak.supabase.co/functions/v1/pupi-mercadopago-webhook`. Homologar com contas de teste distintas, inclusive pagamento pendente, aprovado, recusado, duplicado e estorno, antes de usar produção. Consulte a [documentação oficial do Payment Brick](https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/payment-brick/default-rendering) e de [notificações](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro-preferences/payment-notifications).
 
 ## Pendências e limites
 
 - A integração não foi homologada com o Mercado Pago real e não deve ser considerada pronta para produção antes desses testes.
-- Uma resposta perdida é recuperada automaticamente quando o provedor retorna exatamente uma preferência compatível. Se a busca for vazia, ambígua ou inconsistente, a tentativa permanece bloqueada para evitar cobrança duplicada e exige reconciliação técnica. Ainda não há cancelamento seguro no painel enquanto existir uma tentativa aberta; estoque e pedido permanecem preservados.
+- Uma resposta perdida mantém a mesma chave de idempotência; a verificação após recarga busca o pagamento vinculado à tentativa. Se o resultado continuar desconhecido ou ambíguo, não é criada outra cobrança. Ainda não há cancelamento seguro no painel enquanto existir uma tentativa aberta; estoque e pedido permanecem preservados.
 - Um alerta no pedido administrativo indica múltiplos pagamentos, contestações ou estornos parciais; a resolução financeira e o estorno continuam a cargo do Mercado Pago e de conferência manual.
 - É necessário homologar a instalação PWA nos navegadores e dispositivos alvo. O cache contém apenas os arquivos públicos da aplicação; operações que precisam da rede permanecem indisponíveis offline.
 - A etapa visual usa as cores do PDF, navegação inferior no celular, ícones Lucide e transições GSAP com suporte a movimento reduzido. A vitrine e os componentes compartilhados foram atualizados; a homologação com os dados reais da loja permanece necessária.
@@ -39,3 +40,13 @@ A vitrine apresenta categorias cadastradas, filtros acessíveis, produtos reais 
 ## Refinamento de avisos e carregamento
 
 A navegação mobile usa ícones maiores e as fontes locais Nunito Sans e DM Sans. Sucessos são apresentados em cartões centralizados com fechamento automático e pausa durante a leitura; erros e avisos importantes aguardam fechamento. As confirmações continuam modais, com teclado e foco preservados. Carregamentos usam uma patinha após 200ms e mantêm o tamanho dos botões. O cache da PWA inclui as fontes públicas, sem guardar respostas das APIs. Testes cobrem foco, tempo de exibição, avisos durante confirmação, loading, larguras de tela e movimento reduzido.
+
+## Mudança para pagamento dentro do Pupi
+
+As migrations `20261106140721_pupi_transparent_payments.sql` e `20261106141056_pupi_transparent_payment_guard.sql` foram aplicadas ao Supabase, e as funções de checkout e webhook foram atualizadas para o novo fluxo.
+
+O Checkout Pro foi substituído na função pública pelo Checkout Transparente com Payment Brick. Cartão e Pix são as opções incorporadas; a carteira Mercado Pago e métodos de checkout externo não são habilitados. Número do cartão e código de segurança são coletados pelos campos oficiais do provedor: o Pupi recebe o token, que fica somente na memória durante a tentativa. Nenhum token, documento ou e-mail de pagamento é salvo em localStorage/sessionStorage ou em logs. O banco guarda uma impressão digital da requisição, chave de idempotência, identificação e resultado sanitizado do pagamento. O Pix é apresentado como código copia e cola e QR Code, quando o provedor os retorna.
+
+Pedidos com tentativa anterior do Checkout Pro não podem iniciar outra cobrança no formulário incorporado; conferir a tentativa antiga ou usar um novo pedido de teste. Não se deve apagar registros antigos para liberar uma cobrança. A aplicação no Mercado Pago deve estar configurada como Checkout Transparente/Payments API e o webhook deve receber eventos de Pagamentos; o endpoint de webhook Pupi permanece o mesmo. A Public Key correspondente à mesma conta/ambiente precisa ser cadastrada como `MERCADO_PAGO_PUBLIC_KEY`.
+
+A homologação real do SDK, cartões, Pix e eventuais autenticações adicionais do emissor permanece necessária. Os testes automatizados usam um SDK substituto e respostas fictícias; não comprovam um pagamento real nem todas as exigências de cada emissor.

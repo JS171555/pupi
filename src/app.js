@@ -12,6 +12,7 @@ import { storeCatalog, storeProduct } from './modules/store/catalog.js';
 import { cartView } from './modules/store/cart.js';
 import { checkoutReview } from './modules/store/checkout.js';
 import { authView, noticeView, onboardingView } from './modules/auth/views.js';
+import {embeddedPaymentPanel} from './modules/account/payment.js';
 import { profileView, addressesView, addressFormView, ordersView, orderView } from './modules/account/views.js';
 import { el, link, button, heading, empty } from './ui/dom.js';
 import { notify, confirmAction } from './ui/feedback.js';
@@ -247,12 +248,7 @@ async function render() {
       const data = /^[0-9a-f-]{36}$/i.test(id) ? await repository.getOrder(user.id, id, signal) : null;
       view = data ? orderView(data) : unavailable('Pedido indisponível', 'Este pedido não está disponível para sua conta.', '/pedidos');
       if(data && data.payment_status==='pending' && ['confirmed','preparing'].includes(data.status)) {
-        const pay=button('Pagar com Mercado Pago',async()=>{
-          if(state.busy)return;busy(true);pay.disabled=true;
-          try {const url=await repository.startPayment(data.id);location.assign(url);}
-          catch(error){notify(toAppError(error).message,'error');pay.disabled=false;busy(false);}
-        },'primary');
-        view.append(el('section',{className:'admin-order-actions'},[el('h2',{},'Pagamento'),el('p',{className:'muted'},'O pagamento será confirmado após a resposta do Mercado Pago.'),pay]));
+        view.append(embeddedPaymentPanel({order:data,repository,signal,busy,onPaid:async()=>{await go(`/pedidos/${data.id}`,{force:true});notify('Pagamento aprovado.','success');}}));
       }
     } else if (route === '/admin' || route.startsWith('/admin/')) {
       const allowed = await repository.adminAccess(signal);
@@ -338,7 +334,7 @@ async function start() {
           clearPrivateState(); discardChanges(main);
           if (location.hash === '#/loja' || location.hash.startsWith('#/loja/') || location.hash.startsWith('#/loja?')) {
             state.user = current; renderHeader('/loja');
-          } else await go('/conta', { force: true });
+          } else await render();
         }
       }
     });

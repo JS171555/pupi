@@ -36,3 +36,10 @@
 .button-progress>svg {width:23px;height:23px;}
 .button-primary .button-progress,.button-danger .button-progress {color:var(--color-surface);}
 @media(forced-colors:active) {.feedback-card,.dialog,.feedback-symbol {border:1px solid CanvasText;}.button-progress {color:ButtonText;}}
+
+.payment-panel {max-width:48rem;}
+.payment-content {display:grid;gap:1rem;min-width:0;}
+.payment-content>.button {justify-self:start;}
+.payment-pix {max-width:100%;height:auto;border-radius:16px;background:white;}
+.payment-total {padding:1rem;border-radius:14px;background:var(--color-soft);}
+.payment-content textarea {font-size:.85rem;overflow-wrap:anywhere;}

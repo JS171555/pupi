@@ -670,3 +670,35 @@ test('recusa anterior não impede aprovação posterior no mesmo pedido',()=>as(
   assert.equal((await rows("select public.service_apply_provider_payment($1,'456','paid',now(),$2) as result",[order,total]))[0].result,'paid');
   assert.equal((await rows('select payment_status from public.orders where id=$1',[order]))[0].payment_status,'paid');
 }));
+
+test('checkout transparente consulta sem reservar tentativa e vincula chave idempotente ao titular',()=>as('service_role',null,async()=>{
+  const order=await createOrder();const context=(await rows('select public.service_transparent_context($1,$2) as data',[A,order]))[0].data;assert.equal(context.submission,null);
+  assert.equal((await rows('select count(*) as n from private.payment_attempts where order_id=$1',[order]))[0].n,0);
+  const key=genKey(),hash='a'.repeat(64);
+  const first=(await rows('select public.service_begin_transparent_payment($1,$2,$3,$4) as data',[A,order,key,hash]))[0].data;
+  const same=(await rows('select public.service_begin_transparent_payment($1,$2,$3,$4) as data',[A,order,key,hash]))[0].data;
+  assert.equal(first.can_submit,true);assert.equal(same.idempotency_key,first.idempotency_key);
+  const other=(await rows('select public.service_begin_transparent_payment($1,$2,$3,$4) as data',[A,order,genKey(),'b'.repeat(64)]))[0].data;assert.equal(other.can_submit,false);
+}));
+test('checkout transparente impede troca de titular, reutilização alterada e pedido com checkout externo',async()=>{
+  await rejectsCode(()=>as('authenticated',A,()=>rows('select public.service_transparent_context($1,$2)',[A,KEY])),'42501');
+  await rejectsCode(()=>as('service_role',null,async()=>{const order=await createOrder();await rows('select public.service_begin_transparent_payment($1,$2,$3,$4)',[B,order,genKey(),'a'.repeat(64)]); }),'42501');
+  await rejectsCode(()=>as('service_role',null,async()=>{const order=await createOrder(),key=genKey();await rows('select public.service_begin_transparent_payment($1,$2,$3,$4)',[A,order,key,'a'.repeat(64)]);await rows('select public.service_begin_transparent_payment($1,$2,$3,$4)',[A,order,key,'b'.repeat(64)]); }),'P0001');
+  await rejectsCode(()=>as('service_role',null,async()=>{const order=await createOrder();await rows('select public.service_begin_payment_attempt($1,$2,$3)',[A,order,genKey()]);await rows('select public.service_transparent_context($1,$2)',[A,order]); }),'P0001');
+});
+test('recusa permite token novo, mas Pix pendente bloqueia segunda cobrança',()=>as('service_role',null,async()=>{
+  const order=await createOrder(),key=genKey();await rows('select public.service_begin_transparent_payment($1,$2,$3,$4)',[A,order,key,'a'.repeat(64)]);
+  await rows('select public.service_reject_transparent_payment($1,$2)',[order,key]);
+  const next=genKey();assert.equal((await rows('select public.service_begin_transparent_payment($1,$2,$3,$4) as data',[A,order,next,'b'.repeat(64)]))[0].data.can_submit,true);
+  const total=Number((await rows('select total_cents from public.orders where id=$1',[order]))[0].total_cents);
+  await rows("select public.service_apply_provider_payment($1,'888','pending',now(),$2)",[order,total]);
+  assert.equal((await rows("select public.service_complete_transparent_payment($1,$2,'888','pending',now(),$3::jsonb) as ok",[order,next,JSON.stringify({payment_id:'888',status:'pending',qr_code:'pix-teste'})]))[0].ok,true);
+  assert.equal((await rows('select public.service_begin_transparent_payment($1,$2,$3,$4) as data',[A,order,genKey(),'c'.repeat(64)]))[0].data.can_submit,false);
+  const ctx=(await rows('select public.service_transparent_context($1,$2) as data',[A,order]))[0].data;assert.equal(ctx.submission.result.qr_code,'pix-teste');
+}));
+
+test('pagamento financeiro conhecido bloqueia nova tentativa mesmo antes de completar metadados',()=>rejectsCode(()=>as('service_role',null,async()=>{
+  const order=await createOrder(),key=genKey();await rows('select public.service_begin_transparent_payment($1,$2,$3,$4)',[A,order,key,'a'.repeat(64)]);await rows('select public.service_reject_transparent_payment($1,$2)',[order,key]);
+  const total=Number((await rows('select total_cents from public.orders where id=$1',[order]))[0].total_cents);await rows("select public.service_apply_provider_payment($1,'777','pending',now(),$2)",[order,total]);
+  await rows('select public.service_begin_transparent_payment($1,$2,$3,$4)',[A,order,genKey(),'b'.repeat(64)]);
+}),'P0001'));
