@@ -702,3 +702,33 @@ test('pagamento financeiro conhecido bloqueia nova tentativa mesmo antes de comp
   const total=Number((await rows('select total_cents from public.orders where id=$1',[order]))[0].total_cents);await rows("select public.service_apply_provider_payment($1,'777','pending',now(),$2)",[order,total]);
   await rows('select public.service_begin_transparent_payment($1,$2,$3,$4)',[A,order,genKey(),'b'.repeat(64)]);
 }),'P0001'));
+
+test('Orders reserva contrato, ambiente e vendedor sem trocar chave no reenvio',()=>as('service_role',null,async()=>{
+ const order=await createOrder(),key=genKey(),hash='a'.repeat(64);
+ const first=(await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12') as data",[A,order,key,hash]))[0].data;
+ const repeat=(await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12') as data",[A,order,key,hash]))[0].data;
+ assert.equal(first.fresh,true);assert.equal(repeat.fresh,false);assert.equal(repeat.idempotency_key,first.idempotency_key);
+ const ctx=(await rows('select public.service_transparent_context($1,$2) as data',[A,order]))[0].data;assert.equal(ctx.submission.api_kind,'orders');assert.equal(ctx.submission.provider_mode,'sandbox');assert.equal(ctx.submission.collector_id,'12');
+ const blocked=(await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12') as data",[A,order,genKey(),'b'.repeat(64)]))[0].data;assert.equal(blocked.can_submit,false);
+}));
+test('Orders não muda vendedor, ambiente ou contrato de uma tentativa existente',async()=>{
+ for(const target of ['seller','mode','contract'])await rejectsCode(()=>as('service_role',null,async()=>{
+  const order=await createOrder(),key=genKey(),hash='a'.repeat(64);
+  if(target==='contract')await rows('select public.service_begin_transparent_payment($1,$2,$3,$4)',[A,order,key,hash]);
+  else await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12')",[A,order,key,hash]);
+  await rows('select public.service_begin_order_payment($1,$2,$3,$4,$5,$6)',[A,order,key,hash,target==='mode'?'production':'sandbox',target==='seller'?'99':'12']);
+ }),'P0001');
+});
+test('Orders valida permissões e suporta vínculo financeiro ORD idempotente',async()=>{
+ await rejectsCode(()=>as('authenticated',A,()=>rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12')",[A,KEY,genKey(),'a'.repeat(64)])),'42501');
+ await rejectsCode(()=>as('authenticated',A,()=>rows('select public.service_orders_payment_context($1)',[KEY])),'42501');
+ await rejectsCode(()=>as('service_role',null,async()=>{const order=await createOrder();await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12')",[B,order,genKey(),'a'.repeat(64)]);}),'42501');
+ await as('service_role',null,async()=>{
+  const order=await createOrder(),key=genKey(),id='ORD01JS2V6CM8KJ0EC4H502TGK1WP';await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12')",[A,order,key,'a'.repeat(64)]);
+  const ctx=(await rows('select public.service_orders_payment_context($1) as data',[key]))[0].data;assert.equal(ctx.order_id,order);
+  assert.equal((await rows("select public.service_apply_provider_payment($1,$2,'paid',now(),$3) as result",[order,id,ctx.total_cents]))[0].result,'paid');
+  assert.equal((await rows("select public.service_apply_provider_payment($1,$2,'paid',now(),$3) as result",[order,id,ctx.total_cents]))[0].result,'duplicate');
+  assert.equal((await rows("select public.service_complete_transparent_payment($1,$2,$3,'paid',now(),$4::jsonb) as ok",[order,key,id,JSON.stringify({payment_id:id,status:'paid'})]))[0].ok,true);
+  assert.equal((await rows('select payment_status from public.orders where id=$1',[order]))[0].payment_status,'paid');
+ });
+});

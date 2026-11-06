@@ -4,25 +4,25 @@ A fase 5 inclui o pagamento via Mercado Pago solicitado pelo usuário, instalaç
 
 ## Implementado
 
-- O checkout atual é Transparente, com o Payment Brick oficial incorporado à tela do pedido: cartão e Pix são enviados ao backend com o total do banco, sessão verificada e chave de idempotência. A página do Pupi não redireciona para o checkout externo. A resposta perdida pode ser verificada usando a mesma tentativa ou por consulta autenticada ao provedor.
+- O checkout atual é Transparente via API Orders, com o Payment Brick oficial incorporado à tela do pedido: cartão e Pix são enviados ao backend com o total do banco, sessão verificada e chave de idempotência. A página do Pupi não redireciona para o checkout externo. A resposta perdida pode ser verificada usando a mesma tentativa ou por consulta autenticada ao provedor.
 - O receptor de webhook valida a assinatura, consulta o pagamento diretamente no Mercado Pago e confere pedido, vendedor, valor, moeda e ambiente. O banco registra pagamentos com processamento idempotente e ignora eventos antigos. Recusas permitem nova tentativa no mesmo checkout; estornos parciais, contestações e múltiplos pagamentos exigem conferência administrativa. O pedido só é marcado como pago mediante confirmação do provedor.
 - A migration `20261106064442_pupi_payment_reconciliation.sql` foi aplicada ao Supabase. As funções `pupi-mercadopago-checkout` e `pupi-mercadopago-webhook` são usadas pelo checkout e pela confirmação do pagamento. A primeira exige JWT; a segunda valida a assinatura do provedor.
 - O detalhe do pedido oferece acesso ao pagamento quando estiver configurado. O PWA tem manifesto, ícones e service worker que guarda somente o shell público; chamadas de APIs e dados de conta não são adicionados ao cache offline.
 - Os testes locais usam dados fictícios. Foi verificado o funcionamento offline do shell em navegador e a ausência de rotas privadas no cache. A homologação real do Mercado Pago está em andamento; o teste do pedido #4 permanece sem resultado confirmado.
 
-## Configuração para depois
+## Configuração atual — API Orders
 
 No Supabase, configurar os seguintes segredos para o ambiente de teste do Mercado Pago, sem adicioná-los ao código ou enviá-los no chat:
 
-- `MERCADO_PAGO_ACCESS_TOKEN`: Access Token das credenciais de teste da aplicação da conta principal (usuário de produção) para este fluxo via Payments API, conforme o guia oficial de compra teste. Não confundir com a credencial de produção da conta de teste nem com Client ID/Client Secret.
-- `MERCADO_PAGO_PUBLIC_KEY`: Public Key da mesma aplicação Checkout Transparente; é disponibilizada ao SDK no navegador. Nunca usar o Access Token neste campo.
+- `MERCADO_PAGO_ACCESS_TOKEN`: Access Token APP_USR do ambiente Teste da aplicação API Orders, vinculado à conta vendedora de teste. Orders não aceita o token TEST do fluxo antigo Payments; o sandbox usa credenciais da conta de teste. Para produção, usar a conta real e seu token de produção.
+- `MERCADO_PAGO_PUBLIC_KEY`: Public Key do mesmo ambiente e aplicação API Orders da conta vendedora correspondente ao Access Token; é disponibilizada ao SDK no navegador. Nunca usar o Access Token neste campo.
 - `MERCADO_PAGO_WEBHOOK_SECRET`: assinatura secreta configurada no Mercado Pago.
 - `MERCADO_PAGO_COLLECTOR_ID`: identificador numérico da conta de vendedor correspondente ao token.
 - `MERCADO_PAGO_ENV`: `sandbox` para testes ou `production` para produção.
 - `PUPI_STORE_ORIGIN`: configuração histórica do Checkout Pro; não é necessária ao formulário incorporado.
 - `MERCADO_PAGO_CHECKOUT_ENABLED`: manter ausente ou `false` até concluir a configuração; `true` permite iniciar pagamentos no ambiente configurado.
 
-Configurar o evento de pagamentos no webhook `https://loifqxmmnmhpwnwcvrak.supabase.co/functions/v1/pupi-mercadopago-webhook`. Homologar com contas de teste distintas, inclusive pagamento pendente, aprovado, recusado, duplicado e estorno, antes de usar produção. Consulte a [documentação oficial do Payment Brick](https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/payment-brick/default-rendering) e de [notificações](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro-preferences/payment-notifications).
+Configurar o evento **Order (Mercado Pago)** no webhook `https://loifqxmmnmhpwnwcvrak.supabase.co/functions/v1/pupi-mercadopago-webhook`. Homologar com contas de teste distintas, inclusive pagamento pendente, aprovado, recusado, duplicado e estorno, antes de usar produção. Consulte a [documentação oficial do Payment Brick](https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/payment-brick/default-rendering) e de [notificações Orders](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/notifications).
 
 ## Pendências e limites
 
@@ -41,7 +41,7 @@ A vitrine apresenta categorias cadastradas, filtros acessíveis, produtos reais 
 
 A navegação mobile usa ícones maiores e as fontes locais Nunito Sans e DM Sans. Sucessos são apresentados em cartões centralizados com fechamento automático e pausa durante a leitura; erros e avisos importantes aguardam fechamento. As confirmações continuam modais, com teclado e foco preservados. Carregamentos usam uma patinha após 200ms e mantêm o tamanho dos botões. O cache da PWA inclui as fontes públicas, sem guardar respostas das APIs. Testes cobrem foco, tempo de exibição, avisos durante confirmação, loading, larguras de tela e movimento reduzido.
 
-## Mudança para pagamento dentro do Pupi
+## Histórico — mudança para pagamento dentro do Pupi via Payments
 
 As migrations `20261106140721_pupi_transparent_payments.sql` e `20261106141056_pupi_transparent_payment_guard.sql` foram aplicadas ao Supabase, e as funções de checkout e webhook foram atualizadas para o novo fluxo.
 
@@ -100,3 +100,22 @@ As verificações de 16:32:38 e 16:34:16 passaram pela autenticação da conta e
 A última criação registrada ocorreu às 16:21:46 e recebeu HTTP 401. Após conferir ausência de pagamentos vinculados, somente essa tentativa (criada às 16:21:46.613251 UTC) foi encerrada com auditoria provider_authorization_rejected/401. O histórico foi mantido e a consulta posterior confirmou estado failed, ausência de payment_id e pedido pending. Nenhuma cobrança foi criada durante a conferência.
 
 Próximo passo: reabrir o pedido #4 e enviar uma única nova tentativa com cartão de teste pelas credenciais atuais. Conferir a resposta de criação e os diagnósticos. Não declarar a integração validada somente por consulta vazia; não liberar tentativas incertas por esse motivo. Código funcional preservado nesta análise.
+
+
+## Correção da incompatibilidade API Orders — 06/11/2026
+
+O usuário confirmou que a aplicação foi criada como **Checkout Transparente via API Orders**. O Pupi estava enviando a criação para a API Payments (`/v1/payments`). A orientação anterior de alterar repetidamente credenciais da conta principal tratava o contrato errado; a diferença entre as duas APIs foi a incompatibilidade identificada nesta revisão. O último envio ainda retornou 401 às 16:38:38 UTC. Isso não permite afirmar que todos os requisitos do provedor já foram homologados.
+
+O entrypoint do checkout agora usa Orders para novas tentativas. A criação envia `/v1/orders`, tipo online, processamento automático, valores monetários em texto e transação aninhada. A referência externa é a chave única da tentativa; não são enviados notification_url nem metadata do contrato antigo. O tipo de cartão vem do callback oficial do Brick. O backend mantém total do banco, usuário autenticado, titularidade, impressão digital e chave de idempotência.
+
+A migration `20261106165806_pupi_orders_api.sql` foi aplicada e registra o contrato, ambiente e vendedor da tentativa. Ela aceita IDs ORD sem invalidar IDs numéricos históricos, preserva as travas financeiras e mantém RPCs exclusivas do serviço. A leitura canônica da order valida vendedor (user_id), mercado brasileiro/BRL, referência, valor, uma única transação e estados consolidados. Pagamento só passa a pago com order e transação processadas/acreditadas e total bruto pago conferido. Valores líquidos após taxas não são confundidos com o total bruto. Reembolsos parciais e contestações exigem revisão.
+
+Pix usa os campos de QR Code da transação, sem retornar ticket_url. A recuperação após recarga usa busca Orders por data e referência da tentativa, seguida de GET canônico; consulta vazia, ambígua, timeout e idempotência em conflito não liberam nova cobrança. Uma rejeição de autorização/validação conhecida na primeira requisição encerra somente essa tentativa; uma resposta incerta anterior nunca é liberada por erro posterior. Tentativas Payments continuam identificadas e são consultadas pela API original.
+
+O webhook aceita eventos order e payment, verifica HMAC conforme o SDK oficial e consulta o recurso diretamente antes de atualizar o banco. Para Orders, a configuração no painel deve selecionar o evento **Order (Mercado Pago)** e manter a assinatura correspondente em MERCADO_PAGO_WEBHOOK_SECRET. Orders não usa notification_url no corpo da criação. O modo sandbox envia X-Test-Token: true e exige conta identificada como test_user; as credenciais são verificadas ao abrir o checkout, antes dos campos de cartão. Valores de credenciais e dados de comprador continuam fora dos logs.
+
+Fontes: [migração oficial](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/resources/migrate-payments-to-orders), [cartões Orders](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/payment-integration/websites/cards), [busca e credenciais Orders](https://www.mercadopago.com.br/developers/pt/reference/online-payments/checkout-api/search-order/get) e [notificações](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/notifications).
+
+Validação local: 87 testes de aplicação, 97 de banco, 48 de navegador, build, tokens e auditoria estática. Os testes usam respostas fictícias e não confirmam pagamento real. Próximo passo: conferir credenciais Orders/conta vendedora de teste e evento Order, abrir o pedido #4 e homologar uma única tentativa. Não declarar a homologação concluída sem resposta real do provedor.
+
+A última tentativa histórica do pedido #4 (Payments, criada às 16:38:38.587114 UTC e rejeitada com HTTP 401) foi encerrada com auditoria, depois de conferir ausência de pagamento vinculado e bloquear a linha do pedido. O histórico permanece e o pedido continua pending; as próximas tentativas usam Orders. Não foi criada cobrança nessa operação.

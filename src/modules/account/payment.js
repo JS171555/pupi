@@ -64,9 +64,9 @@ export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
         callbacks:{
           onReady:()=>{clearTimeout(localTimer);if(!disposed&&!timedOut&&version===mountVersion)stopLoading();},
           onError:()=>{clearTimeout(localTimer);if(!disposed&&!timedOut&&!reportedError&&version===mountVersion){reportedError=true;stopLoading();status.textContent='Não foi possível carregar os dados de pagamento. Confira a conexão e tente novamente.';content.append(button('Tentar carregar novamente',()=>initialize(true)));}},
-          onSubmit:async({formData})=>{
+          onSubmit:async({formData,selectedPaymentMethod},additionalData)=>{
             if(disposed||submitting||timedOut||version!==mountVersion)return;
-            pending={key:crypto.randomUUID(),form:formData};
+            pending={key:crypto.randomUUID(),form:{...formData,payment_type_id:additionalData?.paymentTypeId||formData.payment_type_id||selectedPaymentMethod}};
             await perform(async()=>{const result=await repository.submitPayment(order.id,pending.key,pending.form);await showResult(result);});
           },
         },

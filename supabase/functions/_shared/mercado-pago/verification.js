@@ -4,7 +4,7 @@ export async function verifyPaymentNotification({url,headers,secret}) {
   let parsed;try{parsed=new URL(url);}catch{return null;}
   const ids=parsed.searchParams.getAll('data.id');
   const requestId=headers.get('x-request-id');const signature=headers.get('x-signature');
-  if(ids.length!==1 || !/^\d{1,30}$/.test(ids[0]) || !requestId || requestId.length>200 || !/^[a-zA-Z0-9-]+$/.test(requestId) || !signature || signature.length>500)return null;
+  if(ids.length!==1 || !/^(\d{1,30}|ORD[A-Z0-9]{10,60})$/i.test(ids[0]) || !requestId || requestId.length>200 || !/^[a-zA-Z0-9-]+$/.test(requestId) || !signature || signature.length>500)return null;
   const parts=new Map();
   for(const fragment of signature.split(',')) {
     const match=fragment.trim().match(/^([a-z0-9]+)=([^=]+)$/i);

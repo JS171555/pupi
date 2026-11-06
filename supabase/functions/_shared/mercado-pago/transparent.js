@@ -1,5 +1,6 @@
 import {createPaymentProcessor} from './processor.js';
 import {providerFailureStage} from './provider-error.js';
+import {runOrdersCheckout,orderCredentialsValid} from './orders.js';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'};
 const reply=(status,code,error,extra={})=>new Response(JSON.stringify({code,error,...extra}),{status,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
 const uuid=value=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
@@ -17,7 +18,7 @@ function fields(form) {
   }
   return result;
 }
-export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetch,diagnose=()=>{}}) {
+export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetch,diagnose=()=>{},apiKind='payments'}) {
   return async request=>{
     if(request.method==='OPTIONS')return new Response('ok',{headers:cors});
     if(request.method!=='POST')return reply(405,'METHOD','Método não permitido.');
@@ -40,13 +41,23 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
       if(!Number.isSafeInteger(data.total_cents)||data.total_cents<=0)return reply(409,'ORDER_UNAVAILABLE','Valor do pedido indisponível.');
       const process=createPaymentProcessor({admin,env,diagnose});
       const getContext=async()=>admin.rpc('service_transparent_context',{p_user_id:user.id,p_order_id:body.order_id});
-      const ready=ctx=>reply(200,'READY',null,{public_key:publicKey,total_cents:ctx.total_cents,payment_status:ctx.payment_status,submission:ctx.submission});
-      if(body.action==='init')return ready(data);
+      const ready=ctx=>reply(200,'READY',null,{public_key:publicKey,total_cents:ctx.total_cents,payment_status:ctx.payment_status,submission:ctx.submission?{request_key:ctx.submission.request_key,state:ctx.submission.state,result:ctx.submission.result}:null});
+      if(body.action==='init'&&apiKind!=='orders')return ready(data);
       // Confere a conta antes de enviar pagamentos; os IDs e a resposta não são registrados.
       const accountResponse=await fetchImpl('https://api.mercadopago.com/users/me',{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},signal:AbortSignal.timeout(10000),redirect:'error'});
       if(!accountResponse.ok){diagnose('PAYMENT_ACCOUNT_HTTP',{http_status:accountResponse.status});return reply(503,'CONFIG_MISMATCH','A configuração de pagamento precisa ser conferida pela loja.');}
       const account=await accountResponse.json();
       if((typeof account.id==='number'&&!Number.isSafeInteger(account.id))||String(account.id)!==collector){diagnose('PAYMENT_ACCOUNT_COLLECTOR_MISMATCH');return reply(503,'CONFIG_MISMATCH','A configuração de pagamento precisa ser conferida pela loja.');}
+      if(body.action==='init'){
+        if(!orderCredentialsValid(account,token,mode)){diagnose('PAYMENT_ORDERS_CREDENTIALS_REQUIRED');return reply(503,'CONFIG_ORDERS_CREDENTIALS','Confira as credenciais da API Orders.');}
+        return ready(data);
+      }
+
+      const activeApi=body.action==='refresh'&&data.submission?(data.submission.api_kind||'payments'):apiKind;
+      if(activeApi==='orders'){
+        let input;if(body.action==='pay'){try{input=fields(body.form_data);}catch{return reply(400,'INVALID_DATA','Confira os dados de pagamento.');}}
+        return await runOrdersCheckout({body,data,user,input,account,admin,env,fetchImpl,diagnose,reply,ready,uncertain});
+      }
 
       if(body.action==='refresh') {
         if(!data.submission||(data.submission.state==='failed'&&!data.submission.result?.payment_id))return ready(data);

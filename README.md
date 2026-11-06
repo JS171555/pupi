@@ -16,7 +16,7 @@ npm run dev
 
 Abra **http://localhost:3000**. No Windows, copie o arquivo pelo editor ou use `copy .env.example .env`. Não abra o index por file://. A [configuração da Fase 2](docs/phase-2-setup.md) explica redirects, Google Cloud, e-mails e as rotas de teste.
 
-Depois de entrar como administrador, abra **Administração** ou **http://localhost:3000/#/admin**. Veja o [roteiro da Fase 3](docs/phase-3-setup.md). O checkout e a cotação foram preparados; a operação real exige configuração do Melhor Envio. O pagamento dentro do Pupi usa Checkout Transparente do Mercado Pago com cartão e Pix; exige Public Key, Access Token e a configuração e homologação descritas na [Fase 5](docs/phase-5-plan.md). O registro de remessa foi preparado e depende de configuração e homologação; a consulta automática de rastreamento ainda não está implementada. Veja a [configuração da fase 4](docs/phase-4-setup.md). Nenhum sucesso é simulado na aplicação.
+Depois de entrar como administrador, abra **Administração** ou **http://localhost:3000/#/admin**. Veja o [roteiro da Fase 3](docs/phase-3-setup.md). O checkout e a cotação foram preparados; a operação real exige configuração do Melhor Envio. O pagamento dentro do Pupi usa Checkout Transparente via API Orders do Mercado Pago com cartão e Pix; exige Public Key, Access Token e a configuração e homologação descritas na [Fase 5](docs/phase-5-plan.md). O registro de remessa foi preparado e depende de configuração e homologação; a consulta automática de rastreamento ainda não está implementada. Veja a [configuração da fase 4](docs/phase-4-setup.md). Nenhum sucesso é simulado na aplicação.
 
 ## Testar na Vercel
 

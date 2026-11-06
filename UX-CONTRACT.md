@@ -97,3 +97,6 @@ Nunito Sans nos títulos e DM Sans no corpo, hospedadas localmente e disponívei
 ## Pagamento incorporado
 
 Cartão e Pix são apresentados pelo Payment Brick oficial dentro do pedido, sem navegação para um checkout externo. A instância é desmontada ao sair da rota. Envio em andamento bloqueia cliques repetidos; o resultado é validado pelo backend. Um Pix pendente pode ser recuperado na recarga e verificado na mesma tela. Em caso de falha incerta, o cliente verifica a mesma tentativa em vez de abrir nova cobrança. Pedidos que já usaram o fluxo externo são identificados e não recebem um segundo formulário de pagamento. Atualizações da sessão preservam a rota atual; login explícito continua usando o destino validado.
+
+
+O pagamento incorporado usa a API Orders, conforme `docs/phase-5-plan.md`. A configuração é conferida antes de abrir os campos de cartão. O tipo de pagamento vem do callback oficial do Brick; valores e aprovação continuam sendo conferidos pelo servidor. Tentativas incertas continuam preservadas e não geram outra cobrança durante a verificação.

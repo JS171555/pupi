@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {installApi,user} from './api.js';
 const id='50000000-0000-4000-8000-000000000001';
-async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false}={}) {
+async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false,ordersConfigMissing=false}={}) {
  const api=await installApi(page,{signedIn:true});
  api.orders.push({id,order_number:9,user_id:user.id,status:'confirmed',payment_status:'pending',subtotal_cents:3000,shipping_cents:500,total_cents:3500,created_at:'2026-11-05T12:00:00Z',address_snapshot:{recipient:'Pessoa Teste',street:'Rua teste',number:'1',neighborhood:'Centro',city:'São Paulo',state:'SP',postal_code:'01001000'},items:[],shipment:null});
  await page.addInitScript(({pix})=>{
@@ -10,7 +10,7 @@ async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false}={})
     bricks(){return {create:async(type,id,settings)=>{
       window.brickSettings.push({type,initialization:settings.initialization,paymentMethods:settings.customization.paymentMethods});
       const node=document.getElementById(id),button=document.createElement('button');button.textContent=pix?'Gerar Pix de teste':'Pagar cartão de teste';button.type='button';
-      button.addEventListener('click',()=>settings.callbacks.onSubmit({formData:{payment_method_id:pix?'pix':'master',token:'a'.repeat(32),installments:1,payer:{email:'buyer@example.test',identification:{type:'CPF',number:'12345678909'}}}}));node.append(button);settings.callbacks.onReady();
+      button.addEventListener('click',()=>settings.callbacks.onSubmit({selectedPaymentMethod:pix?'bank_transfer':'credit_card',formData:{payment_method_id:pix?'pix':'master',token:'a'.repeat(32),installments:1,payer:{email:'buyer@example.test',identification:{type:'CPF',number:'12345678909'}}}}));node.append(button);settings.callbacks.onReady();
       return {unmount:async()=>{window.brickUnmounts++;node.replaceChildren();}};
     }}};
   };
@@ -18,6 +18,7 @@ async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false}={})
  const requests=[];let submission=releaseTest?{state:'failed',result:{status:'failed',reason:'test_attempt_released'}}:null;
  await page.route('**/functions/v1/pupi-mercadopago-checkout',async route=>{
    const body=route.request().postDataJSON();requests.push(body);
+   if(ordersConfigMissing)return route.fulfill({status:503,json:{code:'CONFIG_ORDERS_CREDENTIALS'}});
    if(legacy)return route.fulfill({status:409,json:{code:'LEGACY_PAYMENT'}});
    if(body.action==='pay'){if(delay)await new Promise(resolve=>setTimeout(resolve,delay));submission={state:pix?'pending':'paid',result:{payment_id:'123',status:pix?'pending':'paid',...(pix?{qr_code:'pix-copia-e-cola-teste'}:{})}};if(!pix)api.orders[0].payment_status='paid';}
    if(body.action==='refresh'){api.orders[0].payment_status='paid';submission={state:'paid',result:{payment_id:'123',status:'paid'}};}
@@ -29,7 +30,7 @@ test('cartão paga na própria tela sem redirecionar e bloqueia envio repetido',
  const {requests}=await setup(page,{delay:500});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
  const pay=page.getByRole('button',{name:'Pagar cartão de teste'});await expect(pay).toBeVisible();await pay.dblclick();
  await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();expect(page.url()).toContain(`/#/pedidos/${id}`);expect(requests.filter(body=>body.action==='pay')).toHaveLength(1);
- expect(requests.find(body=>body.action==='pay').form_data.card_number).toBeUndefined();
+ expect(requests.find(body=>body.action==='pay').form_data.card_number).toBeUndefined();expect(requests.find(body=>body.action==='pay').form_data.payment_type_id).toBe('credit_card');
  const settings=await page.evaluate(()=>window.brickSettings[0]);expect(settings.type).toBe('payment');expect(settings.initialization.preferenceId).toBeUndefined();expect(settings.paymentMethods.mercadoPago).toBeUndefined();
 });
 test('Pix exibe código dentro do Pupi, recupera na recarga e verifica confirmação',async({page})=>{
@@ -58,4 +59,10 @@ test('tentativa de teste conferida reabre formulário no mesmo pedido sem cobran
  await expect(page.getByRole('button',{name:'Pagar cartão de teste'})).toBeVisible();
  await page.getByRole('button',{name:'Pagar cartão de teste'}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();
  expect(page.url()).toContain(`/#/pedidos/${id}`);expect(requests.filter(body=>body.action==='pay')).toHaveLength(1);
+});
+
+test('credenciais Orders incompatíveis mostram orientação antes de abrir campos do cartão',async({page})=>{
+ const {requests}=await setup(page,{ordersConfigMissing:true});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
+ await expect(page.getByText('Para testes na API Orders, a loja precisa usar a Public Key e o Access Token da conta vendedora de teste.')).toBeVisible();
+ expect(await page.evaluate(()=>window.brickSettings.length)).toBe(0);expect(requests.some(body=>body.action==='pay')).toBe(false);
 });
