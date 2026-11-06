@@ -131,7 +131,7 @@ function setupPostalLookup(form) {
 
 export function ordersView({ items, hasMore, page, go }) {
   const list = el('ul', { className: 'record-list' }, items.map(order => el('li', { className: 'record-card' }, [
-    el('h2', {}, `Pedido #${order.order_number}`), el('span', { className: 'badge' }, statusLabel(order.status)),
+    el('h2', {}, `Pedido #${order.order_number}`), el('span', { className: 'badge' }, statusLabel(order.status)),order.payment_environment==='sandbox'?el('span',{className:'badge'},'Pedido de teste'):null,
     el('p', { className: 'muted' }, date(order.created_at)), el('p', {}, ['Total: ', el('strong', {}, money(order.total_cents))]),
     link('Ver detalhes', `#/pedidos/${order.id}`, { className: 'button button-secondary' }),
   ])));
@@ -151,7 +151,9 @@ export function orderView(order,options={}) {
     el('p', {}, event.description), el('small', { className: 'muted' }, date(event.occurred_at))])));
   return el('section', { className: 'panel' }, [link('Voltar aos pedidos', options.backHref||'#/pedidos'),
     heading(`Pedido #${order.order_number}`, `Registrado em ${date(order.created_at)}`),
-    el('p', {}, ['Pedido: ', statusLabel(order.status), ' · Pagamento: ', statusLabel(order.payment_status)]), items,
+    el('p', {}, ['Pedido: ', statusLabel(order.status), ' · Pagamento: ', order.payment_review_required?'Em conferência':statusLabel(order.payment_status)]),
+    order.payment_environment==='sandbox'?el('p',{className:'muted',role:'note'},'Pedido de teste: a aprovação foi simulada no ambiente de testes.'):null,
+    order.payment_review_required?el('p',{role:'alert'},'Este pagamento precisa de conferência pela loja. Aguarde a atualização do pedido.'):null,items,
     el('dl', { className: 'details-list' }, [el('dt', {}, 'Subtotal'), el('dd', {}, money(order.subtotal_cents)),
       el('dt', {}, 'Frete'), el('dd', {}, money(order.shipping_cents)), el('dt', {}, 'Total'), el('dd', {}, el('strong', {}, money(order.total_cents)))]),
     el('h2', {}, 'Endereço da compra'), el('p', {}, address.recipient),

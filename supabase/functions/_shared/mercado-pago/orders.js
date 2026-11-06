@@ -1,4 +1,5 @@
 import {paymentResult} from './payment-result.js';
+import {challengeAction} from './three-ds.js';
 export const orderId=value=>typeof value==='string'&&/^ORD[A-Z0-9]{10,60}$/.test(value);
 const uuid=value=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
 export const orderHeaders=(token,mode)=>({Authorization:`Bearer ${token}`,Accept:'application/json',...(mode==='sandbox'?{'X-Test-Token':'true'}:{})});
@@ -9,7 +10,18 @@ export function orderCredentialsValid(account,token,mode) {
 const amount=cents=>`${Math.floor(cents/100)}.${String(cents%100).padStart(2,'0')}`;
 const cents=value=>typeof value==='string'&&/^\d{1,12}(\.\d{1,2})?$/.test(value)?Number(value.split('.')[0])*100+Number((value.split('.')[1]||'').padEnd(2,'0')):null;
 
-export function createOrderProcessor({admin,env,diagnose=()=>{}}) {
+// Orders informa duração ISO 8601; Pix sem duração explícita vence em 24h.
+export function pixExpiration(order,tx) {
+  if(typeof tx.date_of_expiration==='string'&&Number.isFinite(Date.parse(tx.date_of_expiration)))return tx.date_of_expiration;
+  const created=Date.parse(tx.created_date||order.created_date),duration=tx.expiration_time??'P1D';
+  if(!Number.isFinite(created)||typeof duration!=='string')return undefined;
+  const match=/^P(?:(\d{1,2})D)?(?:T(?:(\d{1,3})H)?(?:(\d{1,4})M)?(?:(\d{1,7}(?:\.\d{1,3})?)S)?)?$/.exec(duration);
+  if(!match)return undefined;
+  const seconds=Number(match[1]||0)*86400+Number(match[2]||0)*3600+Number(match[3]||0)*60+Number(match[4]||0);
+  return seconds>=1800&&seconds<=2592000?new Date(created+seconds*1000).toISOString():undefined;
+}
+
+export function createOrderProcessor({admin,env,diagnose=()=>{},onAction=()=>{}}) {
   return async({paymentId,payment:order})=>{
     if(!orderId(paymentId)||order?.id!==paymentId||!uuid(order.external_reference)){diagnose('PAYMENT_ORDER_RESPONSE_INVALID');return false;}
     const context=await admin.rpc('service_orders_payment_context',{p_request_key:order.external_reference});
@@ -34,14 +46,13 @@ export function createOrderProcessor({admin,env,diagnose=()=>{}}) {
     else if(order.status==='processed'&&order.status_detail==='accredited'&&tx.status==='processed'&&tx.status_detail==='accredited'&&cents(order.total_paid_amount)===ctx.total_cents)state='paid';
     else if(['created','processing','action_required'].includes(order.status)&&['created','processing','action_required'].includes(tx.status))state='pending';
     else if(['failed','canceled','cancelled'].includes(order.status)&&['failed','canceled','cancelled'].includes(tx.status)&&cents(order.total_paid_amount)===0)state='failed';
-    const applied=await admin.rpc('service_apply_provider_payment',{p_order_id:ctx.order_id,p_payment_id:order.id,p_state:state,p_updated_at:updated,p_total_cents:ctx.total_cents});
-    if(applied.error||!['paid','pending','refunded','review','stale','duplicate'].includes(applied.data)){diagnose('PAYMENT_APPLY_RPC',{sql_code:applied.error?.code});return false;}
-    if(applied.data==='stale')return true;
-    if(applied.data==='review')state='review';
     const method=tx.payment_method||{};
-    const result=paymentResult({id:order.id,payment_method_id:method.id,date_of_expiration:tx.date_of_expiration,point_of_interaction:{transaction_data:method}},state);
-    const saved=await admin.rpc('service_complete_transparent_payment',{p_order_id:ctx.order_id,p_request_key:ctx.request_key,p_payment_id:order.id,p_state:state,p_updated_at:updated,p_result:result});
-    if(saved.error||saved.data!==true){diagnose('PAYMENT_LINK_RPC',{sql_code:saved.error?.code});return false;}
+    const result=paymentResult({id:order.id,payment_method_id:method.id,date_of_expiration:method.id==='pix'?pixExpiration(order,tx):undefined,point_of_interaction:{transaction_data:method}},state);
+    result.method=method.id==='pix'?'pix':['credit_card','debit_card'].includes(method.type)?method.type:'unknown';
+    if(state==='pending'&&tx.status_detail==='pending_challenge')result.requires_action=true;
+    const saved=await admin.rpc('service_record_order_payment',{p_request_key:ctx.request_key,p_payment_id:order.id,p_state:state,p_updated_at:updated,p_total_cents:ctx.total_cents,p_result:result});
+    if(saved.error||!['paid','pending','refunded','review','stale','duplicate'].includes(saved.data)){diagnose('PAYMENT_RECORD_RPC',{sql_code:saved.error?.code});return false;}
+    if(state==='pending'&&!['stale','review'].includes(saved.data))onAction(challengeAction(order));
     return true;
   };
 }
@@ -53,25 +64,26 @@ export async function runOrdersCheckout({body,data,user,input,account,admin,env,
   }
   const submission=data.submission;
   if(submission?.api_kind==='orders'&&(submission.state!=='failed'||(body.action==='refresh'&&submission.result?.payment_id))&&(submission.provider_mode!==mode||submission.collector_id!==collector))return reply(503,'CONFIG_MISMATCH','A conta ou ambiente mudou durante esta tentativa.');
-  const process=createOrderProcessor({admin,env,diagnose});
-  const options={headers:orderHeaders(token,mode),signal:AbortSignal.timeout(12000),redirect:'error'};
+  let action=null;
+  const process=createOrderProcessor({admin,env,diagnose,onAction:value=>{action=value;}});
+  const options=()=>({headers:orderHeaders(token,mode),signal:AbortSignal.timeout(12000),redirect:'error'});
   const expectedReference=body.action==='refresh'?submission?.request_key:body.request_key;
   const apply=async id=>{
     if(!orderId(id))return false;
-    const response=await fetchImpl(`https://api.mercadopago.com/v1/orders/${id}`,options);
+    const response=await fetchImpl(`https://api.mercadopago.com/v1/orders/${id}`,options());
     if(!response.ok){diagnose('PAYMENT_ORDER_HTTP',{http_status:response.status});return false;}
     const order=await response.json();
     if(order.external_reference!==expectedReference)return false;
     return process({paymentId:id,payment:order});
   };
-  const updated=async()=>{const result=await admin.rpc('service_transparent_context',{p_user_id:user.id,p_order_id:body.order_id});return result.error||!result.data?uncertain():ready(result.data);};
+  const updated=async()=>{const result=await admin.rpc('service_transparent_context',{p_user_id:user.id,p_order_id:body.order_id});return result.error||!result.data?uncertain():ready(result.data,action?{action}:{});};
   if(body.action==='refresh') {
     if(!submission||(submission.state==='failed'&&!submission.result?.payment_id))return ready(data);
     if(submission.result?.payment_id){if(!await apply(submission.result.payment_id))return uncertain();}
     else {
       const created=Date.parse(submission.created_at);if(!Number.isFinite(created))return uncertain();
       const params=new URLSearchParams({begin_date:new Date(created-60000).toISOString(),end_date:new Date(Date.now()+60000).toISOString(),external_reference:submission.request_key,type:'online',page:'1',page_size:'10'});
-      const response=await fetchImpl(`https://api.mercadopago.com/v1/orders?${params}`,options);
+      const response=await fetchImpl(`https://api.mercadopago.com/v1/orders?${params}`,options());
       if(!response.ok){diagnose('PAYMENT_ORDER_HTTP',{http_status:response.status});return uncertain();}
       const found=await response.json(),total=typeof found.paging?.total==='string'&&/^\d{1,6}$/.test(found.paging.total)?Number(found.paging.total):found.paging?.total;
       if(!Array.isArray(found.data)||total!==1||found.data.length!==1){diagnose('PAYMENT_ORDER_SEARCH_UNRESOLVED');return uncertain();}
@@ -86,6 +98,9 @@ export async function runOrdersCheckout({body,data,user,input,account,admin,env,
   // Cenário oficial Pix/APRO: a simulação ocorre no provedor, somente com conta de teste.
   const payer=mode==='sandbox'&&type==='bank_transfer'?{...input.payer,first_name:'APRO'}:input.payer;
   const payload={type:'online',processing_mode:'automatic',total_amount:amount(data.total_cents),external_reference:body.request_key,payer,transactions:{payments:[{amount:amount(data.total_cents),payment_method:method}]}};
+  // Mantém o corpo original de tentativas anteriores ao suporte 3DS.
+  const version=submission?.request_key===body.request_key?(submission.payload_version||1):2;
+  if(version>=2&&type!=='bank_transfer')payload.config={online:{transaction_security:{validation:'on_fraud_risk',liability_shift:'required'}}};
   const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(payload))),fingerprint=Array.from(new Uint8Array(hash),v=>v.toString(16).padStart(2,'0')).join('');
   const begin=await admin.rpc('service_begin_order_payment',{p_user_id:user.id,p_order_id:body.order_id,p_request_key:body.request_key,p_fingerprint:fingerprint,p_mode:mode,p_collector_id:collector});
   if(begin.error||!begin.data)return reply(409,'PAYMENT_BLOCKED','Já existe uma tentativa de pagamento. Verifique o resultado.');

@@ -1,4 +1,11 @@
 import {AppError} from '../utils/errors.js';
+export function challengeUrl(value) {
+  if(typeof value!=='string'||value.length>4096)return null;
+  try{
+    const url=new URL(value),hosts=['mercadopago.com.br','www.mercadopago.com.br','mercadopago.com','www.mercadopago.com','mercadopago.com.ar','www.mercadopago.com.ar'];
+    return url.protocol==='https:'&&hosts.includes(url.hostname)&&!url.username&&!url.password&&!url.port&&!url.hash&&url.pathname.startsWith('/auth/card/validation/')?url:null;
+  }catch{return null;}
+}
 let loading;
 export function loadMercadoPago() {
   if(typeof window.MercadoPago==='function')return Promise.resolve(window.MercadoPago);

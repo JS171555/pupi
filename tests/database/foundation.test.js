@@ -732,3 +732,56 @@ test('Orders valida permissões e suporta vínculo financeiro ORD idempotente',a
   assert.equal((await rows('select payment_status from public.orders where id=$1',[order]))[0].payment_status,'paid');
  });
 });
+
+test('Orders grava pagamento, vínculo e ambiente de forma atômica e idempotente',()=>as('service_role',null,async()=>{
+ const order=await createOrder(),key=genKey(),id='ORD01PRODUCTIONATOMIC000001';await rows("select public.service_begin_order_payment($1,$2,$3,$4,'production','12')",[A,order,key,'a'.repeat(64)]);
+ const ctx=(await rows('select public.service_transparent_context($1,$2) as data',[A,order]))[0].data;assert.equal(ctx.submission.payload_version,2);
+ const result={payment_id:id,status:'paid',method:'credit_card'};
+ assert.equal((await rows("select public.service_record_order_payment($1,$2,'paid',now(),$3,$4::jsonb) as result",[key,id,ctx.total_cents,JSON.stringify(result)]))[0].result,'paid');
+ assert.equal((await rows("select public.service_record_order_payment($1,$2,'paid',now(),$3,$4::jsonb) as result",[key,id,ctx.total_cents,JSON.stringify(result)]))[0].result,'duplicate');
+ const saved=(await rows('select payment_status,payment_environment,payment_review_required from public.orders where id=$1',[order]))[0];assert.equal(saved.payment_status,'paid');assert.equal(saved.payment_environment,'production');assert.equal(saved.payment_review_required,false);
+ assert.equal((await rows('select payment_id from private.transparent_submissions where request_key=$1',[key]))[0].payment_id,id);
+}));
+test('resultado inválido ou vínculo impossível não deixa confirmação financeira parcial',async()=>{
+ for(const invalid of ['secret','link'])await as('service_role',null,async()=>{
+  const order=await createOrder(),key=genKey(),id='ORD01ATOMICROLLBACK00000001';await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12')",[A,order,key,'a'.repeat(64)]);
+  const ctx=(await rows('select public.service_orders_payment_context($1) as data',[key]))[0].data;
+  const result={payment_id:id,status:'paid',...(invalid==='secret'?{action:{url:'must-not-be-stored'}}:{})};
+  if(invalid==='link'){
+   await rows("select public.service_apply_provider_payment($1,'123456','failed',now(),$2)",[order,ctx.total_cents]);
+   await rows("update private.transparent_submissions set payment_id='123456' where request_key=$1",[key]);
+  }
+  await db.exec('savepoint before_payment');
+  await assert.rejects(()=>rows("select public.service_record_order_payment($1,$2,'paid',now(),$3,$4::jsonb)",[key,id,ctx.total_cents,JSON.stringify(result)]));
+  await db.exec('rollback to savepoint before_payment');
+  assert.equal((await rows('select payment_status from public.orders where id=$1',[order]))[0].payment_status,'pending');
+  assert.equal((await rows('select count(*) as n from private.provider_payments where payment_id=$1',[id]))[0].n,0);
+ });
+});
+test('pedidos de sandbox ficam fora dos totais pagos e não mudam para produção',async()=>{
+ await as('service_role',null,async()=>{
+  const order=await createOrder(),key=genKey(),id='ORD01SANDBOXREVENUE00000001';await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12')",[A,order,key,'a'.repeat(64)]);
+  const ctx=(await rows('select public.service_orders_payment_context($1) as data',[key]))[0].data;
+  await rows("select public.service_record_order_payment($1,$2,'paid',now(),$3,$4::jsonb)",[key,id,ctx.total_cents,JSON.stringify({payment_id:id,status:'paid'})]);
+  await setRole('authenticated',ADMIN);const dashboard=(await rows("select public.admin_query('dashboard','{}'::jsonb) as data"))[0].data;assert.equal(dashboard.paid_orders,0);assert.equal(dashboard.paid_total_cents,0);
+ });
+ await rejectsCode(()=>as('service_role',null,async()=>{
+  const order=await createOrder(),key=genKey(),id='ORD01SANDBOXSWITCH000000001';await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12')",[A,order,key,'a'.repeat(64)]);
+  const ctx=(await rows('select public.service_orders_payment_context($1) as data',[key]))[0].data;
+  await rows("select public.service_record_order_payment($1,$2,'failed',now(),$3,$4::jsonb)",[key,id,ctx.total_cents,JSON.stringify({payment_id:id,status:'failed'})]);
+  await rows("select public.service_begin_order_payment($1,$2,$3,$4,'production','12')",[A,order,genKey(),'b'.repeat(64)]);
+ }),'P0001');
+});
+test('recusa definitiva permite cancelamento; tentativa incerta mantém bloqueio',async()=>{
+ await as('service_role',null,async()=>{const order=await createOrder(),key=genKey();await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12')",[A,order,key,'a'.repeat(64)]);await rows('select public.service_reject_transparent_payment($1,$2)',[order,key]);await rows("update public.orders set status='cancelled' where id=$1",[order]);assert.equal((await rows('select status from public.orders where id=$1',[order]))[0].status,'cancelled');});
+ await rejectsCode(()=>as('service_role',null,async()=>{const order=await createOrder();await rows("select public.service_begin_order_payment($1,$2,$3,$4,'sandbox','12')",[A,order,genKey(),'a'.repeat(64)]);await rows("update public.orders set status='cancelled' where id=$1",[order]);}),'P0001');
+ await rejectsCode(()=>as('authenticated',A,()=>rows("select public.service_record_order_payment($1,'ORD01NOGRANTS00000000000','paid',now(),1500,'{}'::jsonb)",[KEY])),'42501');
+});
+
+test('notificação repetida preserva conferência quando existem dois pagamentos',()=>as('service_role',null,async()=>{
+ const order=await createOrder(),key=genKey(),id='ORD01DUPLICATEREVIEW0000001';await rows("select public.service_begin_order_payment($1,$2,$3,$4,'production','12')",[A,order,key,'a'.repeat(64)]);
+ const ctx=(await rows('select public.service_orders_payment_context($1) as data',[key]))[0].data;
+ await rows("select public.service_apply_provider_payment($1,'987654','paid',now(),$2)",[order,ctx.total_cents]);
+ for(let repeat=0;repeat<2;repeat++)await rows("select public.service_record_order_payment($1,$2,'paid',now(),$3,$4::jsonb)",[key,id,ctx.total_cents,JSON.stringify({payment_id:id,status:'paid'})]);
+ const saved=(await rows('select public.service_transparent_context($1,$2) as data',[A,order]))[0].data;assert.equal(saved.payment_review_required,true);assert.equal(saved.submission.result.status,'review');
+}));

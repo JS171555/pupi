@@ -48,15 +48,17 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
       if(!Number.isSafeInteger(data.total_cents)||data.total_cents<=0)return reply(409,'ORDER_UNAVAILABLE','Valor do pedido indisponível.');
       const process=createPaymentProcessor({admin,env,diagnose});
       const getContext=async()=>admin.rpc('service_transparent_context',{p_user_id:user.id,p_order_id:body.order_id});
-      const ready=ctx=>reply(200,'READY',null,{public_key:publicKey,test_mode:mode==='sandbox',total_cents:ctx.total_cents,payment_status:ctx.payment_status,submission:ctx.submission?{request_key:ctx.submission.request_key,state:ctx.submission.state,result:ctx.submission.result}:null});
+      const ready=(ctx,extra={})=>reply(200,'READY',null,{public_key:publicKey,test_mode:(ctx.payment_environment||(ctx.submission?.state!=='failed'?ctx.submission?.provider_mode:null)||mode)==='sandbox',total_cents:ctx.total_cents,payment_status:ctx.payment_status,payment_review_required:ctx.payment_review_required===true,submission:ctx.submission?{request_key:ctx.submission.request_key,state:ctx.submission.state,result:ctx.submission.result}:null,...extra});
       if(body.action==='init'&&apiKind!=='orders')return ready(data);
       // Confere a conta antes de enviar pagamentos; os IDs e a resposta não são registrados.
       const accountResponse=await fetchImpl('https://api.mercadopago.com/users/me',{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},signal:AbortSignal.timeout(10000),redirect:'error'});
       if(!accountResponse.ok){diagnose('PAYMENT_ACCOUNT_HTTP',{http_status:accountResponse.status});return reply(503,'CONFIG_MISMATCH','A configuração de pagamento precisa ser conferida pela loja.');}
       const account=await accountResponse.json();
       if((typeof account.id==='number'&&!Number.isSafeInteger(account.id))||String(account.id)!==collector){diagnose('PAYMENT_ACCOUNT_COLLECTOR_MISMATCH');return reply(503,'CONFIG_MISMATCH','A configuração de pagamento precisa ser conferida pela loja.');}
+      if(apiKind==='orders'&&mode==='production'&&publicKey.startsWith('TEST-'))return reply(503,'CONFIG_ORDERS_CREDENTIALS','Confira a Public Key de produção da API Orders.');
       if(body.action==='init'){
         if(!orderCredentialsValid(account,token,mode)){diagnose('PAYMENT_ORDERS_CREDENTIALS_REQUIRED');return reply(503,'CONFIG_ORDERS_CREDENTIALS','Confira as credenciais da API Orders.');}
+        if(data.payment_status==='pending'&&((data.payment_environment&&data.payment_environment!==mode)||(data.submission?.api_kind==='orders'&&data.submission.state!=='failed'&&data.submission.provider_mode!==mode)))return reply(409,'PAYMENT_ENVIRONMENT','Este pedido pertence a outro ambiente de pagamento.');
         return ready(data);
       }
 

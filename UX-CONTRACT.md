@@ -103,3 +103,5 @@ O pagamento incorporado usa a API Orders, conforme `docs/phase-5-plan.md`. A con
 
 
 No sandbox, o Pix mostra identificação de teste e informa que a confirmação será simulada pelo provedor, conforme o cenário documentado em `docs/phase-5-plan.md`. O código copia e cola e a ação Verificar pagamento permanecem na própria tela e após recarga. Em produção, a orientação de pagamento pelo QR Code permanece. Nenhum estado pago é criado só pelo navegador.
+
+Acompanhamento de pagamentos: pendências conhecidas são consultadas sem nova cobrança, com pausa offline/aba oculta, limite de dois minutos e cancelamento na saída. Verificar pagamento continua disponível. Pix vencido oculta código/cópia sem inventar um estado financeiro. Autenticação 3DS fica em iframe validado; mensagem COMPLETE apenas consulta o servidor. Pedidos de teste são identificados e pagamentos em conferência não mostram aprovação. Configuração e sessão têm mensagens próprias. Detalhes e homologação: `docs/payment-production.md`.

@@ -1,7 +1,9 @@
 import {test,expect} from '@playwright/test';
 import {installApi,user} from './api.js';
 const id='50000000-0000-4000-8000-000000000001';
-async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false,ordersConfigMissing=false,testMode=false}={}) {
+async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false,ordersConfigMissing=false,testMode=false,challenge=false,expired=false,review=false,autoApprove=true}={}) {
+ const challengeUrl='https://www.mercadopago.com.br/auth/card/validation/e2e?guest_token=test-only';
+ await page.route('https://www.mercadopago.com.br/auth/card/validation/**',route=>route.fulfill({contentType:'text/html',body:'<button onclick="parent.postMessage({status: &quot;COMPLETE&quot;}, &quot;*&quot;)">Concluir desafio</button>'}));
  const api=await installApi(page,{signedIn:true});
  api.orders.push({id,order_number:9,user_id:user.id,status:'confirmed',payment_status:'pending',subtotal_cents:3000,shipping_cents:500,total_cents:3500,created_at:'2026-11-05T12:00:00Z',address_snapshot:{recipient:'Pessoa Teste',street:'Rua teste',number:'1',neighborhood:'Centro',city:'São Paulo',state:'SP',postal_code:'01001000'},items:[],shipment:null});
  await page.addInitScript(({pix})=>{
@@ -15,16 +17,16 @@ async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false,orde
     }}};
   };
  },{pix});
- const requests=[];let submission=releaseTest?{state:'failed',result:{status:'failed',reason:'test_attempt_released'}}:null;
+ const requests=[];let approved=false;let submission=releaseTest?{state:'failed',result:{status:'failed',reason:'test_attempt_released'}}:null;
  await page.route('**/functions/v1/pupi-mercadopago-checkout',async route=>{
    const body=route.request().postDataJSON();requests.push(body);
    if(ordersConfigMissing)return route.fulfill({status:503,json:{code:'CONFIG_ORDERS_CREDENTIALS'}});
    if(legacy)return route.fulfill({status:409,json:{code:'LEGACY_PAYMENT'}});
-   if(body.action==='pay'){if(delay)await new Promise(resolve=>setTimeout(resolve,delay));submission={state:pix?'pending':'paid',result:{payment_id:'123',status:pix?'pending':'paid',...(pix?{qr_code:'pix-copia-e-cola-teste'}:{})}};if(!pix)api.orders[0].payment_status='paid';}
-   if(body.action==='refresh'){api.orders[0].payment_status='paid';submission={state:'paid',result:{payment_id:'123',status:'paid'}};}
-   return route.fulfill({status:200,json:{code:'READY',test_mode:testMode,public_key:'TEST-12345678-1234-1234-1234-123456789012',total_cents:3500,payment_status:api.orders[0].payment_status,submission}});
+   if(body.action==='pay'){if(delay)await new Promise(resolve=>setTimeout(resolve,delay));submission={state:review?'review':pix||challenge?'pending':'paid',result:{payment_id:'123',status:review?'review':pix||challenge?'pending':'paid',...(pix?{qr_code:'pix-copia-e-cola-teste',...(expired?{expires_at:'2020-01-01T00:00:00Z'}:{})}:{}),...(challenge?{requires_action:true}:{})}};if(!pix&&!challenge)api.orders[0].payment_status='paid';}
+   if(body.action==='refresh'&&(autoApprove||approved)){api.orders[0].payment_status='paid';submission={state:'paid',result:{payment_id:'123',status:'paid'}};}
+   return route.fulfill({status:200,json:{code:'READY',test_mode:testMode,public_key:'TEST-12345678-1234-1234-1234-123456789012',total_cents:3500,payment_status:api.orders[0].payment_status,submission,...(challenge&&submission?.result?.requires_action?{action:{type:'three_ds',url:challengeUrl}}:{})}});
  });
- await page.goto(`/#/pedidos/${id}`);return {api,requests};
+ await page.goto(`/#/pedidos/${id}`);return {api,requests,approve:()=>{approved=true;}};
 }
 test('cartão paga na própria tela sem redirecionar e bloqueia envio repetido',async({page})=>{
  const {requests}=await setup(page,{delay:500});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
@@ -64,7 +66,7 @@ test('tentativa de teste conferida reabre formulário no mesmo pedido sem cobran
 
 test('credenciais Orders incompatíveis mostram orientação antes de abrir campos do cartão',async({page})=>{
  const {requests}=await setup(page,{ordersConfigMissing:true});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
- await expect(page.getByText('Para testes na API Orders, a loja precisa usar a Public Key e o Access Token da conta vendedora de teste.')).toBeVisible();
+ await expect(page.getByText('O pagamento está indisponível. A loja precisa conferir a conta usada para receber.')).toBeVisible();
  expect(await page.evaluate(()=>window.brickSettings.length)).toBe(0);expect(requests.some(body=>body.action==='pay')).toBe(false);
 });
 
@@ -74,4 +76,24 @@ test('Pix no sandbox identifica simulação e confirma sem instruir pagamento pe
  await expect(page.getByRole('heading',{name:'Pix de teste',exact:true})).toBeVisible();await expect(page.getByText(/Ambiente de teste: o Mercado Pago simulará a confirmação/)).toBeVisible();await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');
  await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await expect(page.getByRole('heading',{name:'Pix de teste',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Verificar pagamento',exact:true}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();expect(requests.filter(body=>body.action==='pay')).toHaveLength(1);
+});
+
+test('Pix acompanha confirmação automaticamente sem reenviar cobrança',async({page})=>{
+ await page.clock.install();const {requests}=await setup(page,{pix:true});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Gerar Pix de teste'}).click();await expect(page.getByLabel('Código Pix copia e cola')).toBeVisible();
+ await page.clock.fastForward(8100);await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();expect(requests.filter(r=>r.action==='pay')).toHaveLength(1);expect(requests.filter(r=>r.action==='refresh')).toHaveLength(1);
+});
+test('Pix vencido não permite copiar nem gera cobrança automática e para consultas ao sair',async({page})=>{
+ await page.clock.install();const {requests}=await setup(page,{pix:true,expired:true,autoApprove:false});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Gerar Pix de teste'}).click();await expect(page.getByRole('heading',{name:'Pix vencido'})).toBeVisible();await expect(page.getByRole('button',{name:'Copiar código Pix'})).toHaveCount(0);
+ await page.getByRole('button',{name:'Verificar pagamento',exact:true}).click();await expect(page.getByRole('heading',{name:'Pix vencido'})).toBeVisible();await page.getByRole('link',{name:'Pedidos',exact:true}).click();const before=requests.length;await page.clock.fastForward(30000);expect(requests.length).toBe(before);expect(requests.filter(r=>r.action==='pay')).toHaveLength(1);
+});
+test('3DS permanece dentro do Pupi, recupera desafio e só aprova após consulta ao servidor',async({page})=>{
+ await page.setViewportSize({width:390,height:844});const {requests,approve}=await setup(page,{challenge:true,autoApprove:false});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Pagar cartão de teste'}).click();
+ const frame=page.frameLocator('iframe[title="Autenticação do cartão no banco"]');await expect(frame.getByRole('button',{name:'Concluir desafio'})).toBeVisible();
+ await page.screenshot({path:'work/payment-3ds-mobile.png',fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ const before=requests.length;await page.evaluate(()=>window.postMessage({status:'COMPLETE'},'*'));await page.waitForTimeout(100);expect(requests.length).toBe(before);
+ await frame.getByRole('button',{name:'Concluir desafio'}).click();await expect.poll(()=>requests.filter(r=>r.action==='refresh').length).toBe(1);await expect(page.getByText('Pagamento aprovado.',{exact:true})).toHaveCount(0);await expect(frame.getByRole('button',{name:'Concluir desafio'})).toBeVisible();
+ await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await expect(frame.getByRole('button',{name:'Concluir desafio'})).toBeVisible();approve();await frame.getByRole('button',{name:'Concluir desafio'}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();expect(requests.filter(r=>r.action==='pay')).toHaveLength(1);expect(page.url()).toContain(`/#/pedidos/${id}`);
+});
+test('conferência tem prioridade sobre estado público pago e não exibe aprovação',async({page})=>{
+ await setup(page,{review:true,autoApprove:false});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Pagar cartão de teste'}).click();await expect(page.getByRole('heading',{name:'Pagamento em conferência'})).toBeVisible();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toHaveCount(0);
 });

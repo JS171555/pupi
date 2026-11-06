@@ -92,3 +92,5 @@ Conteúdo descreve operações reais. Não há dados de demonstração no aplica
 - Manter foco e dados não sensíveis após erro; limpar senhas ao concluir ou sair do fluxo.
 - Não simular sessão, pedido ou permissão administrativa no produto.
 - Não usar lavanda clara como texto sobre branco, alertas nativos ou estilos locais duplicados.
+
+Pagamento mantém os componentes de formulário, carregamento, botões e feedback existentes. O iframe 3DS usa largura do contêiner, altura limitada e os tokens de borda/raio; o quadro não provoca navegação externa. Estados de Pix vencido, sandbox e conferência usam texto explícito na mesma região, com consulta manual preservada. Contrato em UX-CONTRACT.md e roteiro em docs/payment-production.md.

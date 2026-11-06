@@ -4,7 +4,7 @@ import { validateProfile, validateAddress } from '../modules/auth/validation.js'
 export const PAGE_SIZE = 10;
 const profileFields = 'id,full_name,phone,terms_accepted_at,terms_version,created_at,updated_at';
 const addressFields = 'id,label,recipient,postal_code,street,number,complement,neighborhood,city,state,country,is_default,updated_at';
-const orderFields = 'id,order_number,status,payment_status,subtotal_cents,shipping_cents,total_cents,currency,address_snapshot,created_at';
+const orderFields = 'id,order_number,status,payment_status,payment_environment,payment_review_required,subtotal_cents,shipping_cents,total_cents,currency,address_snapshot,created_at';
 function pageRange(page) {
   if (!Number.isSafeInteger(page) || page < 1 || page > 100000) throw new AppError('INVALID_DATA', 'Página inválida.');
   return [(page - 1) * PAGE_SIZE, page * PAGE_SIZE]; // Um registro extra detecta a próxima página.
@@ -14,11 +14,15 @@ const timeout = signal => signal ? AbortSignal.any([signal, AbortSignal.timeout(
 
 export function createAccountRepository(client) {
   async function paymentRequest(body) {
-    const {data,error}=await client.functions.invoke('pupi-mercadopago-checkout',{body,signal:AbortSignal.timeout(25000)});
+    const {data,error}=await client.functions.invoke('pupi-mercadopago-checkout',{body,signal:AbortSignal.timeout(45000)});
     if(error) {
       let detail;try{detail=await error.context?.json();}catch{/* resposta indisponível */}
       const messages={CONFIG_MISSING:'Pagamento ainda não está disponível.',CONFIG_MISMATCH:'A loja precisa conferir a configuração do pagamento. Sua tentativa anterior foi preservada.',ORDER_UNAVAILABLE:'Este pedido não está disponível para pagamento.',LEGACY_PAYMENT:'Este pedido já abriu um pagamento externo. Confira esse pagamento antes de fazer um novo pedido para pagar aqui.',PAYMENT_REJECTED:'O pagamento foi recusado. Confira os dados e tente novamente.',INVALID_DATA:'Confira os dados de pagamento.'};
-      messages.CONFIG_ORDERS_CREDENTIALS='Para testes na API Orders, a loja precisa usar a Public Key e o Access Token da conta vendedora de teste.';
+      messages.CONFIG_ORDERS_CREDENTIALS='O pagamento está indisponível. A loja precisa conferir a conta usada para receber.';
+      messages.SESSION_EXPIRED='Sua sessão expirou. Entre novamente para consultar o pagamento deste pedido.';
+      messages.PAYMENT_BLOCKED='Já existe uma tentativa neste pedido. Consulte o pagamento antes de tentar novamente.';
+      messages.PAYMENT_ENVIRONMENT='Este pedido foi iniciado em outro ambiente de pagamento. Abra um novo pedido para continuar.';
+      if(error.context?.status===401||detail?.code==='AUTH')throw new AppError('SESSION_EXPIRED',messages.SESSION_EXPIRED);
       const code=Object.hasOwn(messages,detail?.code)?detail.code:'PAYMENT_UNCERTAIN';
       throw new AppError(code,messages[code]||'Pagamento em verificação. Consulte o resultado antes de tentar novamente.');
     }
