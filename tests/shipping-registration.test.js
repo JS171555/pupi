@@ -1,0 +1,19 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createShippingRegistrationHandler} from '../supabase/functions/pupi-shipping-register/handler.js';
+
+const orderId='12345678-1234-1234-1234-123456789012', providerId='87654321-1234-1234-1234-123456789012';
+const sender={name:'Loja teste',email:'loja@example.test',phone:'11999999999',company_document:'12345678000195',state_register:'12345',address:'Rua origem',number:'2',district:'Centro',city:'Rio de Janeiro',postal_code:'20040020',state_abbr:'RJ'};
+const context={order:{order_number:7,subtotal_cents:3000,address_snapshot:{recipient:'Pessoa teste',street:'Rua teste',number:'1',neighborhood:'Centro',city:'São Paulo',state:'SP',postal_code:'01001000',country:'BR'},items:[{product_id:'p1',product_name:'Produto',quantity:2,unit_price_cents:1500}]},quote:{service_id:'1',carrier:'Correios',packages:[{width:20,height:10,length:30,weight:.5}],snapshot:{origin_postal_code:'20040020',destination_postal_code:'01001000',items:[{product_id:'p1',quantity:2,price_cents:1500}]}},invoice:{access_key:'35261112345678000195550010000001231123456788'},recipient:{email:'cliente@example.test',phone:'11999999999'}};
+function fixture({isAdmin=true,config=true,state='started_now',providerStatus=201,networkError=false}={}) {
+  const calls=[];let request;
+  const envs={SUPABASE_URL:'https://example.test',SUPABASE_ANON_KEY:'anon',SUPABASE_SERVICE_ROLE_KEY:'service',MELHOR_ENVIO_TOKEN:config?'secret':null,MELHOR_ENVIO_ENV:'sandbox',MELHOR_ENVIO_USER_AGENT:'Pupi test',MELHOR_ENVIO_SENDER:JSON.stringify(sender)};
+  const client={auth:{getUser:async()=>({data:{user:{id:orderId}}})},rpc:async()=>({data:isAdmin})};
+  const admin={rpc:async(name,args)=>{calls.push({name,args});if(name.endsWith('_context'))return {data:context};if(name.endsWith('_begin'))return {data:state};if(name.endsWith('_finish'))return {data:args.p_rejected?'rejected':'registered'};throw Error(name);}};
+  const handler=createShippingRegistrationHandler({createClient:(_url,key)=>key==='anon'?client:admin,env:name=>envs[name],fetchImpl:async(url,options)=>{request={url,options};if(networkError)throw Error('network');return new Response(JSON.stringify({id:providerId}),{status:providerStatus});}});
+  return {calls,request:()=>request,run:()=>handler(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer user','Content-Type':'application/json'},body:JSON.stringify({order_id:orderId,recipient_document:'12345678909',recipient_phone:'11999999999',sender:{name:'forged'}})}))};
+}
+test('registra apenas dados conferidos no servidor e confirma vínculo',async()=>{const f=fixture();const res=await f.run();assert.equal(res.status,200);assert.equal((await res.json()).external_id,providerId);assert.equal(JSON.parse(f.request().options.body).from.name,'Loja teste');assert.deepEqual(f.calls.map(c=>c.name),['service_shipping_registration_context','service_shipping_registration_begin','service_shipping_registration_finish']);});
+test('exige administração e configuração antes de tentar registrar',async()=>{for(const opts of [{isAdmin:false},{config:false}]){const f=fixture(opts);assert.notEqual((await f.run()).status,200);assert.equal(f.calls.length,0);assert.equal(f.request(),undefined);}});
+test('falha incerta e tentativa anterior não repetem pedido ao provedor',async()=>{let f=fixture({networkError:true});let res=await f.run();assert.equal((await res.json()).code,'REGISTRATION_UNCERTAIN');assert.equal(f.calls.length,2);f=fixture({state:'started'});res=await f.run();assert.equal((await res.json()).code,'REGISTRATION_PENDING');assert.equal(f.request(),undefined);});
+test('rejeição de validação libera nova tentativa apenas após registro no banco',async()=>{const f=fixture({providerStatus:422});const res=await f.run();assert.equal((await res.json()).code,'PROVIDER_REJECTED');assert.equal(f.calls.at(-1).args.p_rejected,true);});

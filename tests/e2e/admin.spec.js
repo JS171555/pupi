@@ -110,3 +110,15 @@ test('listas paginadas mantêm filtro e a administração funciona em 390px',asy
   await page.getByRole('button',{name:'Limpar busca',exact:true}).click();await expect(page.getByText('Página 1 · 31 registros')).toBeVisible();
   await page.screenshot({path:'work/pupi-admin-mobile.png',fullPage:true});
 });
+
+
+test('remessa solicita confirmação e não persiste documento no navegador',async({page})=>{
+  const state=await installAdminApi(page);state.seed();
+  const order={id:'50000000-0000-4000-8000-000000000001',order_number:9,user_id:user.id,status:'confirmed',payment_status:'pending',subtotal_cents:3000,shipping_cents:500,total_cents:3500,created_at:'2026-11-05T12:00:00Z',updated_at:'2026-11-05T12:00:00Z',customer:{id:user.id,full_name:'Pessoa Teste',email:user.email,phone:null},items:[],shipment:{provider:'melhor_envio',status:'pending',carrier:'Correios',service_name:'PAC'},events:[],address_snapshot:{recipient:'Pessoa Teste',street:'Rua teste',number:'1',neighborhood:'Centro',city:'São Paulo',state:'SP',postal_code:'01001000'}};
+  state.orders.push(order);await page.goto(`/#/admin/pedidos/${order.id}`);
+  await page.getByLabel('CPF ou CNPJ do destinatário').fill('12345678909');await page.getByLabel('Telefone do destinatário').fill('11999999999');
+  await page.getByRole('button',{name:'Preparar registro'}).click();await expect(page.getByRole('dialog')).toBeVisible();expect(state.shipping.body).toBeUndefined();
+  await page.getByRole('dialog').getByRole('button',{name:'Adicionar remessa'}).click();
+  await expect(page.getByText(/Remessa adicionada ao carrinho do Melhor Envio:/)).toBeVisible();expect(state.shipping.body.recipient_document).toBe('12345678909');
+  expect(await page.evaluate(()=>JSON.stringify(localStorage))).not.toContain('12345678909');
+});

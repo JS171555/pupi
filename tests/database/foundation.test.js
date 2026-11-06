@@ -581,3 +581,45 @@ test('webhook de envio exige backend e aplica eventos idempotentes sem regredir 
     assert.equal((await rows("select public.service_apply_shipping_event($1,'order.posted',$2,now(),null) as ok",['80000000-0000-4000-8000-000000000002','d'.repeat(64)]))[0].ok,false);
   });
 });
+
+async function orderReadyForShipping() {
+  await rows('update public.products set weight_grams=500,width_mm=100,height_mm=100,length_mm=100 where id=$1',[PA]);
+  await rows("insert into public.store_settings(key,value) values('origin_postal_code','\"01001000\"'::jsonb)");
+  const snapshot=(await rows('select public.service_quote_snapshot($1,$2) as data',[A,AA]))[0].data;
+  const packages=[{width:10,height:10,length:10,weight:.5}];
+  const q=(await rows("select public.service_register_shipping_quote_v2($1,$2,$3::jsonb,500,'Correios','PAC','1',now()+interval '10 minutes',$4::jsonb) as id",[A,AA,JSON.stringify(snapshot),JSON.stringify(packages)]))[0].id;
+  const order=(await rows('select public.service_confirm_shipping_order($1,$2,$3) as id',[A,q,KEY]))[0].id;
+  await setRole('authenticated',ADMIN);await rows('select public.admin_invoice_save($1,$2,null)',[order,invoiceKey]);await setRole('service_role',null);
+  return order;
+}
+test('registro de remessa exige admin, confirma contexto e impede dupla tentativa',async()=>{
+  await rejectsCode(()=>as('authenticated',A,()=>rows('select public.service_shipping_registration_context($1,$2)',[A,KEY])),'42501');
+  await as('service_role',null,async()=>{
+    const order=await orderReadyForShipping();const attempt='90000000-0000-4000-8000-000000000010';const external='80000000-0000-4000-8000-000000000001';
+    const context=(await rows('select public.service_shipping_registration_context($1,$2) as data',[ADMIN,order]))[0].data;
+    const start=(await rows('select public.service_shipping_registration_begin($1,$2,$3,$4::jsonb) as status',[ADMIN,order,attempt,JSON.stringify(context)]))[0];assert.equal(start.status,'started_now');
+    const repeated=(await rows('select public.service_shipping_registration_begin($1,$2,$3,$4::jsonb) as status',[ADMIN,order,attempt,JSON.stringify(context)]))[0];assert.equal(repeated.status,'started');
+    assert.equal((await rows('select public.service_shipping_registration_finish($1,$2,$3,false) as status',[order,attempt,external]))[0].status,'registered');
+    assert.equal((await rows('select public.service_shipping_registration_finish($1,$2,$3,false) as status',[order,attempt,external]))[0].status,'registered');
+    assert.equal((await rows('select external_id from public.shipments where order_id=$1',[order]))[0].external_id,external);
+    await setRole('authenticated',ADMIN);assert.equal((await rows('select public.admin_shipping_registration_status($1) as data',[order]))[0].data.status,'registered');
+  });
+});
+test('registro rejeita contexto alterado e bloqueia cancelamento enquanto etiqueta pode existir',async()=>{
+  await rejectsCode(()=>as('service_role',null,async()=>{const order=await orderReadyForShipping();const ctx=(await rows('select public.service_shipping_registration_context($1,$2) as data',[ADMIN,order]))[0].data;ctx.order.status='cancelled';await rows('select public.service_shipping_registration_begin($1,$2,$3,$4::jsonb)',[ADMIN,order,genKey(),JSON.stringify(ctx)]); }),'40001');
+  await rejectsCode(()=>as('service_role',null,async()=>{const order=await orderReadyForShipping();const ctx=(await rows('select public.service_shipping_registration_context($1,$2) as data',[ADMIN,order]))[0].data;await rows('select public.service_shipping_registration_begin($1,$2,$3,$4::jsonb)',[ADMIN,order,genKey(),JSON.stringify(ctx)]);await rows("update public.orders set status='cancelled' where id=$1",[order]);}),'P0001');
+});
+function genKey(){return crypto.randomUUID();}
+
+test('retentativa somente após rejeição confirmada; cancelamento da etiqueta libera pedido',()=>as('service_role',null,async()=>{
+  const order=await orderReadyForShipping(),attempt=genKey(),again=genKey(),external='80000000-0000-4000-8000-000000000001';
+  const ctx=(await rows('select public.service_shipping_registration_context($1,$2) as data',[ADMIN,order]))[0].data;
+  await rows('select public.service_shipping_registration_begin($1,$2,$3,$4::jsonb)',[ADMIN,order,attempt,JSON.stringify(ctx)]);
+  await rows('select public.service_shipping_registration_finish($1,$2,null,true)',[order,attempt]);
+  assert.equal((await rows('select public.service_shipping_registration_begin($1,$2,$3,$4::jsonb) as result',[ADMIN,order,again,JSON.stringify(ctx)]))[0].result,'started_now');
+  await rows('select public.service_shipping_registration_finish($1,$2,$3,false)',[order,again,external]);
+  await rows("select public.service_apply_shipping_event($1,'order.cancelled',$2,now(),null)",[external,'a'.repeat(64)]);
+  assert.equal((await rows('select status from private.shipping_registrations where order_id=$1',[order]))[0].status,'cancelled');
+  await rows("update public.orders set status='cancelled' where id=$1",[order]);
+  assert.equal((await rows('select status from public.orders where id=$1',[order]))[0].status,'cancelled');
+}));

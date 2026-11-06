@@ -19,7 +19,7 @@ Os testes de navegador usam respostas fictícias interceptadas. A API real do Me
 
 ## Nota fiscal eletrônica
 
-O Pupi usará NF-e emitida por um sistema fiscal externo, conforme escolha do usuário. Depois de emitir a nota no emissor fiscal da loja, um administrador pode informar os 44 dígitos da chave na tela do pedido. O aplicativo confere formato, modelo 55 e dígito verificador; isso não emite a nota nem verifica sua autorização na SEFAZ. A chave fica restrita à administração. O registro automático da remessa com a NF-e ainda precisa ser implementado e homologado.
+O Pupi usará NF-e emitida por um sistema fiscal externo, conforme escolha do usuário. Depois de emitir a nota no emissor fiscal da loja, um administrador pode informar os 44 dígitos da chave na tela do pedido. O aplicativo confere formato, modelo 55 e dígito verificador; isso não emite a nota nem verifica sua autorização na SEFAZ. A chave fica restrita à administração. O registro da remessa usa essa chave, mas ainda precisa de configuração e homologação no sandbox.
 
 ## Volumes para envio
 
@@ -29,10 +29,18 @@ Cotações novas preservam, no banco privado, as dimensões e pesos dos volumes 
 
 A Edge Function `pupi-shipping-webhook` recebe eventos assinados e verifica `X-ME-Signature` usando HMAC-SHA256 sobre o corpo recebido. Configure `MELHOR_ENVIO_WEBHOOK_SECRET` nos segredos do Supabase com o segredo do aplicativo Melhor Envio, sem enviá-lo pelo chat. O endpoint é `https://loifqxmmnmhpwnwcvrak.supabase.co/functions/v1/pupi-shipping-webhook`. A validação ocorre pela assinatura do provedor, não por JWT Supabase.
 
-O receptor só reconhece uma etiqueta já vinculada pelo seu ID a uma entrega Pupi. Eventos desconhecidos são rejeitados temporariamente para permitir nova tentativa do provedor. O webhook do Melhor Envio só envia eventos para etiquetas criadas pelo mesmo aplicativo; sua configuração/homologação deve ocorrer depois da implementação do registro e vínculo da etiqueta. Os eventos descrevem o ciclo da etiqueta; o status operacional do pedido e o pagamento não são alterados automaticamente.
+O receptor só reconhece uma etiqueta já vinculada pelo seu ID a uma entrega Pupi. Eventos desconhecidos são rejeitados temporariamente para permitir nova tentativa do provedor. O webhook do Melhor Envio só envia eventos para etiquetas criadas pelo mesmo aplicativo; sua configuração e homologação devem ocorrer depois de preparar o remetente e as credenciais. Os eventos descrevem o ciclo da etiqueta; o status operacional do pedido e o pagamento não são alterados automaticamente.
 
 ## Limites atuais
 
-A confirmação cria um pedido com pagamento pendente e uma entrega pendente associada à modalidade cotada; não compra frete nem gera etiqueta. **Registro/vinculação da remessa e consulta de rastreamento ainda não estão implementados.** O receptor de eventos assinados foi preparado, mas depende dessa vinculação e da configuração/homologação do Melhor Envio. A área de administração permite registrar dados de entrega manualmente. O Mercado Pago está previsto para a Fase 5, mas ainda não foi integrado; não há aprovação ou cobrança simulada. A consulta ao frete requer dimensões de todos os produtos. O histórico de aceite `testing-v1` continua provisório.
+A confirmação cria um pedido com pagamento pendente e uma entrega pendente associada à modalidade cotada; não compra frete nem gera etiqueta. O registro e a vinculação da remessa foram preparados, mas a consulta de rastreamento ainda não está implementada. O receptor de eventos assinados depende da configuração e homologação do Melhor Envio. A área de administração permite registrar dados de entrega manualmente. O Mercado Pago está previsto para a Fase 5, mas ainda não foi integrado; não há aprovação ou cobrança simulada. A consulta ao frete requer dimensões de todos os produtos. O histórico de aceite `testing-v1` continua provisório.
 
 Documentação do provedor: [cálculo de fretes](https://docs.melhorenvio.com.br/reference/calculo-de-fretes-por-produtos), [inserção de fretes](https://docs.melhorenvio.com.br/reference/inserir-fretes-no-carrinho) e [status de etiqueta](https://docs.melhorenvio.com.br/reference/rastreio-de-envios).
+
+## Registro de remessa: configuração posterior
+
+Além dos segredos indicados acima, configure `MELHOR_ENVIO_SENDER` como JSON nos segredos da Edge Function. Campos obrigatórios: `name`, `email`, `phone`, `state_register`, `address`, `number`, `district`, `city`, `postal_code`, `state_abbr` e exatamente um de `document` (CPF) ou `company_document` (CNPJ). Opcional: `complement`. Telefone e documentos usam apenas dígitos; CEP deve corresponder ao da cotação. Os dados fiscais devem ser confirmados com o emissor e o Melhor Envio. Não inclua documentos ou segredos no repositório.
+
+No pedido, associe a NF-e já emitida, informe CPF/CNPJ e telefone do destinatário e confirme a inclusão no carrinho. A inclusão não compra o frete nem emite etiqueta. Se a resposta não puder ser confirmada, o Pupi bloqueia uma nova tentativa; confira o carrinho do provedor. Ainda não existe rotina no painel para reconciliar essa situação, que requer intervenção técnica antes de prosseguir. O cancelamento do pedido fica bloqueado enquanto houver registro incerto ou remessa registrada sem evento de cancelamento.
+
+Para Correios, Loggi e J&T com mais de um volume, é necessário implementar a divisão dos itens por etiqueta antes do envio. Para Azul são necessários dados adicionais do XML da NF-e. Cotações sem volumes não podem ser registradas. Nenhum desses casos deve ser contornado inventando dados.

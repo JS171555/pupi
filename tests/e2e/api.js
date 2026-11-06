@@ -11,7 +11,7 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
   const data = {
     profile: { id: A, full_name: 'Pessoa Teste', phone: null, terms_accepted_at: notice ? created : null,
       terms_version: notice ? 'testing-v1' : null, created_at: created, updated_at: created },
-    addresses: [], orders: [], signedIn, role, signIns: 0, signUps: [], recoveries: 0,
+    shipping: {}, addresses: [], orders: [], signedIn, role, signIns: 0, signUps: [], recoveries: 0,
     failSave: false, failDelete: false, expired: false, saveDelay: 0,
   };
   if (signedIn) {
@@ -50,6 +50,11 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
     }
     if (url.pathname === '/rest/v1/user_roles') return respond(object ? { role: data.role } : [{ role: data.role }]);
     if (url.pathname === '/rest/v1/rpc/admin_access_status') return respond(data.role === 'admin');
+    if (url.pathname === '/rest/v1/rpc/admin_shipping_registration_status') return respond(data.shipping.registration||null);
+    if (url.pathname === '/functions/v1/pupi-shipping-register') {
+      data.shipping.body=body;data.shipping.registration={status:'registered',external_id:'87654321-1234-1234-1234-123456789012'};
+      return respond({code:'REGISTERED',external_id:data.shipping.registration.external_id});
+    }
     if (url.pathname === '/rest/v1/rpc/admin_invoice_get') {
       if(data.role!=='admin')return respond({code:'42501',message:'denied'},403);
       return respond(data.invoice||null);

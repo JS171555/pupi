@@ -1,4 +1,4 @@
-import { unwrap } from '../utils/errors.js';
+import { AppError, unwrap } from '../utils/errors.js';
 const deadline=signal=>signal ? AbortSignal.any([signal,AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000);
 
 export function createAdminRepository(client) {
@@ -13,6 +13,19 @@ export function createAdminRepository(client) {
     },
     saveInvoice(orderId,key,expected=null) {
       return unwrap(client.rpc('admin_invoice_save',{p_order_id:orderId,p_access_key:key,p_expected:expected}).abortSignal(deadline()));
+    },
+    shippingRegistrationStatus(orderId,signal) {
+      return unwrap(client.rpc('admin_shipping_registration_status',{p_order:orderId}).abortSignal(deadline(signal)));
+    },
+    async registerShipment(body) {
+      const {data,error}=await client.functions.invoke('pupi-shipping-register',{body});
+      if(error) {
+        let response;try { response=await error.context?.json(); } catch { /* resposta indisponível */ }
+        const allowed=['CONFIG_MISSING','DATA_INVALID','PREREQUISITES','PROVIDER_REJECTED','REGISTRATION_PENDING','REGISTRATION_UNCERTAIN','CONTEXT_CHANGED'];
+        if(allowed.includes(response?.code) && typeof response.error==='string')throw new AppError(response.code,response.error);
+        throw new AppError('REGISTRATION_UNCERTAIN','Não foi possível confirmar o registro. Confira o carrinho do Melhor Envio antes de tentar novamente.');
+      }
+      return data;
     },
     async mutate(operation,id,data={},expected=null,requestKey) {
       const fingerprint=JSON.stringify([operation,id??null,data,expected]);

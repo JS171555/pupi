@@ -92,6 +92,25 @@ export async function adminOrder(context,id) {
   }});
   view.append(el('section',{className:'admin-order-actions'},[el('h2',{},'Nota fiscal eletrônica'),
     el('p',{className:'muted'},'Associe a chave de uma NF-e já emitida. A chave é conferida pelo formato; a autorização da nota deve ser verificada no emissor.'),invoiceForm]));
+  if(order.shipment?.provider==='melhor_envio') {
+    const registration=await context.admin.shippingRegistrationStatus(id,context.signal);
+    let registrationContent;
+    if(registration?.status==='started') registrationContent=el('p',{role:'status'},'Registro não confirmado. Confira o carrinho do Melhor Envio antes de qualquer nova tentativa.');
+    else if(registration?.status==='registered') registrationContent=el('p',{role:'status'},`Remessa adicionada ao carrinho do Melhor Envio: ${registration.external_id}.`);
+    else if(registration?.status==='cancelled') registrationContent=el('p',{role:'status'},'Remessa cancelada no Melhor Envio.');
+    else registrationContent=makeForm({name:'Registrar remessa',submitLabel:'Preparar registro',persist:false,onBusy:context.busy,fields:[
+      {name:'recipient_document',label:'CPF ou CNPJ do destinatário',required:true,inputmode:'numeric',maxLength:14,hint:'Somente números. Usado para registrar esta remessa.'},
+      {name:'recipient_phone',label:'Telefone do destinatário',required:true,inputmode:'numeric',maxLength:13,hint:'DDD e número, somente dígitos.'},
+      {name:'agency',label:'Código da agência',inputmode:'numeric',maxLength:12,hint:'Opcional, conforme a modalidade escolhida.'},
+    ],onSubmit:async(values,node)=>{
+      if(!/^(?:\d{11}|\d{14})$/.test(values.recipient_document)||!/^\d{10,13}$/.test(values.recipient_phone)||values.agency&&!/^\d+$/.test(values.agency))throw new AppError('INVALID_DATA','Confira o CPF ou CNPJ, o telefone e o código da agência.');
+      await confirmAction({title:'Adicionar remessa ao Melhor Envio?',description:'Os dados do pedido e da NF-e serão enviados ao Melhor Envio. O frete ainda precisará ser comprado e a etiqueta emitida.',confirmLabel:'Adicionar remessa',onConfirm:async()=>{
+        await context.admin.registerShipment({order_id:id,recipient_document:values.recipient_document,recipient_phone:values.recipient_phone,agency:values.agency});
+        cleanForm(node);await context.go(`/admin/pedidos/${id}`,{force:true});context.announce('Remessa adicionada ao carrinho do Melhor Envio.','success');
+      }});
+    }});
+    view.append(el('section',{className:'admin-order-actions'},[el('h2',{},'Remessa no Melhor Envio'),el('p',{className:'muted'},'Use uma NF-e já emitida. O registro adiciona a remessa ao carrinho; não compra o frete nem emite a etiqueta.'),registrationContent]));
+  }
   view.append(el('section',{className:'admin-order-actions'},[el('h2',{},'Atualizar operação e entrega'),
     el('p',{className:'muted'},'Registro manual. Esta ação não compra frete, não emite etiqueta e não aprova ou estorna pagamentos.'),
     order.payment_status==='paid'?el('p',{className:'muted'},'Cancelamento de pedido pago depende do fluxo de estorno e não está disponível nesta tela.'):null,form]));

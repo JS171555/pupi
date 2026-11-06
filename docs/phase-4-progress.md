@@ -78,10 +78,16 @@ Migration `20261106040149_pupi_shipping_webhook.sql` aplicada e Edge Function `p
 
 O token, o segredo do webhook e a conta Melhor Envio ainda não foram configurados. Registro/vinculação de etiqueta e consulta real no sandbox continuam pendentes; portanto o webhook ainda não pode ser homologado ponta a ponta.
 
+## Etapa 18 — registro de remessa
+
+A migration `20261106043650_pupi_shipping_registration.sql` foi aplicada e a Edge Function `pupi-shipping-register` implantada com autenticação. A administração prepara o envio usando o pedido, volumes cotados e chave de NF-e externa; solicita CPF/CNPJ e telefone do destinatário sem armazená-los no navegador. O registro adiciona a remessa ao carrinho do Melhor Envio, sem comprar frete nem emitir etiqueta. Há bloqueio de retentativa após resposta incerta para evitar duplicações; deve-se conferir o carrinho e reconciliar manualmente antes de recomeçar. A recuperação automatizada dessas tentativas ainda precisa ser implementada.
+
+Testes locais cobrem preparo dos dados, acesso, rejeição, falha de rede, duplicação, validações no banco e confirmação no navegador com dados fictícios. No Supabase hospedado a migration e a função estão ativas e os privilégios foram conferidos. A API real não foi testada: as credenciais e dados fiscais foram deixados para configuração posterior, conforme solicitado.
+
 ## Falta para concluir
 
-1. Configurar credenciais do Melhor Envio no servidor e homologar cotação e confirmação no sandbox com dados reais controlados. Verificar peso e dimensões de produtos e CEP de origem.
-2. Implementar registro e vinculação de remessa e consulta de rastreamento no Melhor Envio; usar os volumes efetivamente retornados na cotação. O receptor de eventos assinado já está preparado, mas precisa da etiqueta vinculada e de homologação. O fluxo comercial exige chave da NF-e, inscrição estadual e dados reais de remetente/destinatário ainda não coletados; não inventar dados nem simular emissão. A entrega manual do painel continua disponível.
-3. Homologar o fluxo completo em navegador com dois usuários, concorrência, falhas de rede, estoque e cotações expiradas. O checkout foi exercitado localmente e em SQL hospedado com rollback; a API externa real ainda não foi testada.
-4. Integrar pagamentos com Mercado Pago na Fase 5, conforme `docs/phase-5-plan.md`. Os pedidos são criados com pagamento pendente; não há cobrança ou aprovação simulada.
+1. Configurar credenciais, remetente e webhook conforme `docs/phase-4-setup.md`; homologar todo o fluxo no sandbox com dados reais controlados.
+2. Implementar consulta de rastreamento e recuperação segura de registro com resultado incerto. A compra de frete e emissão de etiqueta permanecem no Melhor Envio. Para Correios, Loggi e J&T com múltiplos volumes, ainda falta separar os itens por etiqueta; Azul exige dados adicionais do XML da NF-e.
+3. Homologar a operação completa em navegador com dois usuários, concorrência, falhas de rede, estoque e cotações expiradas; conferir políticas de cancelamento e estorno.
+4. Integrar Mercado Pago na Fase 5, conforme `docs/phase-5-plan.md`. Pedidos permanecem com pagamento pendente.
 5. Regularizar o histórico da migration inicial aplicada manualmente antes de futuro `supabase db push`.
