@@ -83,7 +83,9 @@ export async function runOrdersCheckout({body,data,user,input,account,admin,env,
   const type=input.payment_method_id==='pix'?'bank_transfer':body.form_data?.payment_type_id;
   if(!['credit_card','debit_card','bank_transfer'].includes(type)||(input.payment_method_id!=='pix'&&type==='bank_transfer'))return reply(400,'INVALID_DATA','Confira o tipo do pagamento.');
   const method={id:input.payment_method_id,type,...(type==='bank_transfer'?{}:{token:input.token,installments:input.installments})};
-  const payload={type:'online',processing_mode:'automatic',total_amount:amount(data.total_cents),external_reference:body.request_key,payer:input.payer,transactions:{payments:[{amount:amount(data.total_cents),payment_method:method}]}};
+  // Cenário oficial Pix/APRO: a simulação ocorre no provedor, somente com conta de teste.
+  const payer=mode==='sandbox'&&type==='bank_transfer'?{...input.payer,first_name:'APRO'}:input.payer;
+  const payload={type:'online',processing_mode:'automatic',total_amount:amount(data.total_cents),external_reference:body.request_key,payer,transactions:{payments:[{amount:amount(data.total_cents),payment_method:method}]}};
   const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(payload))),fingerprint=Array.from(new Uint8Array(hash),v=>v.toString(16).padStart(2,'0')).join('');
   const begin=await admin.rpc('service_begin_order_payment',{p_user_id:user.id,p_order_id:body.order_id,p_request_key:body.request_key,p_fingerprint:fingerprint,p_mode:mode,p_collector_id:collector});
   if(begin.error||!begin.data)return reply(409,'PAYMENT_BLOCKED','Já existe uma tentativa de pagamento. Verifique o resultado.');

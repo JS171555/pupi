@@ -100,3 +100,6 @@ Cartão e Pix são apresentados pelo Payment Brick oficial dentro do pedido, sem
 
 
 O pagamento incorporado usa a API Orders, conforme `docs/phase-5-plan.md`. A configuração é conferida antes de abrir os campos de cartão. O tipo de pagamento vem do callback oficial do Brick; valores e aprovação continuam sendo conferidos pelo servidor. Tentativas incertas continuam preservadas e não geram outra cobrança durante a verificação.
+
+
+No sandbox, o Pix mostra identificação de teste e informa que a confirmação será simulada pelo provedor, conforme o cenário documentado em `docs/phase-5-plan.md`. O código copia e cola e a ação Verificar pagamento permanecem na própria tela e após recarga. Em produção, a orientação de pagamento pelo QR Code permanece. Nenhum estado pago é criado só pelo navegador.

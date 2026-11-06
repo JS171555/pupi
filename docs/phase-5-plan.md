@@ -126,3 +126,14 @@ A última tentativa histórica do pedido #4 (Payments, criada às 16:38:38.58711
 O usuário confirmou pagamento aprovado e pedido pago após a correção para API Orders. A consulta posterior ao Supabase confirmou, no pedido #4: payment_status=paid, tentativa state=paid, api_kind=orders, provider_mode=sandbox e identificador do provedor vinculado. Nenhum estado financeiro foi alterado manualmente nessa conferência.
 
 O fluxo de aprovação com cartão está validado no ambiente de teste. Essa evidência não comprova isoladamente o recebimento do webhook nem os cenários de Pix, recusa, pendência, contestação e estorno. Próximo passo de homologação: testar esses cenários e as notificações assinadas antes de habilitar produção. As anotações anteriores de pedido pendente são o histórico do diagnóstico, não o estado atual do pedido #4.
+
+
+## Pix — preparação da homologação em sandbox
+
+A revisão do [teste oficial de Pix na API Orders](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/integration-test/pix) identificou o cenário payer.first_name=APRO: o Mercado Pago cria a order aguardando transferência e depois simula a aprovação automaticamente. Esse campo agora é enviado somente para Pix em sandbox, após validar que a credencial pertence a uma conta de teste. O valor do pedido, e-mail e documento continuam os dados conferidos da tentativa; valores de demonstração da documentação não são usados para substituir o total da compra. Cartão e Pix em produção não recebem o nome APRO por essa regra.
+
+A resposta autenticada informa test_mode e a interface identifica o Pix de teste, explicando a simulação sem pagamento pelo aplicativo bancário. O código copia e cola e o QR Code fornecidos pelo provedor continuam na tela. A consulta seguinte usa o mesmo identificador e só marca o pedido como pago após conferir a resposta canônica do Mercado Pago. Não há botão que force aprovação local nem nova cobrança durante a verificação.
+
+Validação local desta etapa: 89 testes de aplicação, 97 de banco, 49 de navegador, build, tokens e auditoria estática. Cobertura nova: APRO ausente de produção/cartão; Pix pendente para pago sem segundo POST; aviso de sandbox preservado após recarga. A aprovação real do Pix no sandbox ainda depende do teste do usuário; os testes automatizados usam respostas fictícias.
+
+Próximo passo: abrir um pedido pendente na conta correspondente, selecionar Pix e enviar uma única tentativa. Conferir o código retornado ou a aprovação já concluída e usar Verificar pagamento para acompanhar a simulação. O pedido #4, já pago por cartão, não deve receber outra tentativa. Registrar o resultado real desta homologação quando confirmado. Nenhuma credencial nova foi solicitada e nenhum estado financeiro foi alterado manualmente nesta etapa.

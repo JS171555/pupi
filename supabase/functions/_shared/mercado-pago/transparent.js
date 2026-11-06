@@ -41,7 +41,7 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
       if(!Number.isSafeInteger(data.total_cents)||data.total_cents<=0)return reply(409,'ORDER_UNAVAILABLE','Valor do pedido indisponível.');
       const process=createPaymentProcessor({admin,env,diagnose});
       const getContext=async()=>admin.rpc('service_transparent_context',{p_user_id:user.id,p_order_id:body.order_id});
-      const ready=ctx=>reply(200,'READY',null,{public_key:publicKey,total_cents:ctx.total_cents,payment_status:ctx.payment_status,submission:ctx.submission?{request_key:ctx.submission.request_key,state:ctx.submission.state,result:ctx.submission.result}:null});
+      const ready=ctx=>reply(200,'READY',null,{public_key:publicKey,test_mode:mode==='sandbox',total_cents:ctx.total_cents,payment_status:ctx.payment_status,submission:ctx.submission?{request_key:ctx.submission.request_key,state:ctx.submission.state,result:ctx.submission.result}:null});
       if(body.action==='init'&&apiKind!=='orders')return ready(data);
       // Confere a conta antes de enviar pagamentos; os IDs e a resposta não são registrados.
       const accountResponse=await fetchImpl('https://api.mercadopago.com/users/me',{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},signal:AbortSignal.timeout(10000),redirect:'error'});

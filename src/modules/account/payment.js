@@ -37,7 +37,7 @@ export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
     }
     await disposeBrick();content.replaceChildren();
     if(result?.status==='pending'&&result.qr_code) {
-      content.append(el('h3',{},'Pague com Pix'),el('p',{},'Use o QR Code ou copie o código para pagar. Depois, verifique o resultado aqui.'));
+      content.append(el('h3',{},data.test_mode?'Pix de teste':'Pague com Pix'),el('p',{},data.test_mode?'Ambiente de teste: o Mercado Pago simulará a confirmação, sem pagamento pelo aplicativo do banco. Use “Verificar pagamento” para acompanhar.':'Use o QR Code ou copie o código para pagar. Depois, verifique o resultado aqui.'));
       if(typeof result.qr_code_base64==='string'&&result.qr_code_base64.startsWith('iVBOR')&&/^[A-Za-z0-9+/=]+$/.test(result.qr_code_base64))content.append(el('img',{className:'payment-pix',src:`data:image/png;base64,${result.qr_code_base64}`,alt:'QR Code para pagar este pedido com Pix',width:240,height:240}));
       const code=el('textarea',{'aria-label':'Código Pix copia e cola',readonly:true,rows:4},result.qr_code);content.append(code,button('Copiar código Pix',async()=>{try{await navigator.clipboard.writeText(result.qr_code);notify('Código Pix copiado.','success');}catch{code.focus();code.select();notify('Selecione e copie o código Pix.');}}));
       if(result.expires_at)content.append(el('p',{className:'muted'},`Válido até ${new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(result.expires_at))}.`));

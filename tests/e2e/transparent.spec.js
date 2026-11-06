@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {installApi,user} from './api.js';
 const id='50000000-0000-4000-8000-000000000001';
-async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false,ordersConfigMissing=false}={}) {
+async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false,ordersConfigMissing=false,testMode=false}={}) {
  const api=await installApi(page,{signedIn:true});
  api.orders.push({id,order_number:9,user_id:user.id,status:'confirmed',payment_status:'pending',subtotal_cents:3000,shipping_cents:500,total_cents:3500,created_at:'2026-11-05T12:00:00Z',address_snapshot:{recipient:'Pessoa Teste',street:'Rua teste',number:'1',neighborhood:'Centro',city:'São Paulo',state:'SP',postal_code:'01001000'},items:[],shipment:null});
  await page.addInitScript(({pix})=>{
@@ -22,7 +22,7 @@ async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false,orde
    if(legacy)return route.fulfill({status:409,json:{code:'LEGACY_PAYMENT'}});
    if(body.action==='pay'){if(delay)await new Promise(resolve=>setTimeout(resolve,delay));submission={state:pix?'pending':'paid',result:{payment_id:'123',status:pix?'pending':'paid',...(pix?{qr_code:'pix-copia-e-cola-teste'}:{})}};if(!pix)api.orders[0].payment_status='paid';}
    if(body.action==='refresh'){api.orders[0].payment_status='paid';submission={state:'paid',result:{payment_id:'123',status:'paid'}};}
-   return route.fulfill({status:200,json:{code:'READY',public_key:'TEST-12345678-1234-1234-1234-123456789012',total_cents:3500,payment_status:api.orders[0].payment_status,submission}});
+   return route.fulfill({status:200,json:{code:'READY',test_mode:testMode,public_key:'TEST-12345678-1234-1234-1234-123456789012',total_cents:3500,payment_status:api.orders[0].payment_status,submission}});
  });
  await page.goto(`/#/pedidos/${id}`);return {api,requests};
 }
@@ -65,4 +65,12 @@ test('credenciais Orders incompatíveis mostram orientação antes de abrir camp
  const {requests}=await setup(page,{ordersConfigMissing:true});await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
  await expect(page.getByText('Para testes na API Orders, a loja precisa usar a Public Key e o Access Token da conta vendedora de teste.')).toBeVisible();
  expect(await page.evaluate(()=>window.brickSettings.length)).toBe(0);expect(requests.some(body=>body.action==='pay')).toBe(false);
+});
+
+test('Pix no sandbox identifica simulação e confirma sem instruir pagamento pelo banco',async({page})=>{
+ await page.setViewportSize({width:390,height:844});const {requests}=await setup(page,{pix:true,testMode:true});
+ await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await page.getByRole('button',{name:'Gerar Pix de teste'}).click();
+ await expect(page.getByRole('heading',{name:'Pix de teste',exact:true})).toBeVisible();await expect(page.getByText(/Ambiente de teste: o Mercado Pago simulará a confirmação/)).toBeVisible();await expect(page.getByLabel('Código Pix copia e cola')).toHaveValue('pix-copia-e-cola-teste');
+ await page.reload();await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();await expect(page.getByRole('heading',{name:'Pix de teste',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Verificar pagamento',exact:true}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();expect(requests.filter(body=>body.action==='pay')).toHaveLength(1);
 });
