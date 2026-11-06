@@ -2,9 +2,10 @@ import { el, button } from './dom.js';
 import { ValidationError } from '../modules/auth/validation.js';
 import {startLoading} from './loading.js';
 import { toAppError } from '../utils/errors.js';
+import {attachPhoneMask} from './phone-input.js';
 
 let sequence = 0;
-export function field({ name, label, type = 'text', value = '', required = false, hint = '', options, autocomplete, maxLength, inputmode, rows=5, accept, multiple=false }) {
+export function field({ name, label, type = 'text', value = '', required = false, hint = '', options, autocomplete, maxLength, inputmode, rows=5, accept, multiple=false,mask }) {
   const id = `field-${++sequence}-${name}`;
   const attributes = { id, name, required, autocomplete, maxlength: maxLength, inputmode,
     'aria-describedby': `${id}-help ${id}-error` };
@@ -14,6 +15,7 @@ export function field({ name, label, type = 'text', value = '', required = false
   } else if (options) {
     control = el('select', attributes, options.map(([key, text]) => el('option', { value: key, selected: key === value }, text)));
   } else control = el('input', { ...attributes, type, value: type === 'checkbox' ? 'accepted' : value, checked: type === 'checkbox' && value === true, accept, multiple });
+  if(mask==='phone')attachPhoneMask(control);
   const labelNode = el('label', { for: id }, [label, required ? el('span', { 'aria-hidden': 'true' }, ' *') : null]);
   const inputRow = el('div', { className: type === 'password' ? 'password-row' : 'control-row' }, control);
   if (type === 'password') {

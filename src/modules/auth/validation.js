@@ -1,4 +1,5 @@
 import { AppError } from '../../utils/errors.js';
+import {formatBrazilianPhone,normalizeBrazilianPhone,PHONE_HINT} from '../../utils/phone.js';
 
 export const STATES = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 export class ValidationError extends AppError {
@@ -28,8 +29,9 @@ export function validateEmail(values) {
 export function validateProfile(values) {
   const errors = {}; const full_name = text(values.full_name); const phone = text(values.phone);
   if (full_name.length < 2 || full_name.length > 160) errors.full_name = 'Informe um nome de 2 a 160 caracteres.';
-  if (phone && !/^\+?[0-9 ()-]{8,25}$/.test(phone)) errors.phone = 'Confira o telefone, incluindo o DDD.';
-  return finish(errors, { full_name, phone: phone || null });
+  const normalized=phone?normalizeBrazilianPhone(phone):null;
+  if (phone && !normalized) errors.phone = PHONE_HINT;
+  return finish(errors, { full_name, phone: normalized?formatBrazilianPhone(normalized):null });
 }
 export function validateRegistration(values) {
   const errors = {}; let login; let profile;

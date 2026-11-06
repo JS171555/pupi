@@ -17,7 +17,7 @@ export function profileView({ user, profile, role, repository, busy, announce, r
   const form = makeForm({ name: 'Meus dados', submitLabel: 'Salvar alterações', onBusy: busy, persist: true,
     fields: [
       { name: 'full_name', label: 'Nome completo', value: profile.full_name, autocomplete: 'name', required: true, maxLength: 160 },
-      { name: 'phone', label: 'Telefone', value: profile.phone || '', type: 'tel', autocomplete: 'tel', maxLength: 25, hint: 'Opcional. Inclua o DDD.' },
+      { name: 'phone', label: 'Telefone', value: profile.phone || '', type: 'tel', autocomplete: 'tel-national', mask:'phone', hint: 'Opcional. Use o DDD: (11) 90000-0000.' },
     ],
     onSubmit: async (values, formNode) => {
       profile = await repository.saveProfile(user.id, values, profile.updated_at);

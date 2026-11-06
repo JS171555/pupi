@@ -3,6 +3,8 @@ import {makeForm,cleanForm} from '../../ui/forms.js';
 import {confirmAction} from '../../ui/feedback.js';
 import {orderView} from '../account/views.js';
 import {AppError} from '../../utils/errors.js';
+import {normalizeBrazilianPhone,PHONE_HINT} from '../../utils/phone.js';
+import {ValidationError} from '../auth/validation.js';
 import {el,link,adminURL,filterBar,adminLink,panel,listContent,listPager,dataTable,notFound} from './common.js';
 import {validateStock,validateSettings,orderOptions,ORDER_STATES} from './validation.js';
 import {isValidNfeKey} from './invoice.js';
@@ -102,12 +104,14 @@ export async function adminOrder(context,id) {
     else if(registration?.status==='cancelled') registrationContent=el('p',{role:'status'},'Remessa cancelada no Melhor Envio.');
     else registrationContent=makeForm({name:'Registrar remessa',submitLabel:'Preparar registro',persist:false,onBusy:context.busy,fields:[
       {name:'recipient_document',label:'CPF ou CNPJ do destinatário',required:true,inputmode:'numeric',maxLength:14,hint:'Somente números. Usado para registrar esta remessa.'},
-      {name:'recipient_phone',label:'Telefone do destinatário',required:true,inputmode:'numeric',maxLength:13,hint:'DDD e número, somente dígitos.'},
+      {name:'recipient_phone',label:'Telefone do destinatário',type:'tel',autocomplete:'tel-national',mask:'phone',required:true,hint:PHONE_HINT},
       {name:'agency',label:'Código da agência',inputmode:'numeric',maxLength:12,hint:'Opcional, conforme a modalidade escolhida.'},
     ],onSubmit:async(values,node)=>{
-      if(!/^(?:\d{11}|\d{14})$/.test(values.recipient_document)||!/^\d{10,13}$/.test(values.recipient_phone)||values.agency&&!/^\d+$/.test(values.agency))throw new AppError('INVALID_DATA','Confira o CPF ou CNPJ, o telefone e o código da agência.');
+      const recipientPhone=normalizeBrazilianPhone(values.recipient_phone);
+      if(!recipientPhone)throw new ValidationError({recipient_phone:PHONE_HINT});
+      if(!/^(?:\d{11}|\d{14})$/.test(values.recipient_document)||values.agency&&!/^\d+$/.test(values.agency))throw new AppError('INVALID_DATA','Confira o CPF ou CNPJ, o telefone e o código da agência.');
       await confirmAction({title:'Adicionar remessa ao Melhor Envio?',description:'Os dados do pedido e da NF-e serão enviados ao Melhor Envio. O frete ainda precisará ser comprado e a etiqueta emitida.',confirmLabel:'Adicionar remessa',onConfirm:async()=>{
-        await context.admin.registerShipment({order_id:id,recipient_document:values.recipient_document,recipient_phone:values.recipient_phone,agency:values.agency});
+        await context.admin.registerShipment({order_id:id,recipient_document:values.recipient_document,recipient_phone:recipientPhone,agency:values.agency});
         cleanForm(node);await context.go(`/admin/pedidos/${id}`,{force:true});context.announce('Remessa adicionada ao carrinho do Melhor Envio.','success');
       }});
     }});

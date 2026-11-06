@@ -13,6 +13,7 @@ Clientes brasileiros, pt-BR, celular e desktop. Datas de conta em America/Sao_Pa
 | Capability | Canonical owner | Source of truth | Allowed variants | Verification |
 |---|---|---|---|---|
 | Form | src/ui/forms.js | UX-CONTRACT.md | create / edit / auth | tests/e2e/account.spec.js |
+| Phone Input | src/ui/phone-input.js, src/utils/phone.js | UX-CONTRACT.md | Brazilian mobile / landline | tests/phone.test.js, tests/e2e/phone.spec.js |
 | Select/Listbox | src/ui/forms.js | DESIGN.md | native | tests/e2e/account.spec.js |
 | Scrollbar | src/styles/app.css | DESIGN.md | global | tests/e2e/account.spec.js |
 | Toast | src/ui/feedback.js | UX-CONTRACT.md | success / error / info | tests/e2e/account.spec.js |
@@ -54,7 +55,11 @@ Validação no submit e no campo já inválido durante edição; novalidate, ari
 
 Perfil e endereço detectam edição não salva. Navegação interna usa dialog compartilhado; saída da página usa beforeunload somente quando necessário. Estado ocupado bloqueia envio e navegação que abandonaria uma gravação. Dados digitados não sensíveis permanecem após erro. Não manter senha após sucesso, logout ou mudança de fluxo.
 
-UF usa select nativo, sem prometer geometria própria. Nenhum date picker. Campos de data exibidos são somente leitura. Telefone é opcional; CEP brasileiro e UF são validados no cliente e no PostgreSQL.
+UF usa select nativo, sem prometer geometria própria. Nenhum date picker. Campos de data exibidos são somente leitura. Telefone é opcional no perfil e obrigatório no registro de remessa; CEP brasileiro e UF são validados no cliente e no PostgreSQL.
+
+Campos de telefone compartilham a variante `mask: phone` de `forms.js`: teclado telefônico, até 11 dígitos nacionais e máscara de até 15 caracteres. Celular usa DDD de dois dígitos e número iniciado em 9, no formato `(11) 90000-0000`; fixo aceita 10 dígitos, no formato `(11) 3000-0000`. O cliente valida a estrutura antes de salvar, associa o erro ao campo e preserva o foco/dados. Perfil vazio salva `null`. Valores antigos inválidos permanecem visíveis para correção explícita, sem truncamento na abertura da tela.
+
+Digitação, colagem com `+55`, seleção, correção no meio, Backspace e Delete mantêm a máscara e a posição lógica do cursor. O perfil salva o formato legível; o registro de remessa envia somente os dígitos ao contrato existente do Melhor Envio. Não há migração dos dados nem mudança das permissões ou do serviço de frete.
 
 ## Async, sessão e feedback
 
