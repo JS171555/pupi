@@ -20,7 +20,7 @@ export const heading = (title, intro) => el('div', { className: 'page-heading' }
   el('h1', { tabindex: '-1' }, title), intro ? el('p', { className: 'muted' }, intro) : null,
 ]);
 export const empty = (title, description, action) => el('div', { className: 'empty-state' }, [
-  el('h2', {}, title), el('p', { className: 'muted' }, description), action,
+  el('h2', {}, title), description ? el('p', { className: 'muted' }, description) : null, action,
 ]);
 export const money = cents => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
 export const date = value => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeZone: 'America/Sao_Paulo' }).format(new Date(value));

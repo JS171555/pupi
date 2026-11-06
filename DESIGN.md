@@ -55,7 +55,7 @@ components:
 
 Público: clientes de petshop no Brasil. Clientes criam e acessam a conta; administradores gerenciam catálogo, estoque e operação dos pedidos. Interface pt-BR, uso prioritário em celular, registro de produto. O briefing e `docs/security.md` definem as restrições; o catálogo, a conta e o carrinho refinados pela Manus são as telas irmãs de referência.
 
-A referência é uma ficha de atendimento acolhedora: nome da pessoa, dados legíveis, seções curtas. A assinatura é a palavra `pupi` acompanhada de uma patinha discreta. A loja tem uma vitrine acolhedora, com lilás, rosa suave e navegação inferior no celular. O checkout mantém os dados e estados reais em primeiro plano. O resumo administrativo usa indicadores reais, com significado explícito para pagamentos. Evitar anúncios e estatísticas ilustrativas.
+A referência é uma ficha de atendimento acolhedora: nome da pessoa, dados legíveis, seções curtas. A assinatura é a palavra `pupi` acompanhada de uma patinha discreta. A loja apresenta categorias e produtos diretamente, sem hero promocional ou textos ornamentais. A paleta lilás/rosa e a navegação inferior permanecem. O checkout mantém os dados e estados reais em primeiro plano. O resumo administrativo usa indicadores reais, com significado explícito para pagamentos. Evitar anúncios e estatísticas ilustrativas.
 
 Fonte normativa dos tokens: frontmatter deste arquivo. `scripts/design-tokens.js` gera `src/styles/tokens.css`; componentes consomem apenas essas variáveis. `npm run design:check` detecta divergência. Não editar o arquivo CSS gerado à mão. Tema claro; modo de alto contraste usa cores de sistema.
 
@@ -69,7 +69,7 @@ A paleta oficial usa `primary`/`brand` #A78BFA, `lavender` #DDD2FF, `soft` #EDE5
 
 ## Layout
 
-Conteúdo de até `page-max`, margens de 1rem em celular e 2rem em desktop. Formulários estreitos, fluxo natural do documento e navegação que quebra linha. Breakpoint de 48rem para duas colunas. Nenhum ancestral impõe altura fixa aos formulários. Cabeçalho fixo informa sua altura via ResizeObserver para notificações, âncoras e resumos sticky. O checkout usa cartões de entrega e resumo em duas colunas, empilhados no celular. Erros e estados de carregamento têm região reservada; botões preservam largura quando ocupados.
+Conteúdo de até `page-max`, margens de 1rem em celular e 2rem em desktop. Formulários estreitos, fluxo natural do documento e navegação que quebra linha. Autenticação usa um cartão central único; endereço dispensa painel lateral de dicas. Títulos, campos e ações substituem subtítulos e overlines redundantes. Breakpoint de 48rem para duas colunas. Nenhum ancestral impõe altura fixa aos formulários. Cabeçalho fixo informa sua altura via ResizeObserver para notificações, âncoras e resumos sticky. O checkout usa cartões de entrega e resumo em duas colunas, empilhados no celular. Erros e estados de carregamento têm região reservada; botões preservam largura quando ocupados.
 
 ## Elevation & Depth
 
@@ -81,7 +81,7 @@ Controles usam `rounded.DEFAULT`; painéis usam `rounded.card`. Ícones Lucide d
 
 ## Components
 
-`src/ui/forms.js` centraliza campos, erros, foco e estado ocupado. `src/ui/feedback.js` centraliza notificações de até 380px no canto superior direito, 12px abaixo do cabeçalho medido, com cantos `rounded.toast`. Texto e ícone formam uma linha compacta, sem título redundante; mensagens longas têm rolagem acessível e botão de fechar sempre visível. Diálogos de confirmação permanecem centrais, com cantos `rounded.notice`. Sucessos fecham após 4s (7s em textos longos), pausando com ponteiro, foco ou aba oculta. Erros e informações importantes permanecem até fechar. `src/ui/loading.js` centraliza a indicação após 200ms e preserva as dimensões dos botões. Botões: sólido primário, contorno neutro e perigo para exclusões definitivas e cancelamento de pedido; aviso para arquivar produto. Estados hover, focus-visible, active, disabled e busy são compartilhados.
+`src/ui/forms.js` centraliza campos, erros, foco e estado ocupado. `src/ui/feedback.js` centraliza notificações de até 380px no canto superior direito, 12px abaixo do cabeçalho medido, com cantos `rounded.toast`. Texto e ícone formam uma linha compacta, sem título redundante; mensagens longas têm rolagem acessível e botão de fechar sempre visível. Diálogos de confirmação permanecem centrais, com cantos `rounded.notice`. Sucessos fecham após 4s (7s em textos longos), pausando com ponteiro, foco ou aba oculta. Erros e informações importantes permanecem até fechar. `src/ui/loading.js` centraliza a indicação após 200ms e preserva as dimensões dos botões. Ações exibem somente uma patinha dentro do botão; não há indicador ou Aguarde abaixo. Leituras sem botão mantêm uma patinha com nome acessível, sem texto visível redundante. Botões: sólido primário, contorno neutro e perigo para exclusões definitivas e cancelamento de pedido; aviso para arquivar produto. Estados hover, focus-visible, active, disabled e busy são compartilhados.
 
 Seleção de UF usa select nativo: popup e interação pertencem ao sistema operacional. Não há date picker nem seleção de linhas em lote. Listas de endereços e pedidos têm paginação explícita. Scrollbars globais usam os tokens de borda/superfície/texto, com fallback WebKit e cores de sistema em forced-colors.
 

@@ -13,7 +13,7 @@ export function authView(route, context) {
   const { auth, busy, go, onLogin, announce, googleButton } = context;
   let form; let title; let intro; let footer;
   if (route === '/cadastro') {
-    title = 'Crie sua conta'; intro = 'Cuide das suas compras e acompanhe cada pedido por aqui.';
+    title = 'Crie sua conta'; intro = '';
     form = makeForm({ name: 'Criar conta', submitLabel: 'Criar conta', onBusy: busy,
       fields: [{ name: 'full_name', label: 'Nome completo', required: true, autocomplete: 'name', maxLength: 160 }, email, newPassword, confirmation, accepted],
       onSubmit: async (values, formNode) => {
@@ -26,7 +26,7 @@ export function authView(route, context) {
     });
     footer = el('div', { className: 'form-links' }, [noticeLink(), link('Já tenho conta', '#/entrar')]);
   } else if (route === '/recuperar') {
-    title = 'Recuperar acesso'; intro = 'Peça um link para escolher uma nova senha. Abra-o neste mesmo navegador.';
+    title = 'Recuperar acesso'; intro = 'Abra o link de recuperação neste navegador.';
     form = makeForm({ name: 'Recuperar acesso', submitLabel: 'Enviar link de recuperação', onBusy: busy, fields: [email],
       onSubmit: async values => {
         await auth.recover(values);
@@ -35,10 +35,9 @@ export function authView(route, context) {
     });
     footer = link('Voltar para entrar', '#/entrar');
   } else if (route === '/nova-senha') {
-    title = 'Escolha uma nova senha'; intro = 'Escolha uma senha segura para proteger sua conta.';
+    title = 'Escolha uma nova senha'; intro = '';
     if (!context.recovery) {
       return el('section', { className: 'panel auth-form-card auth-recovery-required' }, [
-        el('p', { className: 'auth-form-eyebrow' }, 'SEGURANÇA DA CONTA'),
         heading('Link de recuperação necessário', 'Abra um link válido recebido por e-mail neste navegador.'),
         link('Pedir outro link', '#/recuperar', { className: 'button button-primary' })]);
     }
@@ -53,7 +52,7 @@ export function authView(route, context) {
     });
     footer = link('Pedir outro link', '#/recuperar');
   } else {
-    title = 'Entre na sua conta'; intro = 'Acesse seus dados, endereços e pedidos.';
+    title = 'Entre na sua conta'; intro = '';
     form = makeForm({ name: 'Entrar', submitLabel: 'Entrar', onBusy: busy, fields: [email, password],
       onSubmit: async (values, formNode) => { await auth.signIn(values); formNode.reset(); await onLogin(); },
     });
@@ -61,9 +60,7 @@ export function authView(route, context) {
   }
   form.classList.add('auth-form');
   footer.classList.add('auth-footer');
-  const eyebrow = route === '/cadastro' ? 'CRIE SUA CONTA' : route === '/recuperar' ? 'RECUPERAÇÃO DA CONTA' : route === '/nova-senha' ? 'NOVA SENHA' : 'ACESSO À SUA CONTA';
   const card = el('section', { className: 'panel auth-form-card' }, [
-    el('p', { className: 'auth-form-eyebrow' }, eyebrow),
     heading(title, intro),
     form,
     footer,
@@ -73,7 +70,7 @@ export function authView(route, context) {
 }
 
 export function noticeView() {
-  return el('section', { className: 'panel usage-notice' }, [heading('Informações de uso', 'Sua conta e suas compras, com clareza.'),
+  return el('section', { className: 'panel usage-notice' }, [heading('Informações de uso'),
     el('h2', {}, 'Sua conta'),
     el('p', {}, 'Nome, e-mail e dados de contato são usados para identificar sua conta. Você pode atualizar nome, telefone e endereços na área da conta.'),
     el('h2', {}, 'Compras e entregas'),

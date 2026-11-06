@@ -56,7 +56,7 @@ export async function cartView({items,hasMore,page,go,user,busy,announce,reposit
     const stockIsLow=stock<item.quantity;
     const quantityForm=makeForm({
       name:`Quantidade de ${product.name}`,submitLabel:'Atualizar quantidade',onBusy:busy,persist:true,
-      fields:[{name:'quantity',label:'Quantidade',value:String(item.quantity),required:true,inputmode:'numeric',hint:'Atualize manualmente ou use + e −.'}],
+      fields:[{name:'quantity',label:'Quantidade',value:String(item.quantity),required:true,inputmode:'numeric',hint:''}],
       onSubmit:async(values,node)=>{
         const quantity=Number(values.quantity);
         if (!/^[0-9]+$/.test(values.quantity) || !Number.isSafeInteger(quantity) || quantity<1 || quantity>999) throw new AppError('INVALID_DATA','Informe uma quantidade inteira entre 1 e 999.');
@@ -101,17 +101,16 @@ export async function cartView({items,hasMore,page,go,user,busy,announce,reposit
   });
 
   const headingNode=el('header',{className:'cart-heading'},[
-    el('div',{},[el('p',{className:'cart-eyebrow'},'SUA SELEÇÃO'),el('h1',{tabindex:'-1'},'Meu carrinho'),el('p',{className:'muted'},'Revise seus produtos e quantidades antes de continuar.')]),
+    el('div',{},el('h1',{tabindex:'-1'},'Meu carrinho')),
     items.length?el('span',{className:'cart-count'},[icon(ShoppingBag),`${itemCount} ${itemCount===1?'item':'itens'}`]):null,
   ]);
 
   if(!items.length) return el('section',{className:'cart-page'},[
     headingNode,
-    el('div',{className:'cart-empty'},[el('div',{className:'cart-empty-icon','aria-hidden':'true'},icon(PawPrint)),el('h2',{},'Seu carrinho está vazio'),el('p',{className:'muted'},'Explore a loja e encontre algo especial para quem você ama.'),link([icon(ShoppingBag),'Explorar produtos'],'#/loja',{className:'button button-primary'})]),
+    el('div',{className:'cart-empty'},[el('div',{className:'cart-empty-icon','aria-hidden':'true'},icon(PawPrint)),el('h2',{},'Seu carrinho está vazio'),link([icon(ShoppingBag),'Explorar produtos'],'#/loja',{className:'button button-primary'})]),
   ]);
 
   const summary=el('aside',{className:'cart-summary','aria-labelledby':'cart-summary-title'},[
-    el('p',{className:'cart-summary-eyebrow'},'RESUMO'),
     el('h2',{id:'cart-summary-title'},'Sua compra'),
     el('div',{className:'cart-summary-line'},[el('span',{},subtotalIncomplete?'Subtotal parcial':'Subtotal'),el('strong',{},money(subtotalCents))]),
     subtotalIncomplete?el('p',{className:'cart-summary-note'},'Alguns itens indisponíveis ou não carregados não entram no subtotal.') : null,
@@ -119,7 +118,6 @@ export async function cartView({items,hasMore,page,go,user,busy,announce,reposit
     el('div',{className:'cart-summary-line cart-summary-shipping'},[icon(Truck),el('span',{},'Frete calculado na próxima etapa')]),
     link(['Continuar para entrega ',icon(ArrowRight)],'#/checkout',{className:'button button-primary cart-checkout'}),
     link('Continuar comprando','#/loja',{className:'cart-continue-shopping'}),
-    el('div',{className:'cart-safe-note'},[icon(ShieldCheck),el('span',{},'Você revisará a entrega e o total antes de confirmar o pedido.')]),
   ]);
   const itemList=el('ul',{className:'cart-items','aria-label':'Produtos no carrinho'},rows);
   const itemRegion=el('section',{className:'cart-items-region','aria-label':'Itens do carrinho'},[

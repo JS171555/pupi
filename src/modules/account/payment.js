@@ -6,7 +6,7 @@ import {loadMercadoPago,challengeUrl} from '../../services/mercado-pago.js';
 let sequence=0;
 export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
   const content=el('div',{className:'payment-content'}),status=el('p',{className:'form-status',role:'status'});
-  const panel=el('section',{className:'admin-order-actions payment-panel'},[el('h2',{},'Pagamento'),el('p',{className:'muted'},'Pague com cartão ou Pix aqui no Pupi. Os dados do cartão são processados pelo Mercado Pago.'),content,status]);
+  const panel=el('section',{className:'admin-order-actions payment-panel'},[el('h2',{},'Pagamento'),content,status]);
   let controller,brickTimer,pollTimer,disposed=false,pending=null,mountVersion=0,stopLoading=()=>{},submitting=false,checking=false,deadline=0,lastData=null,lastDisplay='',cleanupChallenge=()=>{};
   const disposeBrick=async()=>{clearTimeout(brickTimer);const previous=controller;controller=null;if(previous)await Promise.resolve(previous.unmount()).catch(()=>{});};
   const stopMonitoring=()=>{clearTimeout(pollTimer);deadline=0;lastData=null;cleanupChallenge();cleanupChallenge=()=>{};};
@@ -37,7 +37,9 @@ export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
   }
   async function perform(task,message='Verificando pagamento…') {
     if(disposed||submitting||checking)return;
-    submitting=true;busy(true);status.textContent='';stopLoading=startLoading(status,{message});
+    submitting=true;busy(true);status.textContent='';
+    const trigger=document.activeElement;
+    stopLoading=startLoading(status,{message,button:trigger?.matches('.button')&&panel.contains(trigger)?trigger:undefined,showIndicator:false});
     try{await task();}catch(error){
       if(disposed)return;
       status.textContent=toAppError(error).message;
@@ -82,29 +84,31 @@ export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
         content.append(code,button('Copiar código Pix',async()=>{if(expired(result)){notify('O prazo do código terminou. Verifique o pagamento.');return;}try{await navigator.clipboard.writeText(result.qr_code);notify('Código Pix copiado.','success');}catch{code.focus();code.select();notify('Selecione e copie o código Pix.');}}));
         if(result.expires_at)content.append(el('p',{className:'muted'},`Válido até ${new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(result.expires_at))}.`));
       }
-    }else content.append(el('h3',{},result?.status==='review'||data.payment_review_required?'Pagamento em conferência':result?.requires_action?'Verificação do banco pendente':'Pagamento em verificação'),el('p',{},result?.status==='review'||data.payment_review_required?'A loja precisa conferir este pagamento. Consulte o pedido antes de fazer outra tentativa.':'A confirmação depende do Mercado Pago. Você pode acompanhar o resultado nesta tela.'));
+    }else content.append(el('h3',{},result?.status==='review'||data.payment_review_required?'Pagamento em conferência':result?.requires_action?'Verificação do banco pendente':'Pagamento em verificação'),el('p',{},result?.status==='review'||data.payment_review_required?'A loja precisa conferir este pagamento. Consulte o pedido antes de fazer outra tentativa.':'Verifique o pagamento antes de tentar novamente.'));
     content.append(button('Verificar pagamento',verify,'primary'));pending=null;schedule(data);
   }
   async function initialize(retry=false) {
     if(disposed||submitting||checking)return;
-    const version=++mountVersion;let localTimer,reportedError=false;status.textContent='';content.replaceChildren();stopMonitoring();stopLoading();stopLoading=startLoading(status,{message:'Carregando pagamento…'});
+    const version=++mountVersion;let localTimer,reportedError=false;status.textContent='';
+    const loadingButton=button('Pagar com Mercado Pago',()=>{},'primary');loadingButton.disabled=true;content.replaceChildren(loadingButton);
+    stopMonitoring();stopLoading();stopLoading=startLoading(status,{button:loadingButton});
     try {
       await disposeBrick();const data=await repository.paymentContext(order.id);
       if(disposed||version!==mountVersion)return;
       if(data.payment_status==='paid'){stopLoading();await showResult(data);return;}
       if(data.submission&&(!retry||data.submission.state!=='failed')){stopLoading();await showResult(data.submission.result?.requires_action?await repository.refreshPayment(order.id):data);return;}
       const MercadoPago=await loadMercadoPago();if(disposed||version!==mountVersion)return;
-      const id=`pupi-payment-${++sequence}`,container=el('div',{id});content.replaceChildren(...(data.test_mode?[el('p',{className:'payment-context-note'},'Este pagamento não gera uma cobrança real.')]:[]),el('p',{className:'payment-total'},['Total do pedido: ',el('strong',{},money(data.total_cents))]),container);
+      const id=`pupi-payment-${++sequence}`,container=el('div',{id});content.replaceChildren(...(data.test_mode?[el('p',{className:'payment-context-note'},'Este pagamento não gera uma cobrança real.')]:[]),el('p',{className:'payment-total'},['Total do pedido: ',el('strong',{},money(data.total_cents))]),loadingButton,container);
       const mp=new MercadoPago(data.public_key,{locale:'pt-BR'});
       let timedOut=false;
-      localTimer=setTimeout(()=>{timedOut=true;stopLoading();if(!disposed&&version===mountVersion){status.textContent='O formulário demorou para carregar. Tente novamente.';content.append(button('Tentar carregar novamente',()=>initialize(true)));}},15000);
+      localTimer=setTimeout(()=>{timedOut=true;stopLoading();if(!disposed&&version===mountVersion){loadingButton.remove();status.textContent='O formulário demorou para carregar. Tente novamente.';content.append(button('Tentar carregar novamente',()=>initialize(true)));}},15000);
       brickTimer=localTimer;
       const created=await mp.bricks().create('payment',id,{
         initialization:{amount:data.total_cents/100},
         customization:{paymentMethods:{creditCard:'all',debitCard:'all',bankTransfer:'all',maxInstallments:12}},
         callbacks:{
-          onReady:()=>{clearTimeout(localTimer);if(!disposed&&!timedOut&&version===mountVersion)stopLoading();},
-          onError:()=>{clearTimeout(localTimer);if(!disposed&&!timedOut&&!reportedError&&version===mountVersion){reportedError=true;stopLoading();status.textContent='Não foi possível carregar os dados de pagamento. Confira a conexão e tente novamente.';content.append(button('Tentar carregar novamente',()=>initialize(true)));}},
+          onReady:()=>{clearTimeout(localTimer);if(!disposed&&!timedOut&&version===mountVersion){stopLoading();loadingButton.remove();}},
+          onError:()=>{clearTimeout(localTimer);if(!disposed&&!timedOut&&!reportedError&&version===mountVersion){reportedError=true;stopLoading();loadingButton.remove();status.textContent='Não foi possível carregar os dados de pagamento. Confira a conexão e tente novamente.';content.append(button('Tentar carregar novamente',()=>initialize(true)));}},
           onSubmit:async({formData,selectedPaymentMethod},additionalData)=>{
             if(disposed||submitting||checking||timedOut||version!==mountVersion)return;
             pending={key:crypto.randomUUID(),form:{...formData,payment_type_id:additionalData?.paymentTypeId||formData.payment_type_id||selectedPaymentMethod}};
@@ -114,7 +118,7 @@ export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
       });
       if(disposed||version!==mountVersion||timedOut){await created.unmount();return;}
       controller=created;
-    } catch(error){clearTimeout(localTimer);if(!disposed&&version===mountVersion){stopLoading();status.textContent=toAppError(error).message;if(!['LEGACY_PAYMENT','SESSION_EXPIRED'].includes(error.code))content.append(button(error.code==='CONFIG_MISSING'?'Pagar com Mercado Pago':'Tentar carregar novamente',()=>initialize(true)));}}
+    } catch(error){clearTimeout(localTimer);if(!disposed&&version===mountVersion){stopLoading();loadingButton.remove();status.textContent=toAppError(error).message;if(!['LEGACY_PAYMENT','SESSION_EXPIRED'].includes(error.code))content.append(button(error.code==='CONFIG_MISSING'?'Pagar com Mercado Pago':'Tentar carregar novamente',()=>initialize(true)));}}
   }
   content.append(button('Pagar com Mercado Pago',()=>initialize(),'primary'));
   return panel;

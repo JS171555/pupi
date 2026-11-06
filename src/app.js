@@ -141,15 +141,9 @@ function authContext() {
   };
 }
 function authLayout(view) {
-  const intro = el('aside', { className: 'auth-intro' }, [el('p', { className: 'eyebrow' }, 'Sua conta Pupi'),
-    el('div', { className: 'auth-intro-mark', 'aria-hidden': 'true' }, icon(PawPrint)),
-    el('h2', {}, 'Tudo sobre a sua conta, em um só lugar.'),
-    el('p', { className: 'muted' }, 'Cadastre seus dados e acompanhe o que importa para você e seu pet.'),
-    el('ul', { className: 'intro-list' }, [[UserRound, 'Seus dados de contato'], [MapPin, 'Endereços da sua conta'], [Package, 'Histórico e acompanhamento de pedidos']]
-      .map(([image, text]) => el('li', {}, [icon(image), text]))),
-  ]);
-  return el('div', { className: 'auth-layout' }, [intro, view]);
+  return el('div', { className: 'auth-layout' }, view);
 }
+
 function failure(error, retry) {
   const message = toAppError(error).message;
   document.title = 'Não foi possível carregar | Pupi';

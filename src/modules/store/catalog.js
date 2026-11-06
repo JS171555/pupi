@@ -57,28 +57,19 @@ export async function storeCatalog(repository, params, go, media) {
       el('div',{className:'product-image-wrap'},[productImage(images.get(product.id),product.name),product.featured?el('span',{className:'badge product-featured-badge'},'Destaque'):null]),
       el('div',{className:'product-card-content'},[
         el('h2',{},product.name),
-        product.short_description ? el('p',{className:'product-description'},product.short_description) : null,
         el('div',{className:'product-card-footer'},[price]),
       ]),
     ],`#/loja/${product.slug}`,{className:'product-card-link','aria-label':`Abrir detalhes de ${product.name}`})]);
   });
   const pageLink=(number,label)=>{const query=new URLSearchParams({pagina:String(number)});if(category)query.set('categoria',category);if(search)query.set('busca',search);if(sort!=='recent')query.set('ordem',sort);if(filter)query.set('filtro',filter);return link(label,`#/loja?${query}`,{className:'button button-secondary'});};
-  const hero=el('div',{className:'store-hero'},[
-    el('div',{className:'store-hero-copy'},[el('p',{className:'store-kicker'},[icon(Sparkles),' UM JEITO CARINHOSO DE CUIDAR']),
-      el('h1',{},'Loja'),el('h2',{},['Mais amor para ',el('span',{},'cada patinha.')]),
-      el('p',{},'Tudo para acompanhar os momentos especiais com quem está sempre ao seu lado.'),
-      el('a',{href:'#catalogo',className:'store-hero-link'},['Explorar produtos ',icon(ArrowUpRight)])]),
-    el('div',{className:'store-hero-art','aria-hidden':'true'},[el('div',{className:'store-paw-halo'},icon(PawPrint)),el('span',{className:'store-art-caption'},'feito com carinho')]),
-  ]);
-  hero.querySelector('.store-hero-link').addEventListener('click',event=>{event.preventDefault();document.querySelector('#catalogo')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});});
   const categoryLinks=categories.length?el('section',{className:'store-categories'},[
-    el('div',{className:'store-section-heading'},[el('div',{},[el('p',{className:'store-section-eyebrow'},'ENCONTRE O QUE PRECISA'),el('h2',{},'Explore por categoria')])]),
+    el('div',{className:'store-section-heading'},[el('h2',{},'Categorias')]),
     el('div',{className:'category-chips'},[link('Todas','#/loja',{className:`category-chip${!category?' is-active':''}`}),...categories.map(item=>link([icon(PawPrint),item.name],`#/loja?categoria=${encodeURIComponent(item.id)}`,{className:`category-chip${category===item.id?' is-active':''}`}))]),
   ]):null;
-  return el('section',{className:'store-page'},[hero,categoryLinks,
-    el('div',{id:'catalogo',className:'store-section-heading'},[el('div',{},[el('p',{className:'store-section-eyebrow'},'ESCOLHIDOS PARA VOCÊ'),el('h2',{},'Encontre seu favorito')]),el('p',{className:'muted',role:'status'},`${products.length} ${products.length===1?'produto':'produtos'} nesta página`)]),
+  return el('section',{className:'store-page'},[heading('Loja'),categoryLinks,
+    el('div',{id:'catalogo',className:'store-section-heading'},[el('h2',{},'Produtos'),el('p',{className:'muted',role:'status'},`${products.length} ${products.length===1?'produto':'produtos'} nesta página`)]),
     el('details',{className:'store-filters',open:window.matchMedia('(min-width: 48rem)').matches||Boolean(category||search||filter||sort!=='recent')},[el('summary',{},[icon(SlidersHorizontal),'Buscar e filtrar produtos']),form]),
-    cards.length?el('ul',{className:'record-list product-grid'},cards):el('div',{className:'store-empty'},[icon(PawPrint),el('h3',{},filtered?'Nenhum produto encontrado':'Novidades a caminho'),el('p',{className:'muted'},filtered?'Tente outra busca ou veja todos os produtos.':'Em breve, você encontra os produtos da Pupi por aqui.'),filtered?link('Ver todos os produtos','#/loja',{className:'button button-primary'}):null]),
+    cards.length?el('ul',{className:'record-list product-grid'},cards):el('div',{className:'store-empty'},[icon(PawPrint),el('h3',{},filtered?'Nenhum produto encontrado':'Nenhum produto disponível'),filtered?el('p',{className:'muted'},'Tente outra busca ou veja todos os produtos.'):null,filtered?link('Ver todos os produtos','#/loja',{className:'button button-primary'}):null]),
     el('nav',{className:'pagination','aria-label':'Páginas do catálogo'},[page>1?pageLink(page-1,'Anterior'):null,el('span',{},`Página ${page}`),products.length===20?pageLink(page+1,'Próxima'):null])]);
 }
 

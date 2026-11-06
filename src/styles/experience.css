@@ -824,3 +824,14 @@ input[aria-invalid="true"],select[aria-invalid="true"],textarea[aria-invalid="tr
   .checkout-steps li:not(:last-child)::after {display:none;}
   .checkout-delivery .form-fields>.button {width:100%;}
 }
+
+/* Conteúdo essencial: uma tarefa por tela, sem painéis de orientação redundantes. */
+.auth-layout {grid-template-columns:minmax(0,1fr);max-width:30rem;margin:1.5rem auto;}
+.auth-form-card {max-width:none;justify-self:stretch;}
+.address-form-layout {grid-template-columns:minmax(0,1fr);max-width:52rem;margin-inline:auto;}
+.store-page>.page-heading {margin:0 0 1.25rem;}
+.store-categories {margin:0 0 1.25rem;}
+.store-categories .store-section-heading {margin:0 0 .75rem;}
+.store-section-heading {margin:1.25rem 0 .75rem;}
+.checkout-next-step {margin-top:.75rem;}
+@media(max-width:47.99rem) {.auth-layout {margin:.5rem auto;}.store-page>.page-heading {margin-bottom:1rem;}}

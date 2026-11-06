@@ -23,9 +23,9 @@ test('confirmação mantém aviso pendente até concluir e preserva erro no diá
 });
 
 test('salvamento mostra loading estável e impede duplicação',async({page})=>{
-  const api=await installApi(page,{signedIn:true});api.saveDelay=900;await page.goto('/#/conta');await page.getByLabel('Nome completo').fill('Pessoa atualizada');
+  const api=await installApi(page,{signedIn:true});api.saveDelay=1400;await page.goto('/#/conta');await page.getByLabel('Nome completo').fill('Pessoa atualizada');
   const submit=page.getByRole('button',{name:'Salvar alterações',exact:true});const before=await submit.boundingBox();await submit.click();
-  await expect(submit).toBeDisabled();await expect(submit).toHaveAttribute('aria-busy','true');const during=await submit.boundingBox();expect(Math.abs(before.width-during.width)).toBeLessThan(1);expect(Math.abs(before.height-during.height)).toBeLessThan(1);
+  await expect(submit).toBeDisabled();await expect(submit).toHaveAttribute('aria-busy','true');await expect(submit.locator('.button-progress')).toHaveCount(1);await expect(page.locator('form .loading-indicator')).toHaveCount(0);await expect(page.locator('form .form-status')).toHaveText('');const during=await submit.boundingBox();expect(Math.abs(before.width-during.width)).toBeLessThan(1);expect(Math.abs(before.height-during.height)).toBeLessThan(1);
   await expect(page.getByText('Alterações salvas.',{exact:true})).toBeVisible();await expect(submit).toBeEnabled();await expect(submit).not.toHaveAttribute('aria-busy','true');
 });
 
@@ -56,4 +56,11 @@ test('cartão com texto longo cabe em quatro tamanhos de tela e com texto amplia
     const card=page.locator('.feedback-card');await expect(card).toBeVisible();const box=await card.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.y).toBeGreaterThanOrEqual(0);expect(box.width).toBeLessThanOrEqual(width-32);expect(box.height).toBeLessThanOrEqual(760);
   }
   await page.setViewportSize({width:320,height:800});await page.addStyleTag({content:'html {font-size:200%;}'});expect(await page.locator('.feedback-message').evaluate(node=>node.scrollHeight>node.clientHeight)).toBe(true);await expect(page.getByRole('button',{name:'Fechar aviso'})).toBeInViewport();
+});
+
+test('loading compartilhado mantém uma pata no botão e não cria indicador abaixo',async({page})=>{
+ await open(page);await page.evaluate(async()=>{
+  const {startLoading,buttonLoading}=await import('/src/ui/loading.js');const control=document.querySelector('button[type="submit"]'),host=document.querySelector('form .form-status');window.endFirst=startLoading(host,{button:control});window.endSecond=buttonLoading(control);
+ });
+ const submit=page.getByRole('button',{name:'Salvar alterações',exact:true});await expect(submit.locator('.button-progress')).toHaveCount(1);await expect(page.locator('form .loading-indicator')).toHaveCount(0);await expect(page.locator('form .form-status')).toHaveText('');await page.evaluate(()=>window.endFirst());await expect(submit.locator('.button-progress')).toHaveCount(1);await page.evaluate(()=>window.endSecond());await expect(submit.locator('.button-progress')).toHaveCount(0);await expect(submit).not.toHaveAttribute('aria-busy','true');
 });

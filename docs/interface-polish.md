@@ -38,3 +38,16 @@ A revisão partiu da main com os 12 commits de refinamento da Manus, até `baf77
 - Os testes de confirmação, estoque, autenticação, edição concorrente, mídia, cartão, Pix, expiração, contestação e recuperação continuam presentes. Capturas de revisão usam fixtures de navegador, sem produtos inseridos no banco ou cobranças reais.
 
 A publicação contém somente interface, documentação e testes. Não exige nova migration, segredo ou deploy de Edge Function.
+
+## Interface essencial e loading somente no botão
+
+Solicitação seguinte do usuário: retirar textos sem utilidade e o segundo loading abaixo das ações.
+
+- Loja abre diretamente com categorias, filtros e produtos; removidos hero promocional, slogans e sobrelinhas decorativas. Descrições completas dos produtos continuam nos detalhes.
+- Acesso usa um cartão único, sem painel lateral explicativo. Conta, endereços, carrinho, checkout e administração perderam introduções e instruções repetidas.
+- Mantidos nomes de campos, dados, preços, status, requisitos de senha, validações, orientações de recuperação e informações financeiras/fiscais que afetam uma decisão.
+- Formulários, diálogos e consultas acionadas por botão mostram somente uma patinha dentro do botão. Consumidores simultâneos compartilham o mesmo indicador; limpeza não remove um loading ainda utilizado por outra ação.
+- Não há Aguarde visível abaixo dos botões. Leitura inicial de página sem botão usa uma patinha com nome acessível. O SDK financeiro mantém seu próprio loading sem duplicação pelo Pupi.
+- No carregamento do pagamento, o botão ocupado permanece até o formulário ficar pronto; erros e timeout restauram a ação de retentativa.
+
+Validação: 97 testes de aplicação, 102 de banco, build, tokens e auditoria estática aprovados. Na suíte completa, 61 de 62 cenários de navegador passaram; o teste de endereço ainda esperava o painel lateral removido e foi atualizado para conferir o formulário único. Ele e os dois cenários de conteúdo afetados passaram na repetição dirigida. Os 62 cenários foram validados, incluindo cartão, Pix, 3DS e o novo teste de loading único sem indicador abaixo. Lint de DESIGN.md sem erros, com os mesmos avisos de tokens já registrados. Não há alteração em credenciais, migrations ou regras financeiras.

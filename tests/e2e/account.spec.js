@@ -87,18 +87,14 @@ test('login, cadastro e senha responsivos sem rolagem horizontal em mobile ou de
   for (const route of ['/entrar', '/cadastro', '/recuperar', '/nova-senha']) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/#${route}`);
-    const intro = page.locator('.auth-intro');
     const card = page.locator('.auth-layout > .auth-form-card');
-    await expect(intro).toBeVisible();
+    await expect(page.locator('.auth-intro')).toHaveCount(0);
     await expect(card).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    const mobileIntro = await intro.boundingBox();
-    const mobileCard = await card.boundingBox();
-    expect(mobileCard.y).toBeGreaterThan(mobileIntro.y);
     await page.setViewportSize({ width: 1280, height: 900 });
-    const desktopIntro = await intro.boundingBox();
     const desktopCard = await card.boundingBox();
-    expect(desktopCard.x).toBeGreaterThanOrEqual(desktopIntro.x + desktopIntro.width - 1);
+    expect(desktopCard.width).toBeLessThanOrEqual(500);
+    expect(desktopCard.x).toBeGreaterThan(300);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
 });
@@ -113,17 +109,15 @@ test('endereço: criar, abrir select nativo, editar e excluir com confirmação'
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('link', { name: 'Adicionar endereço' }).click();
-  const formPanel = await page.locator('.address-form-main').boundingBox();
-  const guidancePanel = await page.locator('.address-guidance').boundingBox();
-  expect(guidancePanel.y).toBeGreaterThan(formPanel.y);
+  await expect(page.locator('.address-form-main')).toBeVisible();
+  await expect(page.locator('.address-guidance')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.setViewportSize({ width: 1280, height: 900 });
   const desktopFormPanel = await page.locator('.address-form-main').boundingBox();
-  const desktopGuidancePanel = await page.locator('.address-guidance').boundingBox();
-  expect(desktopGuidancePanel.x).toBeGreaterThan(desktopFormPanel.x);
+  expect(desktopFormPanel.width).toBeLessThanOrEqual(832);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByLabel('Destinatário').fill('Pessoa Teste');
@@ -276,7 +270,7 @@ test('pedido exibe itens, total e endereço históricos sem criar entrega inexis
   await expect(page.getByRole('heading', { name: 'Pedido #7', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Produto registrado na compra' })).toBeVisible();
   await expect(page.getByText(/Rua histórica, 10 · Sala 2/)).toBeVisible();
-  await expect(page.getByText(/A entrega ainda não foi registrada/)).toBeVisible();
+  await expect(page.getByText(/Entrega ainda não registrada/)).toBeVisible();
   await expect(page.locator('main')).toContainText('R$ 35,00');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.setViewportSize({ width: 1440, height: 1000 });

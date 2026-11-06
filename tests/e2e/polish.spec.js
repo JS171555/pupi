@@ -5,7 +5,7 @@ const oldCopy=/ambiente de testes?|aviso de testes?|para testar|próximas fases|
 test('conta, cadastro e informações de uso têm conteúdo de produto sem banners de desenvolvimento',async({page})=>{
  await installApi(page);
  for(const route of ['entrar','cadastro','recuperar','aviso']){
-  await page.goto(`/#/${route}`);await expect(page.locator('#main h1')).toBeVisible();await expect(page.locator('#connection-status')).toBeHidden();await expect(page.locator('body')).not.toContainText(oldCopy);
+  await page.goto(`/#/${route}`);await expect(page.locator('#main h1')).toBeVisible();await expect(page.locator('#connection-status')).toBeHidden();await expect(page.locator('.auth-intro,.auth-form-eyebrow')).toHaveCount(0);await expect(page.locator('body')).not.toContainText(oldCopy);
  }
  await expect(page.getByText(/não substitui esses documentos/)).toBeVisible();
 });
@@ -22,7 +22,7 @@ test('navegação mobile continua acessível com rolagem, Escape e notificaçõe
 
 test('filtros sem resultado oferecem recuperação e catálogo vazio tem orientação própria',async({page})=>{
  await page.setViewportSize({width:390,height:844});await installApi(page);await page.route('**/rest/v1/categories*',route=>route.fulfill({json:[]}));await page.route('**/rest/v1/products*',route=>route.fulfill({json:[]}));await page.route('**/rest/v1/product_images*',route=>route.fulfill({json:[]}));
- await page.goto('/#/loja?busca=ausente');await expect(page.getByRole('heading',{name:'Nenhum produto encontrado'})).toBeVisible();await expect(page.getByRole('link',{name:'Limpar filtros'})).toBeVisible();await page.getByRole('link',{name:'Ver todos os produtos'}).click();await expect(page.getByRole('heading',{name:'Novidades a caminho'})).toBeVisible();expect(page.url()).toContain('/#/loja');await expect(page.getByRole('link',{name:'Limpar filtros'})).toHaveCount(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.goto('/#/loja?busca=ausente');await expect(page.locator('.store-hero,.store-section-eyebrow')).toHaveCount(0);await expect(page.getByRole('heading',{name:'Nenhum produto encontrado'})).toBeVisible();await expect(page.getByRole('link',{name:'Limpar filtros'})).toBeVisible();await page.getByRole('link',{name:'Ver todos os produtos'}).click();await expect(page.getByRole('heading',{name:'Nenhum produto disponível'})).toBeVisible();expect(page.url()).toContain('/#/loja');await expect(page.getByRole('link',{name:'Limpar filtros'})).toHaveCount(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
 test('notificações não se acumulam, não roubam foco e acompanham a altura do menu em zoom',async({page})=>{

@@ -26,9 +26,7 @@ export function profileView({ user, profile, role, repository, busy, announce, r
   });
   form.classList.add('profile-form');
   const main = el('section', { className: 'panel profile-main' }, [
-    el('p', { className: 'profile-eyebrow' }, 'DADOS PESSOAIS'),
-    heading('Meus dados', 'Mantenha suas informações de contato atualizadas.'),
-    el('div', { className: 'profile-form-intro' }, [profileIcon(UserRound),el('p', {}, 'Essas informações ajudam a manter sua conta e seus pedidos atualizados.')]),
+    heading('Meus dados'),
     form,
   ]);
   const aside = el('aside', { className: 'panel profile-sidebar' }, [
@@ -46,7 +44,6 @@ export function profileView({ user, profile, role, repository, busy, announce, r
       link([profileIcon(MapPin),el('span', {}, 'Gerenciar endereços'),profileIcon(ArrowUpRight)], '#/enderecos', { className: 'profile-shortcut' }),
       link([profileIcon(ShoppingBag),el('span', {}, 'Consultar pedidos'),profileIcon(ArrowUpRight)], '#/pedidos', { className: 'profile-shortcut' }),
     ]),
-    el('p', { className: 'profile-sidebar-note' }, 'Você pode conferir seus dados e sair desta sessão a qualquer momento.'),
   ]);
   return el('div', { className: 'account-grid profile-layout' }, [main, aside]);
 }
@@ -89,7 +86,7 @@ export function addressesView({ items, hasMore, page, go, repository, user, anno
     ]));
   }
   return el('section', { className: 'panel addresses-page' }, [
-    el('div', { className: 'toolbar address-toolbar' }, [heading('Meus endereços', 'Cadastre e edite os endereços da sua conta.'),
+    el('div', { className: 'toolbar address-toolbar' }, [heading('Meus endereços'),
       link([icon(Plus), 'Adicionar endereço'], '#/enderecos/novo', { className: 'button button-primary address-add-button' })]),
     items.length ? list : empty('Nenhum endereço cadastrado', 'Adicione um endereço para usar em compras futuras.'),
     pagination(page, hasMore, '/enderecos', go),
@@ -102,7 +99,7 @@ export function addressFormView({ address, repository, go, busy, announce }) {
   const fields = [
     { name: 'label', label: 'Nome do endereço', value: value('label') || 'Casa', required: true, maxLength: 60, autocomplete: 'off' },
     { name: 'recipient', label: 'Destinatário', value: value('recipient'), required: true, maxLength: 160, autocomplete: 'shipping name' },
-    { name: 'postal_code', label: 'CEP', value: value('postal_code'), required: true, inputmode: 'numeric', maxLength: 9, autocomplete: 'shipping postal-code', hint: 'Ao informar o CEP, consultamos o ViaCEP para preencher o endereço.' },
+    { name: 'postal_code', label: 'CEP', value: value('postal_code'), required: true, inputmode: 'numeric', maxLength: 9, autocomplete: 'shipping postal-code', hint: 'Preenchimento automático pelo CEP.' },
     { name: 'street', label: 'Rua ou avenida', value: value('street'), required: true, maxLength: 200, autocomplete: 'shipping address-line1' },
     { name: 'number', label: 'Número', value: value('number'), required: true, maxLength: 20 },
     { name: 'complement', label: 'Complemento', value: value('complement'), maxLength: 160, autocomplete: 'shipping address-line2' },
@@ -122,21 +119,11 @@ export function addressFormView({ address, repository, go, busy, announce }) {
   form.querySelector('.form-fields')?.classList.add('address-form-fields');
   return el('div', { className: 'address-form-layout' }, [
     el('section', { className: 'panel address-form-main' }, [
-      el('p', { className: 'address-form-eyebrow' }, 'DADOS DE ENTREGA'),
-      heading(address ? 'Editar endereço' : 'Adicionar endereço', 'Os dados são salvos apenas na sua conta.'),
-      el('p', { className: 'address-form-note' }, 'Preencha o endereço com atenção. Você poderá revisá-lo antes de salvar.'),
+      heading(address ? 'Editar endereço' : 'Adicionar endereço'),
       form,
       link('Cancelar e voltar', '#/enderecos', { className: 'address-cancel-link' }),
     ]),
-    el('aside', { className: 'address-guidance' }, [
-      el('span', { className: 'address-guidance-icon', 'aria-hidden': 'true' }, icon(MapPin)),
-      el('h2', {}, 'Dicas para preencher'),
-      el('ul', { className: 'address-guidance-list' }, [
-        el('li', {}, [el('strong', {}, 'Use o CEP'),el('p', {}, 'A consulta pode preencher rua, bairro, cidade e UF. Confira os dados antes de salvar.')]),
-        el('li', {}, [el('strong', {}, 'Confira número e complemento'),el('p', {}, 'Inclua apartamento, bloco ou outra referência no campo de complemento.')]),
-        el('li', {}, [el('strong', {}, 'Escolha um padrão'),el('p', {}, 'Marque o endereço padrão se quiser priorizá-lo em compras futuras.')]),
-      ]),
-    ]),
+
   ]);
 }
 
@@ -192,8 +179,8 @@ export function ordersView({ items, hasMore, page, go }) {
       link(['Ver detalhes',icon(ArrowRight)], `#/pedidos/${order.id}`, { className: 'button button-secondary order-details-link' }),
     ]),
   ])));
-  return el('section', { className: 'orders-page' }, [heading('Meus pedidos', 'Consulte compras e acompanhe as entregas da sua conta.'),
-    items.length ? list : empty('Você ainda não tem pedidos', 'Escolha algo especial para seu pet. Seus pedidos vão aparecer aqui.',link('Explorar a loja','#/loja',{className:'button button-primary'})),
+  return el('section', { className: 'orders-page' }, [heading('Meus pedidos'),
+    items.length ? list : empty('Você ainda não tem pedidos', '',link('Explorar a loja','#/loja',{className:'button button-primary'})),
     pagination(page, hasMore, '/pedidos', go),
   ]);
 }
@@ -214,7 +201,7 @@ export function orderView(order,options={}) {
     el('p', {}, ['Transportadora ',el('strong', {}, order.shipment.carrier || 'Ainda não informada')]),
     el('p', {}, ['Rastreamento ',el('strong', {}, order.shipment.tracking_code || 'Ainda não informado')]),
     order.events.length ? timeline : el('p', { className: 'muted' }, 'Nenhuma atualização de transporte registrada.'),
-  ]) : el('p', { className: 'muted' }, 'A entrega ainda não foi registrada. Não há eventos de rastreamento para exibir.');
+  ]) : el('p', { className: 'muted' }, 'Entrega ainda não registrada.');
   const addressCard = el('section', { className: 'order-info-card order-address-card' }, [
     el('div', { className: 'order-info-heading' }, [icon(MapPin),el('h2', {}, 'Endereço da compra')]),
     el('div', { className: 'order-address-content' }, [el('strong', {}, address.recipient),el('p', {}, `${address.street}, ${address.number}${address.complement ? ` · ${address.complement}` : ''}`),el('p', { className: 'muted' }, `${address.neighborhood} · ${address.city}/${address.state} · CEP ${address.postal_code}`)]),

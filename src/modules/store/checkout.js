@@ -48,14 +48,13 @@ export function checkoutReview({cart,addresses,page,go,busy,announce,checkout}) 
   } else addressContent=el('div',{className:'checkout-empty-address'},[el('p',{},'Onde seu pet vai receber o pedido? Adicione um endereço para consultar as opções de entrega.'),link('Adicionar endereço','#/enderecos/novo',{className:'button button-primary'})]);
   return el('section',{className:'checkout-page'},[
     link([icon(ArrowLeft),'Voltar ao carrinho'],'#/carrinho',{className:'order-back-link'}),
-    heading('Revisar pedido','Falta pouco. Confira os produtos e escolha a melhor entrega.'),
+    heading('Revisar pedido'),
     el('ol',{className:'checkout-steps','aria-label':'Etapas da compra'},[
       el('li',{},[icon(Package),'Carrinho']),el('li',{'aria-current':'step'},[icon(MapPin),'Entrega']),el('li',{},[icon(CreditCard),'Pagamento']),
     ]),
     el('div',{className:'checkout-layout'},[
       el('section',{className:'checkout-delivery'},[
         el('div',{className:'checkout-card-heading'},[icon(MapPin),el('h2',{},'Entrega')]),
-        el('p',{className:'muted'},'Selecione o endereço e consulte as opções disponíveis.'),
         items.length||pending?addressContent:el('p',{},'Adicione produtos ao carrinho antes de escolher a entrega.'),
         results,
         link('Gerenciar endereços','#/enderecos',{className:'checkout-address-link'}),
@@ -66,8 +65,8 @@ export function checkoutReview({cart,addresses,page,go,busy,announce,checkout}) 
         cart.hasMore?el('p',{className:'muted'},['Mostrando os primeiros 20 itens. ',link('Ver todo o carrinho','#/carrinho')]):null,
         el('dl',{className:'checkout-subtotal'},[el('dt',{},cart.subtotalIncomplete?'Subtotal dos itens disponíveis':'Subtotal'),el('dd',{},money(cart.subtotalCents))]),
         cart.subtotalIncomplete?el('p',{className:'muted'},'Itens indisponíveis ou não carregados não estão incluídos.'):null,
-        el('p',{className:'checkout-shipping-note'},'O valor do frete aparece ao consultar a entrega.'),
-        el('div',{className:'checkout-next-step'},[icon(ShieldCheck),el('p',{},'Os preços e o estoque serão conferidos ao confirmar. O pagamento acontece na próxima etapa.')]),
+        el('p',{className:'checkout-shipping-note'},'Frete a calcular.'),
+        el('div',{className:'checkout-next-step'},[icon(ShieldCheck),el('p',{},'Pagamento após confirmar o pedido.')]),
       ]),
     ]),
   ]);

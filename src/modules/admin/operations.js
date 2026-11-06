@@ -12,7 +12,7 @@ export async function dashboard(context) {
   const metrics=[['Produtos cadastrados',data.products],['Categorias',data.categories],['Contas cadastradas',data.customers],
     ['Pedidos',data.orders],['A preparar',data.pending_orders],['Entregues',data.completed_orders],
     ['Estoque baixo',data.low_stock_count],['Pedidos pagos',data.paid_orders],['Total pago em pedidos',money(data.paid_total_cents)]];
-  return panel('Resumo da loja','Indicadores calculados a partir dos registros do Pupi.',[
+  return panel('Resumo da loja','',[
     el('dl',{className:'admin-metrics'},metrics.map(([label,value])=>el('div',{},[el('dt',{},label),el('dd',{},String(value))]))),
     el('p',{className:'muted'},'O total pago inclui frete e exclui pedidos cancelados. Pagamentos pendentes não são contabilizados como vendas pagas.'),
     el('h2',{},'Produtos com estoque baixo'),
@@ -151,5 +151,5 @@ export async function settingsPage(context) {
     {name:'origin_postal_code',label:'CEP de origem dos envios',value:value('origin_postal_code')||'',required:true,inputmode:'numeric',maxLength:9},
     {name:'low_stock_threshold',label:'Estoque mínimo sugerido para novos produtos',value:value('low_stock_threshold')??0,required:true,inputmode:'numeric',hint:'Produtos já cadastrados mantêm seu próprio mínimo.'},
   ],onSubmit:async(values,node)=>{await context.admin.mutate('settings_save',null,{values:validateSettings(values),expected});cleanForm(node);await context.go('/admin/configuracoes',{force:true});context.announce('Configurações salvas.','success');}});
-  return panel('Configurações da loja','Dados operacionais. Credenciais de integrações não são armazenadas nesta tela.',[form]);
+  return panel('Configurações da loja','',[form]);
 }

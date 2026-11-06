@@ -83,7 +83,7 @@ export async function productForm(context,id) {
       actionButton('Excluir produto',()=>context.admin.mutate('product_remove',id,{},product.updated_at),context,{tone:'danger',destination:'/admin/produtos',success:'Produto excluído.',confirm:{title:`Excluir “${product.name}”?`,description:'A exclusão é definitiva e só é permitida sem imagens ou histórico de estoque/pedidos. Para preservar um produto, use Arquivar.',confirmLabel:'Excluir produto',danger:true}}),
     ]));
   }
-  return panel(product?'Editar produto':'Novo produto','Cadastre as informações do produto. Registre entradas e saídas na seção Estoque.',content,actions);
+  return panel(product?'Editar produto':'Novo produto','',content,actions);
 }
 
 export async function categoriesPage(context,options) {
