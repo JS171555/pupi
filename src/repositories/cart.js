@@ -20,6 +20,13 @@ export function createCartRepository(client) {
       const items = await unwrap(itemsQuery);
       return {items:items.slice(0,20),hasMore:items.length>20};
     },
+    async removeItem(userId, itemId) {
+      if (!uuid(userId) || !uuid(itemId)) throw new AppError('INVALID_DATA', 'Item do carrinho inválido.');
+      const cart = await unwrap(client.from('carts').select('id').eq('user_id',userId).maybeSingle());
+      if (!cart) throw new AppError('NOT_FOUND', 'Este item não está mais no carrinho.');
+      const removed = await unwrap(client.from('cart_items').delete().eq('cart_id',cart.id).eq('id',itemId).select('id').maybeSingle());
+      if (!removed) throw new AppError('NOT_FOUND', 'Este item não está mais no carrinho.');
+    },
     async setQuantity(userId, productId, quantity) {
       if (!uuid(userId) || !uuid(productId) || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 999) {
         throw new AppError('INVALID_DATA', 'Informe uma quantidade entre 1 e 999.');

@@ -40,10 +40,14 @@ Detalhe do produto permite definir quantidade no carrinho autenticado, com valid
 
 Consulta autenticada e paginada do carrinho, com preços atuais e indicação de produtos indisponíveis ou com saldo insuficiente. Produtos ocultos por políticas permanecem identificados como indisponíveis; a tela não calcula total nem reserva estoque. Alterar/remover itens permanece pendente.
 
+## Etapa 10
+
+Remoção de item do carrinho com confirmação, autorização existente por titular, tratamento de falha e ajuste automático da página quando necessário. Pode remover produtos indisponíveis.
+
 ## Falta para concluir
 
 1. Testar vitrine e detalhes com produtos publicados reais.
-2. Carrinho persistente por usuário: alterar, remover, validar estoque e calcular subtotal; testar isolamento de contas e concorrência.
+2. Carrinho persistente por usuário: alterar, validar estoque e calcular subtotal; testar isolamento de contas e concorrência.
 3. Frete: integrar Melhor Envio em backend confiável com credenciais protegidas, cotações e seleção válida; definir configuração e tratar indisponibilidade. Nunca confiar em frete enviado pelo navegador.
 4. Checkout autenticado: endereço, revisão, estoque e preços recalculados no backend; confirmar pedido idempotente e gravar cotação/entrega com segurança. Não expor service_role nem aceitar total fornecido pelo cliente.
 5. Estrutura de pagamento pendente, sem aprovar/simular transações. Conectar registro/rastreamento de remessa e eventos reais quando credenciais estiverem disponíveis.
