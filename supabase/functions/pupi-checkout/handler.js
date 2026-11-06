@@ -43,8 +43,8 @@ return async(req)=>{
     if(!Number.isSafeInteger(subtotal) || subtotal<=0)return reply(409,{error:'Confira os produtos do carrinho.'});
     const options=parseProviderOptions(await provider.json());const expiresAt=new Date(Date.now()+10*60*1000).toISOString();const quotes=[];
     for(const option of options.slice(0,30)) {
-      const {data,error}=await admin.rpc('service_register_shipping_quote',{p_user_id:user.id,p_address_id:body.address_id,p_snapshot:snapshot,p_shipping_cents:option.cents,
-        p_carrier:option.carrier,p_service_name:option.serviceName,p_service_id:option.serviceId,p_expires_at:expiresAt});
+      const {data,error}=await admin.rpc('service_register_shipping_quote_v2',{p_user_id:user.id,p_address_id:body.address_id,p_snapshot:snapshot,p_shipping_cents:option.cents,
+        p_carrier:option.carrier,p_service_name:option.serviceName,p_service_id:option.serviceId,p_expires_at:expiresAt,p_packages:option.packages});
       if(error)return reply(409,{error:'Seu carrinho mudou. Atualize e solicite outra cotação.'});
       quotes.push({id:data,carrier:option.carrier,service_name:option.serviceName,price_cents:option.cents,subtotal_cents:subtotal,days:option.days,expires_at:expiresAt});
     }

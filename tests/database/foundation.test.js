@@ -549,3 +549,17 @@ test('edição de chave NF-e detecta versão anterior',()=>rejectsCode(()=>as('s
   await rows('select public.admin_invoice_save($1,$2,null)',[id,invoiceKey]);
   await rows("select public.admin_invoice_save($1,$2,'2000-01-01')",[id,'35261112345678000195550010000001241123456785']);
 }),'40001'));
+
+test('volumes da cotação só podem ser registrados pelo backend e mantêm o vínculo',async()=>{
+  await rejectsCode(()=>as('authenticated',A,()=>rows('select public.service_register_shipping_quote_v2($1,$2,$3::jsonb,500,$4,$5,$6,now()+interval \'10 minutes\',$7::jsonb)',[A,AA,'{}','A','B','1','[]'])),'42501');
+  await as('service_role',null,async()=>{
+    const {snapshot}=await preparedQuote();
+    const packages=[{width:20,height:10,length:30,weight:1.25}];
+    const result=(await rows('select public.service_register_shipping_quote_v2($1,$2,$3::jsonb,500,$4,$5,$6,now()+interval \'10 minutes\',$7::jsonb) as id',[A,AA,JSON.stringify(snapshot),'Correios','PAC','1',JSON.stringify(packages)]))[0];
+    assert.deepEqual((await rows('select packages from private.shipping_quotes where id=$1',[result.id]))[0].packages,packages);
+  });
+  await rejectsCode(()=>as('service_role',null,async()=>{
+    const {snapshot}=await preparedQuote();
+    await rows('select public.service_register_shipping_quote_v2($1,$2,$3::jsonb,500,$4,$5,$6,now()+interval \'10 minutes\',$7::jsonb)',[A,AA,JSON.stringify(snapshot),'Correios','PAC','1',JSON.stringify([{width:20,height:10,length:30,weight:0}])]);
+  }),'22023');
+});

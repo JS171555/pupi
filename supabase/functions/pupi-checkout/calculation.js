@@ -8,6 +8,16 @@ export function providerProducts(snapshot) {
     return {id:product_id,quantity,width:width_mm/10,height:height_mm/10,length:length_mm/10,weight:weight_grams/1000,insurance_value:price_cents/100};
   });
 }
+export function providerPackages(packages) {
+  if (!Array.isArray(packages) || !packages.length || packages.length>20) return null;
+  const numeric=value=>{
+    if ((typeof value!=='string' && typeof value!=='number') || !/^\d+(?:\.\d+)?$/.test(String(value))) return null;
+    const number=Number(value);return Number.isFinite(number) && number>0 && number<=100000 ? number : null;
+  };
+  const normalized=packages.map(item=>({height:numeric(item?.dimensions?.height),width:numeric(item?.dimensions?.width),
+    length:numeric(item?.dimensions?.length),weight:numeric(item?.weight)}));
+  return normalized.some(item=>Object.values(item).some(value=>value===null)) ? null : normalized;
+}
 export function parseProviderOptions(result) {
   if (!Array.isArray(result)) throw new Error('invalid_provider_response');
   const options=[];
@@ -19,7 +29,7 @@ export function parseProviderOptions(result) {
     const serviceId=String(option.id),carrier=String(option.company.name).trim(),serviceName=String(option.name).trim();
     if (!Number.isSafeInteger(cents) || cents>2147483647 || serviceId.length>120 || !carrier || carrier.length>120 || !serviceName || serviceName.length>120) continue;
     const days=option.custom_delivery_time == null ? NaN : Number(option.custom_delivery_time);
-    options.push({serviceId,carrier,serviceName,cents,days:Number.isSafeInteger(days)&&days>=0?days:null});
+    options.push({serviceId,carrier,serviceName,cents,days:Number.isSafeInteger(days)&&days>=0?days:null,packages:providerPackages(option.packages)});
   }
   return options;
 }

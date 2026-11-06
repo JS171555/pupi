@@ -66,10 +66,16 @@ As configurações do Melhor Envio ainda não foram fornecidas; o usuário escol
 
 O usuário escolheu NF-e emitida em sistema fiscal externo, com a chave registrada no Pupi. A migration `20261106032930_pupi_order_invoices.sql` foi aplicada ao Supabase Pupi. Na administração de cada pedido, é possível registrar a chave de uma nota já emitida; a chave modelo 55 e o dígito verificador são conferidos, com acesso apenas a administradores e controle de versão. Isso não emite NF-e nem consulta sua autorização na SEFAZ.
 
+## Etapa 16 — volumes cotados
+
+A migration `20261106035539_pupi_shipping_packages.sql` foi aplicada e a Edge Function de checkout atualizada. As cotações novas conservam os volumes válidos retornados pelo Melhor Envio, em centímetros e quilogramas, vinculados à cotação escolhida. Se o provedor não os retornar ou os dados forem inválidos, não são inventados volumes. Cotações anteriores não recebem esses dados retroativamente. O teste no PostgreSQL hospedado passou e foi revertido.
+
+O usuário informou que os testes na Vercel funcionaram; isso não confirma integração real com o Melhor Envio, que ainda requer configuração e homologação.
+
 ## Falta para concluir
 
 1. Configurar credenciais do Melhor Envio no servidor e homologar cotação e confirmação no sandbox com dados reais controlados. Verificar peso e dimensões de produtos e CEP de origem.
-2. Implementar registro de remessa, consulta de rastreamento e atualização confiável de eventos do Melhor Envio. O fluxo comercial exige chave da NF-e, inscrição estadual e dados reais de remetente/destinatário ainda não coletados; não inventar dados nem simular emissão. A entrega manual do painel continua disponível.
+2. Implementar registro de remessa, consulta de rastreamento e atualização confiável de eventos do Melhor Envio; usar os volumes efetivamente retornados na cotação. O fluxo comercial exige chave da NF-e, inscrição estadual e dados reais de remetente/destinatário ainda não coletados; não inventar dados nem simular emissão. A entrega manual do painel continua disponível.
 3. Homologar o fluxo completo em navegador com dois usuários, concorrência, falhas de rede, estoque e cotações expiradas. O checkout foi exercitado localmente e em SQL hospedado com rollback; a API externa real ainda não foi testada.
 4. Definir provedor financeiro na fase apropriada. Os pedidos são criados com pagamento pendente; não há cobrança ou aprovação simulada.
 5. Regularizar o histórico da migration inicial aplicada manualmente antes de futuro `supabase db push`.
