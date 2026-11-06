@@ -5,6 +5,8 @@ description: Área de conta e administração de um petshop, com testes funciona
 colors:
   primary: "#6D42B5"
   brand: "#A78BFA"
+  pink: "#F4B8D5"
+  mint: "#8BCDB0"
   lavender: "#DDD2FF"
   soft: "#EDE5FF"
   background: "#FAF8FF"
@@ -47,13 +49,13 @@ components:
 
 Público: clientes de petshop no Brasil. Clientes criam e acessam a conta; administradores gerenciam catálogo, estoque e operação dos pedidos. Interface pt-BR, uso prioritário em celular, registro de produto. O briefing e `docs/security.md` definem as restrições; não há tela irmã anterior.
 
-A referência é uma ficha de atendimento acolhedora: nome da pessoa, dados legíveis, seções curtas. A assinatura é a palavra `pupi` acompanhada de uma patinha discreta. A loja e o checkout da Fase 4 mantêm o caráter funcional, sem antecipar animações ou o acabamento da Fase 5. O resumo administrativo usa indicadores reais, com significado explícito para pagamentos. Evitar anúncios e estatísticas ilustrativas.
+A referência é uma ficha de atendimento acolhedora: nome da pessoa, dados legíveis, seções curtas. A assinatura é a palavra `pupi` acompanhada de uma patinha discreta. A loja tem uma vitrine acolhedora, com lilás, rosa suave e navegação inferior no celular. O checkout mantém os dados e estados reais em primeiro plano. O resumo administrativo usa indicadores reais, com significado explícito para pagamentos. Evitar anúncios e estatísticas ilustrativas.
 
 Fonte normativa dos tokens: frontmatter deste arquivo. `scripts/design-tokens.js` gera `src/styles/tokens.css`; componentes consomem apenas essas variáveis. `npm run design:check` detecta divergência. Não editar o arquivo CSS gerado à mão. Tema claro; modo de alto contraste usa cores de sistema.
 
 ## Colors
 
-A paleta preserva o roxo e a lavanda fornecidos pelo projeto. `primary` é a variante escura para ações e texto com contraste. `brand`, `lavender` e `soft` são superfícies e detalhes. Erros, sucesso e avisos têm texto e ícones além de cor. Valores exatos são gerados como `--color-<nome>`.
+A paleta preserva exatamente o roxo, a lavanda, o rosa e o verde fornecidos no PDF; cores mais escuras complementam a paleta para garantir contraste no texto. `primary` é a variante escura para ações e texto com contraste. `brand`, `lavender` e `soft` são superfícies e detalhes. Erros, sucesso e avisos têm texto e ícones além de cor. Valores exatos são gerados como `--color-<nome>`.
 
 ## Typography
 
@@ -65,7 +67,7 @@ Conteúdo de até `page-max`, margens de 1rem em celular e 2rem em desktop. Form
 
 ## Elevation & Depth
 
-Cartões têm borda discreta, sem sombras decorativas. Dialog modal é a única camada elevada. Sem animações de entrada, parallax ou transições de página nesta fase.
+Cartões têm borda discreta, sem sombras decorativas. Dialog modal é a única camada elevada. Transições GSAP discretas acompanham a troca de telas, com respeito à preferência por movimento reduzido; sem parallax.
 
 ## Shapes
 

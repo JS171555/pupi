@@ -1,6 +1,9 @@
 import {el, link, heading, money} from '../../ui/dom.js';
 import {makeForm} from '../../ui/forms.js';
 import {AppError} from '../../utils/errors.js';
+import {createElement, PawPrint, ArrowUpRight, Sparkles, SlidersHorizontal} from 'lucide';
+
+const icon=definition=>createElement(definition,{'aria-hidden':'true','stroke-width':1.7});
 
 async function primaryImages(repository, media, products) {
   if (!products.length) return new Map();
@@ -14,7 +17,7 @@ async function primaryImages(repository, media, products) {
   } catch { return new Map(); }
 }
 function productImage(image, name) {
-  const placeholder = () => el('p', {className:'media-placeholder'}, 'Imagem indisponível');
+  const placeholder = () => el('div', {className:'media-placeholder store-image-empty'}, [icon(PawPrint),el('span',{},'Imagem indisponível')]);
   if (!image) return placeholder();
   const node = el('img', {src:image.url, alt:image.alt_text || name, width:180, height:180, loading:'lazy', className:'media-preview'});
   node.addEventListener('error', () => node.replaceWith(placeholder()), {once:true});
@@ -44,17 +47,32 @@ export async function storeCatalog(repository, params, go, media) {
   ]);
   form.addEventListener('submit',event=>{event.preventDefault();const query=new URLSearchParams();if(select.value)query.set('categoria',select.value);if(searchInput.value.trim())query.set('busca',searchInput.value.trim());if(order.value!=='recent')query.set('ordem',order.value);if(selection.value)query.set('filtro',selection.value);go('/loja'+(query.size?'?'+query:''));});
   const images=await primaryImages(repository, media, products);
-  const cards=products.map(product=>el('li',{className:'record-card'},[
-    productImage(images.get(product.id),product.name),
+  const cards=products.map(product=>el('li',{className:'record-card product-card'},[
+    el('div',{className:'product-image-wrap'},productImage(images.get(product.id),product.name)),
     product.featured ? el('span',{className:'badge'},'Destaque') : null,
     el('h2',{},link(product.name,`#/loja/${product.slug}`)),
-    el('p',{},product.short_description),
+    product.short_description ? el('p',{className:'product-description'},product.short_description) : null,
     product.sale_price_cents!==null ? el('p',{},[el('del',{},money(product.price_cents)), ' ', el('strong',{},money(product.sale_price_cents))]) : el('p',{},money(product.price_cents)),
-    el('p',{className:'muted'},product.stock_quantity>0?'Disponível':'Indisponível'),
+    el('p',{className:`product-availability${product.stock_quantity>0?'':' is-unavailable'}`},product.stock_quantity>0?'Disponível':'Indisponível'),
+    link(['Ver produto ',icon(ArrowUpRight)],`#/loja/${product.slug}`,{className:'product-card-action','aria-label':`Ver produto ${product.name}`}),
   ]));
   const pageLink=(number,label)=>{const query=new URLSearchParams({pagina:String(number)});if(category)query.set('categoria',category);if(search)query.set('busca',search);if(sort!=='recent')query.set('ordem',sort);if(filter)query.set('filtro',filter);return link(label,`#/loja?${query}`,{className:'button button-secondary'});};
-  return el('section',{className:'panel'},[heading('Loja','Produtos para cuidar de quem está sempre ao seu lado.'),form,
-    cards.length?el('ul',{className:'record-list'},cards):el('p',{},'Nenhum produto encontrado nesta página.'),
+  const hero=el('div',{className:'store-hero'},[
+    el('div',{className:'store-hero-copy'},[el('p',{className:'store-kicker'},[icon(Sparkles),' UM JEITO CARINHOSO DE CUIDAR']),
+      el('h1',{},'Loja'),el('h2',{},['Mais amor para ',el('span',{},'cada patinha.')]),
+      el('p',{},'Tudo para acompanhar os momentos especiais com quem está sempre ao seu lado.'),
+      el('a',{href:'#catalogo',className:'store-hero-link'},['Explorar produtos ',icon(ArrowUpRight)])]),
+    el('div',{className:'store-hero-art','aria-hidden':'true'},[el('div',{className:'store-paw-halo'},icon(PawPrint)),el('span',{className:'store-art-caption'},'feito com carinho')]),
+  ]);
+  hero.querySelector('.store-hero-link').addEventListener('click',event=>{event.preventDefault();document.querySelector('#catalogo')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});});
+  const categoryLinks=categories.length?el('section',{className:'store-categories'},[
+    el('div',{className:'store-section-heading'},[el('div',{},[el('p',{className:'store-section-eyebrow'},'ENCONTRE O QUE PRECISA'),el('h2',{},'Explore por categoria')])]),
+    el('div',{className:'category-chips'},[link('Todas','#/loja',{className:`category-chip${!category?' is-active':''}`}),...categories.map(item=>link([icon(PawPrint),item.name],`#/loja?categoria=${encodeURIComponent(item.id)}`,{className:`category-chip${category===item.id?' is-active':''}`}))]),
+  ]):null;
+  return el('section',{className:'store-page'},[hero,categoryLinks,
+    el('div',{id:'catalogo',className:'store-section-heading'},[el('div',{},[el('p',{className:'store-section-eyebrow'},'ESCOLHIDOS PARA VOCÊ'),el('h2',{},'Encontre seu favorito')]),el('p',{className:'muted'},'Explore os produtos da loja')]),
+    el('details',{className:'store-filters',open:window.matchMedia('(min-width: 48rem)').matches||Boolean(category||search||filter||sort!=='recent')},[el('summary',{},[icon(SlidersHorizontal),'Buscar e filtrar produtos']),form]),
+    cards.length?el('ul',{className:'record-list product-grid'},cards):el('div',{className:'store-empty'},[icon(PawPrint),el('h3',{},'Nenhum produto encontrado'),el('p',{className:'muted'},'Tente ajustar os filtros para encontrar o que procura.')]),
     el('nav',{className:'pagination','aria-label':'Páginas do catálogo'},[page>1?pageLink(page-1,'Anterior'):null,el('span',{},`Página ${page}`),products.length===20?pageLink(page+1,'Próxima'):null])]);
 }
 

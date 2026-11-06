@@ -29,5 +29,9 @@ Configurar o evento de pagamentos no webhook `https://loifqxmmnmhpwnwcvrak.supab
 - Uma resposta perdida é recuperada automaticamente quando o provedor retorna exatamente uma preferência compatível. Se a busca for vazia, ambígua ou inconsistente, a tentativa permanece bloqueada para evitar cobrança duplicada e exige reconciliação técnica. Ainda não há cancelamento seguro no painel enquanto existir uma tentativa aberta; estoque e pedido permanecem preservados.
 - Um alerta no pedido administrativo indica múltiplos pagamentos, contestações ou estornos parciais; a resolução financeira e o estorno continuam a cargo do Mercado Pago e de conferência manual.
 - É necessário homologar a instalação PWA nos navegadores e dispositivos alvo. O cache contém apenas os arquivos públicos da aplicação; operações que precisam da rede permanecem indisponíveis offline.
-- O acabamento visual, a navegação de aplicativo, as animações e demais melhorias de UI/UX ficam para a última etapa, conforme solicitado.
+- A etapa visual usa as cores do PDF, navegação inferior no celular, ícones Lucide e transições GSAP com suporte a movimento reduzido. A vitrine e os componentes compartilhados foram atualizados; a homologação com os dados reais da loja permanece necessária.
 - A Fase 4 ainda requer homologação do registro de remessa e implementação da consulta de rastreamento; o usuário já confirmou a cotação e criação de pedido com pagamento pendente.
+
+## Etapa visual
+
+A vitrine apresenta categorias cadastradas, filtros acessíveis, produtos reais e estados vazios; nenhuma categoria ou produto de demonstração é criado. A navegação mobile mantém acesso a conta, pedidos, carrinho e opções adicionais, preservando as regras de sessão e alterações não salvas. As cores normativas estão em `DESIGN.md`; os tokens CSS são gerados. A biblioteca GSAP anima entradas sem movimento quando o sistema solicita redução de movimento.

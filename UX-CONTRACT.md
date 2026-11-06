@@ -38,6 +38,8 @@ Clientes brasileiros, pt-BR, celular e desktop. Datas de conta em America/Sao_Pa
 
 ## Navegação e permissões
 
+No celular, a navegação inferior apresenta Loja, Carrinho, Pedidos e Conta/Entrar com texto e ícones Lucide. O menu Mais preserva acesso a endereços, administração, cadastro e saída conforme a sessão; desktop mantém a navegação principal visível. Os links usam o mesmo controle de alterações não salvas e permissões das rotas existentes. Na vitrine, os filtros podem ser abertos por teclado e toque; filtros ativos permanecem visíveis. As transições GSAP respeitam `prefers-reduced-motion` e não impedem interação.
+
 Rotas por hash, títulos por página e botão Voltar preservado. Conta, endereços e pedidos exigem usuário validado com getUser. Acesso administrativo consulta função no banco e uma RPC; cliente recebe página 403 ao acessar diretamente. Nenhuma decisão usa user_metadata. RLS e GRANTs continuam sendo a autorização real do backend.
 
 Páginas de auth são públicas. `/nova-senha` exige callback PKCE de recuperação ou marcador temporário dessa sessão validada; query string sozinha não autoriza troca. Callbacks são limpos da URL depois de processados. Retorno interno é limitado às rotas conhecidas; não usar next externo.

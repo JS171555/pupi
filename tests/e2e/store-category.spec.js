@@ -41,3 +41,19 @@ test('cliente salva quantidade escolhida e não grava acima do estoque',async({p
   await page.getByRole('textbox',{name:'Quantidade'}).fill('2');await page.getByRole('button',{name:'Salvar no carrinho'}).click();
   await expect(page.getByText('Quantidade salva no carrinho.')).toBeVisible();expect(writes).toHaveLength(1);expect(writes[0].quantity).toBe(2);
 });
+
+test('vitrine mobile oferece navegação e filtros sem movimento nem rolagem horizontal',async({page})=>{
+  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
+  await page.route('https://pupi-test.supabase.co/**',async route=>{
+    const url=new URL(route.request().url());
+    const data=url.pathname==='/rest/v1/categories'?[{id:'10000000-0000-4000-8000-000000000001',name:'Brinquedos',slug:'brinquedos',sort_order:0}]:[];
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
+  });
+  await page.goto('/#/loja');await expect(page.getByRole('heading',{name:'Loja',exact:true})).toBeVisible();
+  const nav=page.getByRole('navigation',{name:'Navegação inferior'});await expect(nav).toBeVisible();
+  await expect(nav.getByRole('link',{name:'Loja'})).toHaveAttribute('aria-current','page');
+  await page.getByText('Buscar e filtrar produtos').click();await expect(page.getByLabel('Categoria')).toBeVisible();
+  await page.getByLabel('Mais opções').click();await expect(page.getByRole('link',{name:'Criar conta'})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  expect(await page.locator('#main').evaluate(el=>getComputedStyle(el.firstElementChild).transform)).toBe('none');
+});

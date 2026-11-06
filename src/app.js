@@ -1,4 +1,5 @@
-import { createElement, PawPrint, UserRound, MapPin, Package, LogOut } from 'lucide';
+import { createElement, PawPrint, UserRound, MapPin, Package, LogOut, Store, ShoppingBag, Menu } from 'lucide';
+import { gsap } from 'gsap';
 import { createPupiClient } from './services/supabase.js';
 import { readPublicConfig } from './config/environment.js';
 import { createAuthService, TEST_NOTICE_VERSION } from './modules/auth/service.js';
@@ -21,6 +22,7 @@ import {createAdminMediaService} from './services/admin-media.js';
 import {renderAdmin,resetPrivateAdminUI} from './modules/admin/router.js';
 import './styles/app.css';
 import './styles/admin.css';
+import './styles/experience.css';
 
 const main = document.querySelector('#main');
 const header = document.querySelector('#header');
@@ -30,6 +32,17 @@ const state = { user: null, profile: null, role: null, busy: false, booting: tru
 let client; let auth; let repository;let adminRepository;let adminMedia;let catalogRepository;let catalogMedia;let cartRepository;
 const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
 const busy = value => { state.busy = value; };
+// Transições curtas não atrasam leitura, interação ou navegação sem movimento.
+const motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
+const viewObserver=new MutationObserver(()=>{
+  const view=main.firstElementChild;
+  if(!view||view.classList.contains('loading')||motionPreference.matches)return;
+  gsap.fromTo(view,{opacity:0,y:8},{opacity:1,y:0,duration:.28,ease:'power2.out',clearProps:'opacity,transform',overwrite:true});
+  const cards=[...view.querySelectorAll('.product-card')].slice(0,8);
+  if(cards.length)gsap.fromTo(cards,{opacity:0,y:8},{opacity:1,y:0,duration:.28,stagger:.035,ease:'power2.out',clearProps:'opacity,transform',overwrite:true});
+});
+viewObserver.observe(main,{childList:true});
+motionPreference.addEventListener('change',event=>{if(event.matches&&main.firstElementChild){const nodes=[main.firstElementChild,...main.querySelectorAll('.product-card')];gsap.killTweensOf(nodes);gsap.set(nodes,{clearProps:'opacity,transform'});}});
 function clearPrivateState() { state.user = null; state.profile = null; state.role = null;adminRepository?.clear();adminMedia?.clear();resetPrivateAdminUI(); }
 function clearRecovery() {
   state.recovery = false;
@@ -53,7 +66,17 @@ function renderHeader(route = '') {
   if (state.role === 'admin') routes.push(['Administração', '/admin']);
   for (const [label, path] of routes) navigation.append(link(label, `#${path}`, { 'aria-current': route.startsWith(path) ? 'page' : undefined }));
   if (state.user) navigation.append(button([icon(LogOut), 'Sair'], logout, 'ghost'));
-  header.replaceChildren(brand, navigation);
+  const mobileMenu = el('details', {className:'mobile-menu'}, [
+    el('summary', {'aria-label':'Mais opções'}, [icon(Menu),el('span',{},'Mais')]),
+    el('nav', {className:'mobile-menu-panel','aria-label':'Links adicionais'}, [
+      ...routes.filter(([,path])=>!['/loja','/carrinho','/pedidos','/conta'].includes(path)).map(([label,path])=>link(label,`#${path}`,{'aria-current':route.startsWith(path)?'page':undefined})),
+      state.user ? button([icon(LogOut),'Sair'],logout,'ghost') : null,
+    ]),
+  ]);
+  const tabs=[['Loja','/loja',Store],['Carrinho','/carrinho',ShoppingBag],['Pedidos','/pedidos',Package],[state.user?'Conta':'Entrar',state.user?'/conta':'/entrar',UserRound]];
+  const bottom=el('nav',{className:'mobile-tabs','aria-label':'Navegação inferior'},tabs.map(([label,path,image])=>
+    link([icon(image),el('span',{},label)],`#${path}`,{'aria-current':route.startsWith(path)?'page':undefined})));
+  header.replaceChildren(brand, navigation, mobileMenu, bottom);
 }
 async function canLeave() {
   if (state.busy) { notify('Aguarde a confirmação da operação antes de sair desta tela.'); return false; }
@@ -135,6 +158,12 @@ async function render() {
   try {
     if (route === '/loja' || /^\/loja\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(route)) {
       document.title = 'Loja | Pupi';
+      if(!state.user) auth.user().then(async user=>{
+        if(!user || generation!==state.generation)return;
+        state.user=user;renderHeader(route);
+        const role=await repository.role(user.id).catch(()=>null);
+        if(role && generation===state.generation && state.user?.id===user.id){state.role=role;renderHeader(route);}
+      }).catch(()=>{});
       const addToCart = async (product, quantity) => {
         const user = await auth.user();
         if (!user) {
