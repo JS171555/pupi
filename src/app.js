@@ -3,6 +3,8 @@ import { createPupiClient } from './services/supabase.js';
 import { readPublicConfig } from './config/environment.js';
 import { createAuthService, TEST_NOTICE_VERSION } from './modules/auth/service.js';
 import { createAccountRepository } from './repositories/account.js';
+import { createCatalogRepository } from './repositories/catalog.js';
+import { storeCatalog, storeProduct } from './modules/store/catalog.js';
 import { authView, noticeView, onboardingView } from './modules/auth/views.js';
 import { profileView, addressesView, addressFormView, ordersView, orderView } from './modules/account/views.js';
 import { el, link, button, heading, empty } from './ui/dom.js';
@@ -20,7 +22,7 @@ const header = document.querySelector('#header');
 const status = document.querySelector('#connection-status');
 const state = { user: null, profile: null, role: null, busy: false, booting: true, generation: 0, controller: null,
   currentHash: location.hash || '#/entrar', recovery: false, destination: '/conta' };
-let client; let auth; let repository;let adminRepository;let adminMedia;
+let client; let auth; let repository;let adminRepository;let adminMedia;let catalogRepository;
 const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
 const busy = value => { state.busy = value; };
 function clearPrivateState() { state.user = null; state.profile = null; state.role = null;adminRepository?.clear();adminMedia?.clear();resetPrivateAdminUI(); }
@@ -41,6 +43,7 @@ function renderHeader(route = '') {
   const brand = link([icon(PawPrint), 'pupi'], state.user ? '#/conta' : '#/entrar', { className: 'brand', 'aria-label': 'Pupi, minha conta' });
   const navigation = el('nav', { className: 'navigation', 'aria-label': 'Navegação principal' });
   const routes = state.user ? [['Meus dados', '/conta'], ['Endereços', '/enderecos'], ['Pedidos', '/pedidos']] : [['Entrar', '/entrar'], ['Criar conta', '/cadastro']];
+  routes.unshift(['Loja', '/loja']);
   if (state.role === 'admin') routes.push(['Administração', '/admin']);
   for (const [label, path] of routes) navigation.append(link(label, `#${path}`, { 'aria-current': route.startsWith(path) ? 'page' : undefined }));
   if (state.user) navigation.append(button([icon(LogOut), 'Sair'], logout, 'ghost'));
@@ -124,6 +127,12 @@ async function render() {
   document.title = `${title} | Pupi`; notify(''); renderHeader(route);
   main.replaceChildren(el('p', { className: 'loading', role: 'status' }, 'Carregando…'));
   try {
+    if (route === '/loja' || /^\/loja\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(route)) {
+      document.title = 'Loja | Pupi';
+      const view = route === '/loja' ? await storeCatalog(catalogRepository, address.searchParams, go) : await storeProduct(catalogRepository, route.slice(6));
+      if (generation === state.generation) main.replaceChildren(view);
+      return;
+    }
     if (route === '/aviso') { main.replaceChildren(noticeView()); return; }
     const publicRoute = ['/entrar', '/cadastro', '/recuperar', '/nova-senha'].includes(route);
     const user = await auth.user();
@@ -228,7 +237,7 @@ async function start() {
     const config = readPublicConfig(__PUPI_CONFIG__);
     client = createPupiClient(__PUPI_CONFIG__, { auth: { detectSessionInUrl: false } });
     auth = createAuthService(client, location.origin, config); repository = createAccountRepository(client);
-    adminRepository=createAdminRepository(client);adminMedia=createAdminMediaService(client,adminRepository);
+    catalogRepository=createCatalogRepository(client);adminRepository=createAdminRepository(client);adminMedia=createAdminMediaService(client,adminRepository);
     try { state.recovery = sessionStorage.getItem('pupi-password-recovery') === 'active'; } catch { /* Marcador opcional. */ }
     const callbackUrl = new URL(location.href);
     const hasCallback = callbackUrl.searchParams.has('code') || callbackUrl.searchParams.has('error')
