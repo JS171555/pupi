@@ -24,10 +24,14 @@ Os testes locais cobriram titularidade, repetição, pedido cancelado e bloqueio
 
 A montagem da preferência do Checkout Pro foi preparada em `supabase/functions/_shared/mercado-pago/preference.js`. Ela recebe somente o snapshot do pedido que deverá ser recuperado pelo backend, confere produtos, quantidade, moeda e soma em centavos, inclui o frete e constrói os endereços de retorno e notificação a partir de origens configuradas no servidor. O construtor é isolado: ainda não chama o Mercado Pago nem está conectado à aplicação. O endpoint de notificação indicado ainda precisa ser criado antes de ativar o pagamento. Os testes usam dados fictícios.
 
+O fluxo básico de recepção de notificações foi preparado em `supabase/functions/_shared/mercado-pago/webhook.js`: verifica a assinatura, consulta o pagamento na API do Mercado Pago e só responde com sucesso após um processador confirmar a gravação durável. Falhas de consulta ou processamento retornam erro para permitir nova notificação. Testes com dados fictícios cobrem assinatura inválida, falhas do provedor e processamento pendente.
+
+Esse código ainda não está implantado nem conectado a um processador real. Antes de ativá-lo, é necessário implementar a conferência do pagamento contra o pedido e o vendedor, a persistência idempotente e a reconciliação transacional. Ele não altera o status dos pedidos.
+
 ## Próximas etapas
 
 1. Integrar a montagem da preferência à função autenticada de backend, criar a preferência no Mercado Pago e implementar armazenamento e recuperação segura de tentativas simultâneas ou respostas perdidas. Não ativar cobranças antes do receptor e da reconciliação estarem completos.
-2. Implementar o receptor de notificações e a consulta autenticada do pagamento ao Mercado Pago, usando as verificações preparadas; persistir eventos idempotentes, sem confiar no retorno do navegador.
+2. Conectar o receptor preparado a um processador que verifique o pedido e persista eventos de pagamento de forma idempotente; implantar e homologar somente depois da reconciliação transacional.
 3. Completar as regras transacionais para encerrar ou reconciliar tentativas, pagamentos duplicados, estornos e contestações. O bloqueio inicial de cancelamento e devolução de estoque já foi preparado.
 4. Adicionar o acesso ao pagamento no pedido e os estados de espera e recuperação.
 5. Configurar credenciais e webhook posteriormente, e homologar com contas de teste antes de permitir pagamentos reais.
