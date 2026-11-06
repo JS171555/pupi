@@ -37,8 +37,8 @@ spacing:
 components:
   button:
     height: "2.75rem"
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.text}"
+    backgroundColor: "{colors.accent-ink}"
+    textColor: "{colors.white}"
   input:
     height: "2.75rem"
     backgroundColor: "{colors.surface}"
@@ -61,7 +61,7 @@ Fonte normativa dos tokens: frontmatter deste arquivo. `scripts/design-tokens.js
 
 ## Colors
 
-A paleta oficial usa `primary`/`brand` #A78BFA, `lavender` #DDD2FF, `soft` #EDE5FF, `background` #FAF8FF, `surface` #FFFFFF, `text` #302746, `pink` #F4B8D5 e `mint`/`success` #8BCDB0. Roxo e verde claros são fundos/indicadores, não cores de texto pequeno: texto em botões e estados usa `text` para contraste. Cores complementares de borda, aviso e erro ficam restritas a seus estados semânticos. Valores são gerados como `--color-<nome>`. `accent-ink` #6D42B5 é reservado para foco, links e ícones informativos com contraste sobre fundos claros; a cor de marca #A78BFA permanece nas superfícies. Botões lilás usam texto escuro, inclusive no carregamento.
+A paleta oficial usa `primary`/`brand` #A78BFA, `lavender` #DDD2FF, `soft` #EDE5FF, `background` #FAF8FF, `surface` #FFFFFF, `text` #302746, `pink` #F4B8D5 e `mint`/`success` #8BCDB0. Fundos claros e estados suaves usam `text` para leitura. Cores complementares de borda, aviso e erro ficam restritas a seus estados semânticos. Valores são gerados como `--color-<nome>`. `accent-ink` #6D42B5 aparece em foco, links, ícones e nos botões roxos preenchidos; a cor de marca #A78BFA permanece nas demais superfícies. Botões roxos preenchidos, categorias selecionadas e seção administrativa ativa usam texto e ícones brancos, com contraste de 6,78:1. O loading desses botões também usa patinha branca; ações de texto sobre fundo claro mantêm o indicador roxo.
 
 ## Typography
 

@@ -63,7 +63,7 @@ input[aria-invalid='true'], select[aria-invalid='true'] { border-color: var(--co
 .button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .6rem 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-default); text-decoration: none; font-weight: 600; background: var(--color-surface); color: var(--color-text); }
 .button:hover:not(:disabled) { background: var(--color-soft); border-color: var(--color-primary); }
 .button:active:not(:disabled) { transform: translateY(1px); }
-.button-primary { background: var(--color-primary); color: var(--color-text); border-color: var(--color-primary); }
+.button-primary { background: var(--color-accent-ink); color: var(--color-white); border-color: var(--color-accent-ink); }
 .button-primary:hover:not(:disabled) { background: var(--color-text); color: var(--color-surface); }
 .button-danger { border-color: var(--color-danger); background: var(--color-danger); color: var(--color-surface); }
 .button-danger:hover:not(:disabled) { background: var(--color-surface); color: var(--color-danger); }

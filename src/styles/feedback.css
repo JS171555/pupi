@@ -42,11 +42,12 @@
   #main>.loading>.loading-indicator {bottom:calc(84px + env(safe-area-inset-bottom));}
   #main>.loading>.loading-indicator>svg {width:72px;height:72px;}
 }
-.button.is-loading {position:relative;color:transparent;}
+.button.is-loading,.button.is-loading:hover,.cart-quantity-form .button.is-loading {position:relative;color:transparent;}
 .button.is-loading>svg {visibility:hidden;}
 .button-progress {position:absolute;inset:0;display:grid;place-items:center;color:var(--color-primary);}
 .button-progress>svg {width:23px;height:23px;}
-.button-primary .button-progress {color:var(--color-text);}
+.button-primary .button-progress {color:var(--color-white);}
+.cart-quantity-form .button-progress {color:var(--color-accent-ink);}
 .button-danger .button-progress {color:var(--color-surface);}
 @media(forced-colors:active) {.feedback-card,.dialog,.feedback-symbol,.feedback-glyph {border:1px solid CanvasText;}.button-progress {color:ButtonText;}}
 

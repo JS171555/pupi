@@ -6,6 +6,8 @@ Clientes brasileiros, pt-BR, celular e desktop. Datas de conta em America/Sao_Pa
 
 ## Contrato visual
 
+Botões roxos preenchidos usam `accent-ink` com texto e ícones brancos, incluindo o indicador de carregamento. Categorias selecionadas e a seção administrativa ativa seguem o mesmo par de cores. Hover, foco e movimento reduzido preservam a leitura; a ação ocupada oculta o rótulo visual e mantém apenas a patinha dentro do botão. Controles sobre fundos claros mantêm texto escuro.
+
 `DESIGN.md` gera `src/styles/tokens.css` por `scripts/design-tokens.js`. Componentes compartilham `src/styles/app.css`. Tema claro; cores de sistema em alto contraste. `npm run design:check` verifica os tokens.
 
 ## Canonical UI Map

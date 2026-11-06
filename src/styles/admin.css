@@ -5,7 +5,7 @@ textarea[aria-invalid='true'] {border-color:var(--color-danger);}
 .admin-nav {display:flex;flex-wrap:wrap;gap:.5rem;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-default);padding:.75rem;}
 .admin-nav a {min-height:44px;padding:.5rem .75rem;display:flex;align-items:center;text-decoration:none;border-radius:var(--radius-default);}
 .admin-nav a:hover {background:var(--color-soft);}
-.admin-nav a[aria-current='page'] {background:var(--color-primary);color:var(--color-surface);font-weight:700;}
+.admin-nav a[aria-current='page'] {background:var(--color-accent-ink);color:var(--color-white);font-weight:700;}
 .admin-metrics {display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:1rem;margin:0 0 1.25rem;}
 .admin-metrics>div {padding:1rem;border:1px solid var(--color-border);border-radius:var(--radius-default);}
 .admin-metrics dt {font-size:.875rem;color:var(--color-muted);}
