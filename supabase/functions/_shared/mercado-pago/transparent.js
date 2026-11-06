@@ -1,4 +1,5 @@
 import {createPaymentProcessor} from './processor.js';
+import {providerFailureStage} from './provider-error.js';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'};
 const reply=(status,code,error,extra={})=>new Response(JSON.stringify({code,error,...extra}),{status,headers:{...cors,'Content-Type':'application/json','Cache-Control':'no-store'}});
 const uuid=value=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
@@ -48,7 +49,7 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
       if((typeof account.id==='number'&&!Number.isSafeInteger(account.id))||String(account.id)!==collector){diagnose('PAYMENT_ACCOUNT_COLLECTOR_MISMATCH');return reply(503,'CONFIG_MISMATCH','A configuração de pagamento precisa ser conferida pela loja.');}
 
       if(body.action==='refresh') {
-        if(!data.submission)return ready(data);
+        if(!data.submission||(data.submission.state==='failed'&&!data.submission.result?.payment_id))return ready(data);
         const options={headers:{Authorization:`Bearer ${token}`,Accept:'application/json'},signal:AbortSignal.timeout(12000),redirect:'error'};
         if(data.submission.result?.payment_id) {
           const id=data.submission.result.payment_id;if(!/^\d{1,30}$/.test(id))return uncertain();
@@ -74,6 +75,9 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
         }
         const refreshed=await getContext();return refreshed.error?uncertain():ready(refreshed.data);
       }
+      // O modo de testes deve ser sustentado pela credencial ou pela conta de teste.
+      if(mode==='sandbox'&&!token.startsWith('TEST-')&&!(Array.isArray(account.tags)&&account.tags.includes('test_user'))){diagnose('PAYMENT_SANDBOX_CREDENTIALS_UNCONFIRMED');return reply(503,'CONFIG_MISMATCH','Confira as credenciais de teste da loja.');}
+      if(data.submission?.result?.reason==='test_attempt_released'&&mode!=='sandbox'){diagnose('PAYMENT_TEST_RECOVERY_REQUIRES_SANDBOX');return reply(503,'CONFIG_MISMATCH','Este pedido foi liberado somente para teste.');}
       if(!['confirmed','preparing'].includes(data.order_status)||data.payment_status!=='pending')return reply(409,'ORDER_UNAVAILABLE','Pedido indisponível para pagamento.');
       if(!uuid(body.request_key))return reply(400,'INVALID','Solicitação inválida.');
       let input;try{input=fields(body.form_data);}catch{return reply(400,'INVALID_DATA','Confira os dados de pagamento.');}
@@ -86,7 +90,10 @@ export function createTransparentPaymentHandler({createClient,env,fetchImpl=fetc
       try {
         const response=await fetchImpl('https://api.mercadopago.com/v1/payments',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',Accept:'application/json','X-Idempotency-Key':begin.data.idempotency_key},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000),redirect:'error'});
         if(!response.ok) {
-          diagnose('PAYMENT_PROVIDER_HTTP',{http_status:response.status});
+          const providerError=await response.json().catch(()=>null),stage=providerFailureStage(response.status,providerError);
+          diagnose(stage,{http_status:response.status});
+          if(stage==='PAYMENT_AUTHORIZATION_REJECTED')return reply(503,'CONFIG_MISMATCH','O provedor não autorizou a configuração de pagamento da loja.');
+          if(stage==='PAYMENT_IDEMPOTENCY_CONFLICT')return uncertain();
           if([400,422].includes(response.status)){const rejected=await admin.rpc('service_reject_transparent_payment',{p_order_id:body.order_id,p_request_key:body.request_key});if(!rejected.error&&rejected.data===true)return reply(422,'PAYMENT_REJECTED','O pagamento foi recusado. Confira os dados e tente novamente.');}
           return uncertain();
         }

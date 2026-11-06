@@ -21,3 +21,10 @@ test('vendedor incompatível gera diagnóstico e nunca aplica pagamento',async()
  const events=[],calls=[];const process=createPaymentProcessor({env:name=>({MERCADO_PAGO_COLLECTOR_ID:'99',MERCADO_PAGO_ENV:'sandbox'})[name],diagnose:stage=>events.push(stage),admin:{rpc:async(name)=>{calls.push(name);return {data:{order_id:order,total_cents:1500}};}}});
  assert.equal(await process({paymentId:'123',payment}),false);assert.deepEqual(events,['PAYMENT_COLLECTOR_MISMATCH']);assert.deepEqual(calls,['service_payment_context']);
 });
+
+test('erro do provedor vira categoria fixa sem propagar texto arbitrário',async()=>{
+ const {providerFailureStage}=await import('../supabase/functions/_shared/mercado-pago/provider-error.js');
+ assert.equal(providerFailureStage(400,{cause:[{code:2034,description:'private'}]}),'PAYMENT_TEST_USERS_INCOMPATIBLE');
+ assert.equal(providerFailureStage(400,{cause:[{code:3008}]}),'PAYMENT_CARD_TOKEN_REJECTED');
+ assert.equal(providerFailureStage(502,{message:'private',error:'arbitrary'}),'PAYMENT_PROVIDER_HTTP');
+});

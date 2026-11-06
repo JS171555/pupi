@@ -32,7 +32,8 @@ export function embeddedPaymentPanel({order,repository,signal,busy,onPaid}) {
       pending=null;await disposeBrick();busy(false);await onPaid();return;
     }
     if(!data.submission||data.submission.state==='failed') {
-      pending=null;await disposeBrick();content.replaceChildren(el('p',{},result?'Pagamento não aprovado. Você pode tentar novamente.':'Pronto para preencher seus dados.'),button('Tentar novamente',()=>initialize(true),'primary'));return;
+      const message=result?.reason==='test_attempt_released'?'Tentativa de teste encerrada após conferência. Você pode preencher os dados novamente.':result?'Pagamento não aprovado. Você pode tentar novamente.':'Pronto para preencher seus dados.';
+      pending=null;await disposeBrick();content.replaceChildren(el('p',{},message),button('Tentar novamente',()=>initialize(true),'primary'));return;
     }
     await disposeBrick();content.replaceChildren();
     if(result?.status==='pending'&&result.qr_code) {

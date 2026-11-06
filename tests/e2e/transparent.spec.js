@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {installApi,user} from './api.js';
 const id='50000000-0000-4000-8000-000000000001';
-async function setup(page,{pix=false,legacy=false,delay=0}={}) {
+async function setup(page,{pix=false,legacy=false,delay=0,releaseTest=false}={}) {
  const api=await installApi(page,{signedIn:true});
  api.orders.push({id,order_number:9,user_id:user.id,status:'confirmed',payment_status:'pending',subtotal_cents:3000,shipping_cents:500,total_cents:3500,created_at:'2026-11-05T12:00:00Z',address_snapshot:{recipient:'Pessoa Teste',street:'Rua teste',number:'1',neighborhood:'Centro',city:'São Paulo',state:'SP',postal_code:'01001000'},items:[],shipment:null});
  await page.addInitScript(({pix})=>{
@@ -15,7 +15,7 @@ async function setup(page,{pix=false,legacy=false,delay=0}={}) {
     }}};
   };
  },{pix});
- const requests=[];let submission=null;
+ const requests=[];let submission=releaseTest?{state:'failed',result:{status:'failed',reason:'test_attempt_released'}}:null;
  await page.route('**/functions/v1/pupi-mercadopago-checkout',async route=>{
    const body=route.request().postDataJSON();requests.push(body);
    if(legacy)return route.fulfill({status:409,json:{code:'LEGACY_PAYMENT'}});
@@ -47,4 +47,15 @@ test('sair da tela desmonta o formulário do provedor',async({page})=>{
 test('falha ao carregar SDK mantém o pedido e permite tentar novamente',async({page})=>{
  await setup(page);await page.evaluate(()=>{delete window.MercadoPago;});await page.route('https://sdk.mercadopago.com/**',route=>route.abort());await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
  await expect(page.getByText('Não foi possível carregar o formulário de pagamento. Tente novamente.')).toBeVisible();await expect(page.getByRole('button',{name:'Tentar carregar novamente'})).toBeVisible();expect(page.url()).toContain(`/#/pedidos/${id}`);
+});
+
+test('tentativa de teste conferida reabre formulário no mesmo pedido sem cobrança automática',async({page})=>{
+ await page.setViewportSize({width:390,height:844});const {requests}=await setup(page,{releaseTest:true});
+ await page.getByRole('button',{name:'Pagar com Mercado Pago'}).click();
+ await expect(page.getByText('Tentativa de teste encerrada após conferência. Você pode preencher os dados novamente.')).toBeVisible();
+ expect(requests.some(body=>body.action==='pay')).toBe(false);
+ await page.getByRole('button',{name:'Tentar novamente',exact:true}).press('Enter');
+ await expect(page.getByRole('button',{name:'Pagar cartão de teste'})).toBeVisible();
+ await page.getByRole('button',{name:'Pagar cartão de teste'}).click();await expect(page.getByText('Pagamento aprovado.',{exact:true})).toBeVisible();
+ expect(page.url()).toContain(`/#/pedidos/${id}`);expect(requests.filter(body=>body.action==='pay')).toHaveLength(1);
 });

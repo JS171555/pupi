@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {createTransparentPaymentHandler} from '../supabase/functions/_shared/mercado-pago/transparent.js';
 const order='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',requestKey='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',idempotency='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const form={payment_method_id:'master',token:'a'.repeat(32),installments:1,payer:{email:'buyer@example.test',identification:{type:'CPF',number:'12345678909'}}};
-function fixture({enabled=true,legacy=false,failedNetwork=false,pix=false,providerStatus=201,accountId=12,recover=false,detailMatch=true}={}) {
-  const calls=[],events=[];let submission=recover?{request_key:requestKey,state:'started'}:null;
-  const config={SUPABASE_URL:'https://example.supabase.co',SUPABASE_ANON_KEY:'anon',SUPABASE_SERVICE_ROLE_KEY:'service',MERCADO_PAGO_CHECKOUT_ENABLED:enabled?'true':'false',MERCADO_PAGO_ACCESS_TOKEN:'secret-token',MERCADO_PAGO_PUBLIC_KEY:'TEST-12345678-1234-1234-1234-123456789012',MERCADO_PAGO_ENV:'sandbox',MERCADO_PAGO_COLLECTOR_ID:'12',MERCADO_PAGO_WEBHOOK_SECRET:'secret-webhook'};
+function fixture({enabled=true,legacy=false,failedNetwork=false,pix=false,providerStatus=201,accountId=12,recover=false,detailMatch=true,providerError=null,accountTags=[],releaseTest=false}={}) {
+  const calls=[],events=[];let submission=releaseTest?{request_key:requestKey,state:'failed',result:{status:'failed',reason:'test_attempt_released'}}:recover?{request_key:requestKey,state:'started'}:null;
+  const config={SUPABASE_URL:'https://example.supabase.co',SUPABASE_ANON_KEY:'anon',SUPABASE_SERVICE_ROLE_KEY:'service',MERCADO_PAGO_CHECKOUT_ENABLED:enabled?'true':'false',MERCADO_PAGO_ACCESS_TOKEN:'TEST-secret-token',MERCADO_PAGO_PUBLIC_KEY:'TEST-12345678-1234-1234-1234-123456789012',MERCADO_PAGO_ENV:'sandbox',MERCADO_PAGO_COLLECTOR_ID:'12',MERCADO_PAGO_WEBHOOK_SECRET:'secret-webhook'};
   const context=()=>({order_id:order,order_number:1,total_cents:1500,order_status:'confirmed',payment_status:'pending',submission});
   const client={auth:{getUser:async()=>({data:{user:{id:order}}})}};
   const admin={rpc:async(name,args)=>{calls.push({name,args});if(name==='service_transparent_context')return legacy?{error:{message:'legacy_payment_attempt'}}:{data:context()};if(name==='service_begin_transparent_payment'){submission={request_key:requestKey,state:'started'};return {data:{can_submit:true,idempotency_key:idempotency}};}if(name==='service_payment_context')return {data:context()};if(name==='service_apply_provider_payment')return {data:pix?'pending':'paid'};if(name==='service_complete_transparent_payment'){submission={request_key:requestKey,state:args.p_state,result:args.p_result};return {data:true};}if(name==='service_reject_transparent_payment')return {data:true};throw Error(name);}};
-  const handler=createTransparentPaymentHandler({diagnose:(stage,details)=>events.push({stage,...details}),env:name=>config[name],createClient:(_u,key)=>key==='anon'?client:admin,fetchImpl:async(url,options)=>{calls.push({name:'provider',url,options});if(url.endsWith('/users/me'))return new Response(JSON.stringify({id:accountId}),{status:200});if(url.includes('/payments/search?'))return new Response(JSON.stringify({results:[{id:123}],paging:{total:1}}));if(failedNetwork)throw Error('network');return new Response(JSON.stringify({id:123,collector_id:12,external_reference:order,live_mode:false,currency_id:'BRL',transaction_amount:15,transaction_amount_refunded:0,status:pix?'pending':'approved',payment_method_id:pix?'pix':'master',date_last_updated:'2026-01-01T00:00:00Z',metadata:{pupi_submission_id:detailMatch?requestKey:idempotency},point_of_interaction:{transaction_data:{qr_code:'codigo-pix-teste',ticket_url:'https://external.test'}}}),{status:providerStatus});}});
+  const handler=createTransparentPaymentHandler({diagnose:(stage,details)=>events.push({stage,...details}),env:name=>config[name],createClient:(_u,key)=>key==='anon'?client:admin,fetchImpl:async(url,options)=>{calls.push({name:'provider',url,options});if(url.endsWith('/users/me'))return new Response(JSON.stringify({id:accountId,tags:accountTags}),{status:200});if(url.includes('/payments/search?'))return new Response(JSON.stringify({results:[{id:123}],paging:{total:1}}));if(failedNetwork)throw Error('network');return new Response(JSON.stringify(providerError||{id:123,collector_id:12,external_reference:order,live_mode:false,currency_id:'BRL',transaction_amount:15,transaction_amount_refunded:0,status:pix?'pending':'approved',payment_method_id:pix?'pix':'master',date_last_updated:'2026-01-01T00:00:00Z',metadata:{pupi_submission_id:detailMatch?requestKey:idempotency},point_of_interaction:{transaction_data:{qr_code:'codigo-pix-teste',ticket_url:'https://external.test'}}}),{status:providerStatus});}});
   const run=async(action='pay',data={})=>handler(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer valid','Content-Type':'application/json'},body:JSON.stringify({action,order_id:order,request_key:requestKey,form_data:pix?{...form,payment_method_id:'pix'}:form,...data})}));
   return {run,calls,config,events};
 }
@@ -52,4 +52,30 @@ test('resultado com vínculo diferente preserva tentativa e não aplica pagament
  assert.deepEqual(f.events,[{stage:'PAYMENT_SEARCH_EMPTY',candidate_count:1,match_count:0}]);
  assert.ok(!f.calls.some(c=>['service_apply_provider_payment','service_reject_transparent_payment','service_complete_transparent_payment'].includes(c.name)));
  assert.ok(f.calls.filter(c=>c.name==='provider').every(c=>c.options.method!=='POST'));
+});
+
+test('sandbox não envia cobrança com credencial de produção e conta sem confirmação de teste',async()=>{
+ const f=fixture();f.config.MERCADO_PAGO_ACCESS_TOKEN='APP_USR-test-placeholder';
+ assert.equal((await f.run()).status,503);assert.deepEqual(f.events,[{stage:'PAYMENT_SANDBOX_CREDENTIALS_UNCONFIRMED'}]);
+ assert.ok(!f.calls.some(c=>c.name==='service_begin_transparent_payment'||(c.name==='provider'&&c.options.method==='POST')));
+});
+test('conta identificada como test_user aceita credencial APP_USR no sandbox',async()=>{
+ const f=fixture({accountTags:['test_user']});f.config.MERCADO_PAGO_ACCESS_TOKEN='APP_USR-test-placeholder';assert.equal((await f.run()).status,200);
+});
+test('recuperação manual de teste não libera pagamento em produção',async()=>{
+ const f=fixture({releaseTest:true});f.config.MERCADO_PAGO_ENV='production';assert.equal((await f.run()).status,503);
+ assert.deepEqual(f.events,[{stage:'PAYMENT_TEST_RECOVERY_REQUIRES_SANDBOX'}]);assert.ok(!f.calls.some(c=>c.name==='service_begin_transparent_payment'));
+});
+test('autorização recusada informa configuração e preserva tentativa e dados privados',async()=>{
+ const f=fixture({providerStatus:403,providerError:{error:'unauthorized',message:'private-provider-details'}});const response=await f.run();
+ assert.equal((await response.json()).code,'CONFIG_MISMATCH');assert.deepEqual(f.events,[{stage:'PAYMENT_AUTHORIZATION_REJECTED',http_status:403}]);assert.ok(!f.calls.some(c=>c.name==='service_reject_transparent_payment'));
+});
+test('conflito de idempotência não é tratado como recusa que libera nova cobrança',async()=>{
+ const f=fixture({providerStatus:400,providerError:{cause:[{code:2001}]}});const response=await f.run();assert.equal((await response.json()).code,'PAYMENT_UNCERTAIN');
+ assert.deepEqual(f.events,[{stage:'PAYMENT_IDEMPOTENCY_CONFLICT',http_status:400}]);assert.ok(!f.calls.some(c=>c.name==='service_reject_transparent_payment'));
+});
+
+test('verificação reconhece teste encerrado sem buscar ou criar cobrança',async()=>{
+ const f=fixture({releaseTest:true});const response=await f.run('refresh');assert.equal(response.status,200);assert.equal((await response.json()).submission.result.reason,'test_attempt_released');
+ assert.ok(f.calls.filter(c=>c.name==='provider').every(c=>c.url.endsWith('/users/me')));
 });
