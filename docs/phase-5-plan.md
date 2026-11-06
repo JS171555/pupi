@@ -22,9 +22,11 @@ A migration `20261106062644_pupi_payment_attempts.sql` foi aplicada ao Supabase.
 
 Os testes locais cobriram titularidade, repetição, pedido cancelado e bloqueio de cancelamento; os privilégios foram conferidos no banco hospedado. Nenhuma credencial do Mercado Pago é necessária nesta etapa.
 
+A montagem da preferência do Checkout Pro foi preparada em `supabase/functions/_shared/mercado-pago/preference.js`. Ela recebe somente o snapshot do pedido que deverá ser recuperado pelo backend, confere produtos, quantidade, moeda e soma em centavos, inclui o frete e constrói os endereços de retorno e notificação a partir de origens configuradas no servidor. O construtor é isolado: ainda não chama o Mercado Pago nem está conectado à aplicação. O endpoint de notificação indicado ainda precisa ser criado antes de ativar o pagamento. Os testes usam dados fictícios.
+
 ## Próximas etapas
 
-1. Implementar a criação segura da preferência do Checkout Pro com valores calculados no servidor, vínculo ao pedido e tratamento seguro de tentativas simultâneas ou de resposta perdida.
+1. Integrar a montagem da preferência à função autenticada de backend, criar a preferência no Mercado Pago e implementar armazenamento e recuperação segura de tentativas simultâneas ou respostas perdidas. Não ativar cobranças antes do receptor e da reconciliação estarem completos.
 2. Implementar o receptor de notificações e a consulta autenticada do pagamento ao Mercado Pago, usando as verificações preparadas; persistir eventos idempotentes, sem confiar no retorno do navegador.
 3. Completar as regras transacionais para encerrar ou reconciliar tentativas, pagamentos duplicados, estornos e contestações. O bloqueio inicial de cancelamento e devolução de estoque já foi preparado.
 4. Adicionar o acesso ao pagamento no pedido e os estados de espera e recuperação.
