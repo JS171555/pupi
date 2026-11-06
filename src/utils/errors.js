@@ -21,6 +21,7 @@ export function toAppError(error) {
     media_not_uploaded: 'O arquivo ainda não foi confirmado no armazenamento. Tente enviar novamente.',
     media_file_exists: 'O arquivo ainda existe no armazenamento. Tente a limpeza novamente.',
     paid_order_refund_required: 'Pedidos pagos exigem o fluxo de estorno antes do cancelamento. O pagamento não foi alterado.',
+    payment_attempt_pending: 'Existe um pagamento em andamento. Aguarde a confirmação antes de cancelar o pedido.',
     shipment_registration_pending: 'Existe uma remessa em andamento. Confira o Melhor Envio antes de alterar este pedido ou a NF-e.',
     carrier_required: 'Informe a transportadora ou o responsável pela entrega antes de registrar o envio.',
   };

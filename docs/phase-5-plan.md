@@ -18,11 +18,15 @@ A verificação local de notificações assinadas do Mercado Pago e a conferênc
 
 O usuário informou que a cotação e a confirmação do pedido no Melhor Envio funcionaram e que o pagamento permaneceu pendente. O registro de remessa e o rastreamento continuam com pendências próprias na Fase 4.
 
+A migration `20261106062644_pupi_payment_attempts.sql` foi aplicada ao Supabase. Ela prepara um registro privado e único de tentativa por pedido, captura os valores e itens do banco, verifica a titularidade e impede cancelamento e devolução do estoque enquanto houver uma tentativa em aberto. A função é restrita ao backend e ainda não é chamada pela aplicação: não cria preferência, não cobra e não altera o pagamento. Repetições retornam a mesma tentativa; a recuperação e o encerramento seguros ainda precisam ser implementados antes do uso.
+
+Os testes locais cobriram titularidade, repetição, pedido cancelado e bloqueio de cancelamento; os privilégios foram conferidos no banco hospedado. Nenhuma credencial do Mercado Pago é necessária nesta etapa.
+
 ## Próximas etapas
 
 1. Implementar a criação segura da preferência do Checkout Pro com valores calculados no servidor, vínculo ao pedido e tratamento seguro de tentativas simultâneas ou de resposta perdida.
 2. Implementar o receptor de notificações e a consulta autenticada do pagamento ao Mercado Pago, usando as verificações preparadas; persistir eventos idempotentes, sem confiar no retorno do navegador.
-3. Definir e implementar as regras transacionais para impedir que um pedido seja cancelado ou o estoque seja devolvido enquanto houver pagamento em processamento, além de reconciliar pagamentos duplicados, estornos e contestações.
+3. Completar as regras transacionais para encerrar ou reconciliar tentativas, pagamentos duplicados, estornos e contestações. O bloqueio inicial de cancelamento e devolução de estoque já foi preparado.
 4. Adicionar o acesso ao pagamento no pedido e os estados de espera e recuperação.
 5. Configurar credenciais e webhook posteriormente, e homologar com contas de teste antes de permitir pagamentos reais.
 

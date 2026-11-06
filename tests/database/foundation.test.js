@@ -623,3 +623,24 @@ test('retentativa somente após rejeição confirmada; cancelamento da etiqueta 
   await rows("update public.orders set status='cancelled' where id=$1",[order]);
   assert.equal((await rows('select status from public.orders where id=$1',[order]))[0].status,'cancelled');
 }));
+
+test('intenção de pagamento usa valor do banco, pertence ao cliente e é idempotente',()=>as('service_role',null,async()=>{
+  const order=await createOrder();const attempt=genKey();
+  const first=(await rows('select public.service_begin_payment_attempt($1,$2,$3) as result',[A,order,attempt]))[0].result;
+  const second=(await rows('select public.service_begin_payment_attempt($1,$2,$3) as result',[A,order,genKey()]))[0].result;
+  assert.equal(first.created,true);assert.equal(second.created,false);assert.equal(second.attempt_id,attempt);
+  const stored=(await rows('select total_cents,subtotal_cents,shipping_cents,payment_status from public.orders where id=$1',[order]))[0];
+  assert.equal(first.snapshot.total_cents,Number(stored.total_cents));assert.equal(first.snapshot.shipping_cents,Number(stored.shipping_cents));
+  assert.equal(first.snapshot.items[0].quantity,2);assert.equal(stored.payment_status,'pending');
+}));
+test('intenção de pagamento exige backend e titular correto',async()=>{
+  await rejectsCode(()=>as('authenticated',A,()=>rows('select public.service_begin_payment_attempt($1,$2,$3)',[A,KEY,genKey()])),'42501');
+  await rejectsCode(()=>as('service_role',null,async()=>{const order=await createOrder();await rows('select public.service_begin_payment_attempt($1,$2,$3)',[B,order,genKey()]);}),'42501');
+});
+test('pagamento em andamento impede cancelamento e devolução de estoque',()=>rejectsCode(()=>as('service_role',null,async()=>{
+  const order=await createOrder();await rows('select public.service_begin_payment_attempt($1,$2,$3)',[A,order,genKey()]);
+  await setRole('authenticated',ADMIN);const data=await adminQuery('order',{id:order});await adminMutate('order_update',order,{status:'cancelled'},data.updated_at);
+}),'P0001'));
+test('pedido cancelado não aceita tentativa de pagamento',()=>rejectsCode(()=>as('service_role',null,async()=>{
+  const order=await createOrder();await rows("update public.orders set status='cancelled' where id=$1",[order]);await rows('select public.service_begin_payment_attempt($1,$2,$3)',[A,order,genKey()]);
+}),'22023'));
