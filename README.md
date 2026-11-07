@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/icons/pupi-192.png" alt="Marca Pupi" width="88" height="88">
+  <img src="public/icons/pupi-192.png" alt="Marca Pupi" width="192" height="192">
 </p>
 <h1 align="center">Pupi</h1>
 <p align="center">E-commerce petshop com experiência mobile, gestão administrativa e pagamentos dentro do aplicativo.</p>
