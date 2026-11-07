@@ -172,11 +172,11 @@ function setupPostalLookup(form) {
 export function ordersView({ items, hasMore, page, go, catalogRepository, media, signal }) {
   const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
   const list = el('ul', { className: 'orders-list' }, items.map(order => el('li', { className: 'order-list-card' }, [
+    el('div',{className:'order-card-photos',role:'group','aria-label':'Produtos do pedido'},
+      order.items?.length?order.items.slice(0,3).map(orderProductImage):orderProductImage()),
     el('div', { className: 'order-card-main' }, [
       el('div', { className: 'order-card-title' }, [el('div', {}, [el('span', { className: 'order-card-eyebrow' }, 'PEDIDO'),el('h2', {}, `#${order.order_number}`)]),el('span', { className: 'order-status-pill' }, statusLabel(order.status))]),
       el('p', { className: 'order-card-date' }, [icon(CalendarDays),`Registrado em ${date(order.created_at)}`]),
-      el('div',{className:'order-card-photos',role:'group','aria-label':'Produtos do pedido'},
-        order.items?.length?order.items.slice(0,3).map(orderProductImage):orderProductImage()),
     ]),
     el('div', { className: 'order-card-footer' }, [
       el('div', { className: 'order-card-total' }, [el('span', {}, 'Total do pedido'),el('strong', {}, money(order.total_cents))]),
