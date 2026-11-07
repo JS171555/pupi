@@ -3,7 +3,7 @@ import {pagination} from '../account/views.js';
 import {confirmAction} from '../../ui/feedback.js';
 import {makeForm,cleanForm} from '../../ui/forms.js';
 import {AppError} from '../../utils/errors.js';
-import {createElement, PawPrint, Minus, Plus, Trash2, ArrowRight, ShoppingBag, ShieldCheck, Truck} from 'lucide';
+import {createElement, PawPrint, Minus, Plus, Trash2, ArrowRight, ShoppingBag, ShoppingCart, ShieldCheck, Truck} from 'lucide';
 
 const icon=definition=>createElement(definition,{'aria-hidden':'true','stroke-width':1.8});
 
@@ -107,7 +107,7 @@ export async function cartView({items,hasMore,page,go,user,busy,announce,reposit
 
   if(!items.length) return el('section',{className:'cart-page'},[
     headingNode,
-    el('div',{className:'cart-empty'},[el('div',{className:'cart-empty-icon','aria-hidden':'true'},icon(PawPrint)),el('h2',{},'Seu carrinho está vazio'),link([icon(ShoppingBag),'Explorar produtos'],'#/loja',{className:'button button-primary'})]),
+    el('div',{className:'cart-empty'},[el('div',{className:'cart-empty-icon','aria-hidden':'true'},icon(ShoppingCart)),el('h2',{},'Seu carrinho está vazio'),link([icon(ShoppingBag),'Explorar produtos'],'#/loja',{className:'button button-primary'})]),
   ]);
 
   const summary=el('aside',{className:'cart-summary','aria-labelledby':'cart-summary-title'},[
