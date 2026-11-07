@@ -64,6 +64,7 @@ test('credenciais rejeitadas preservam e-mail e não expõem erro técnico', asy
   await installApi(page); await page.goto('/#/entrar');
   await page.getByLabel('E-mail').fill('pessoa@example.com');
   await page.getByLabel(/^Senha/).fill('SenhaErrada');
+  await page.getByRole('button',{name:'Mostrar senha',exact:true}).click();
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page.getByText('E-mail ou senha incorretos.')).toBeVisible();
   await expect(page.getByLabel('E-mail')).toHaveValue('pessoa@example.com');

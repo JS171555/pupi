@@ -55,8 +55,9 @@ input[aria-invalid='true'], select[aria-invalid='true'] { border-color: var(--co
 .field-help { display: block; font-size: .8125rem; }
 .field-error { display: block; min-height: 1.35rem; color: var(--color-danger); font-size: .8125rem; }
 .password-row { position: relative; }
-.password-row input { padding-right: 6rem; }
-.password-row .button { position: absolute; right: 2px; top: 2px; min-height: 40px; padding: .4rem .65rem; font-size: .8125rem; }
+.password-row input { padding-right: 3.5rem; min-height:48px; }
+.password-row .password-toggle { position:absolute;right:2px;top:2px;bottom:2px;display:grid;place-items:center;width:44px;min-width:44px;min-height:44px;padding:0;color:var(--color-accent-ink); }
+.password-row .password-toggle svg {width:22px;height:22px;}
 .checkbox-row { display: flex; align-items: flex-start; gap: .65rem; }
 .checkbox-row input { margin: .3rem 0 0; width: 20px; height: 20px; flex: none; accent-color: var(--color-primary); }
 .checkbox-row label { margin-bottom: 0; }

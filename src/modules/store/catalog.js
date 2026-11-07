@@ -145,7 +145,7 @@ export async function storeProduct(repository, slug, media, params = new URLSear
         el('p',{className:'store-product-description'},product.description||product.short_description),
         el('div',{className:'store-product-purchase'},[
           price,
-          el('p',{className:`store-product-availability${product.stock_quantity>0?'':' is-unavailable'}`},product.stock_quantity>0?'Disponível':'Indisponível'),
+          product.stock_quantity>0?null:el('p',{className:'store-product-availability is-unavailable'},'Indisponível'),
           cartForm,
         ]),
       ]),

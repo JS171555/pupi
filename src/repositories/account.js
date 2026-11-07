@@ -80,7 +80,8 @@ export function createAccountRepository(client) {
     refreshPayment(orderId) { return paymentRequest({action:'refresh',order_id:orderId}); },
     async listOrders(userId, page = 1, signal) {
       const [from, to] = pageRange(page);
-      const data = await unwrap(client.from('orders').select(orderFields).eq('user_id', userId)
+      const data = await unwrap(client.from('orders').select(`${orderFields},items:order_items(product_id,product_name)`).eq('user_id', userId)
+        .order('created_at',{referencedTable:'items'}).order('id',{referencedTable:'items'}).limit(3,{referencedTable:'items'})
         .order('created_at', { ascending: false }).order('id').range(from, to).abortSignal(timeout(signal)));
       return paginate(data);
     },
@@ -89,7 +90,7 @@ export function createAccountRepository(client) {
         .maybeSingle().abortSignal(timeout(signal)));
       if (!order) return null;
       const [items, shipment] = await Promise.all([
-        unwrap(client.from('order_items').select('id,product_name,product_sku,quantity,unit_price_cents,line_total_cents')
+        unwrap(client.from('order_items').select('id,product_id,product_name,product_sku,quantity,unit_price_cents,line_total_cents')
           .eq('order_id', id).order('created_at').order('id').limit(100).abortSignal(timeout(signal))),
         unwrap(client.from('shipments').select('id,carrier,service_name,tracking_code,status')
           .eq('order_id', id).maybeSingle().abortSignal(timeout(signal))),

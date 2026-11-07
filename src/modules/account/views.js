@@ -1,5 +1,6 @@
 import { el, link, button, heading, empty, date, money } from '../../ui/dom.js';
 import { makeForm, cleanForm } from '../../ui/forms.js';
+import {orderProductImage,hydrateOrderImages} from '../../ui/order-images.js';
 import { STATES } from '../auth/validation.js';
 import { confirmAction } from '../../ui/feedback.js';
 import { createElement, UserRound, Mail, CalendarDays, MapPin, ShoppingBag, ArrowUpRight, Package, ArrowLeft, ArrowRight, CreditCard, Truck, Plus, Pencil, Trash2, FileText } from 'lucide';
@@ -168,29 +169,33 @@ function setupPostalLookup(form) {
   cep.addEventListener('blur',()=>{clearTimeout(timer);if(digits().length===8)lookup();});
 }
 
-export function ordersView({ items, hasMore, page, go }) {
+export function ordersView({ items, hasMore, page, go, catalogRepository, media, signal }) {
   const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
   const list = el('ul', { className: 'orders-list' }, items.map(order => el('li', { className: 'order-list-card' }, [
     el('div', { className: 'order-card-main' }, [
       el('div', { className: 'order-card-title' }, [el('div', {}, [el('span', { className: 'order-card-eyebrow' }, 'PEDIDO'),el('h2', {}, `#${order.order_number}`)]),el('span', { className: 'order-status-pill' }, statusLabel(order.status))]),
       el('p', { className: 'order-card-date' }, [icon(CalendarDays),`Registrado em ${date(order.created_at)}`]),
+      el('div',{className:'order-card-photos',role:'group','aria-label':'Produtos do pedido'},
+        order.items?.length?order.items.slice(0,3).map(orderProductImage):orderProductImage()),
     ]),
     el('div', { className: 'order-card-footer' }, [
       el('div', { className: 'order-card-total' }, [el('span', {}, 'Total do pedido'),el('strong', {}, money(order.total_cents))]),
       link(['Ver detalhes',icon(ArrowRight)], `#/pedidos/${order.id}`, { className: 'button button-secondary order-details-link' }),
     ]),
   ])));
-  return el('section', { className: 'orders-page' }, [heading('Meus pedidos'),
+  const view=el('section', { className: 'orders-page' }, [heading('Meus pedidos'),
     items.length ? list : empty('Você ainda não tem pedidos', '',link('Explorar a loja','#/loja',{className:'button button-primary'})),
     pagination(page, hasMore, '/pedidos', go),
   ]);
+  void hydrateOrderImages(view,{catalogRepository,media,signal});
+  return view;
 }
 
 export function orderView(order,options={}) {
   const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
   const address = order.address_snapshot;
   const items = el('ul', { className: 'order-detail-items' }, order.items.map(item => el('li', { className: 'order-line-item' }, [
-    el('span', { className: 'order-product-icon', 'aria-hidden': 'true' }, icon(Package)),
+    orderProductImage(item),
     el('div', { className: 'order-line-description' }, [el('h3', {}, item.product_name),el('p', { className: 'muted' }, `SKU ${item.product_sku} · ${item.quantity} × ${money(item.unit_price_cents)}`)]),
     el('strong', { className: 'order-line-total' }, money(item.line_total_cents)),
   ])));
@@ -215,7 +220,7 @@ export function orderView(order,options={}) {
     el('dl', { className: 'details-list order-totals' }, [el('dt', {}, 'Subtotal'), el('dd', {}, money(order.subtotal_cents)),
       el('dt', {}, 'Frete'), el('dd', {}, money(order.shipping_cents)), el('dt', { className: 'order-grand-total-label' }, 'Total'), el('dd', { className: 'order-grand-total' }, el('strong', {}, money(order.total_cents)))]),
   ]);
-  return el('section', { className: 'order-detail-page' }, [
+  const view=el('section', { className: 'order-detail-page' }, [
     link([icon(ArrowLeft),'Voltar aos pedidos'], options.backHref||'#/pedidos', { className: 'order-back-link' }),
     el('header', { className: 'order-detail-header' }, [
       heading(`Pedido #${order.order_number}`, `Registrado em ${date(order.created_at)}`),
@@ -234,4 +239,6 @@ export function orderView(order,options={}) {
       el('div', { className: 'order-detail-aside' }, [summary,addressCard]),
     ]),
   ]);
+  void hydrateOrderImages(view,options);
+  return view;
 }

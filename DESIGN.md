@@ -87,7 +87,7 @@ Controles usam `rounded.DEFAULT`; painéis usam `rounded.card`. Ícones Lucide d
 
 Seleção de UF usa select nativo: popup e interação pertencem ao sistema operacional. Não há date picker nem seleção de linhas em lote. Listas de endereços e pedidos têm paginação explícita. Scrollbars globais usam os tokens de borda/superfície/texto, com fallback WebKit e cores de sistema em forced-colors.
 
-Senhas são mascaradas com botão Mostrar/Ocultar e autocomplete apropriado. Formulários usam novalidate, mensagens associadas aos campos, foco no primeiro erro e prevenção de envio duplicado. Nenhum dado de cliente é renderizado como HTML.
+Senhas são mascaradas com autocomplete apropriado e botão de olho Lucide de 22px em alvo de 44px. O controle compartilhado preserva seleção e valor, alterna rótulo acessível Mostrar/Ocultar e aria-pressed; a troca do ícone usa GSAP por 180ms, sem animação com movimento reduzido. Formulários usam novalidate, mensagens associadas aos campos, foco no primeiro erro e prevenção de envio duplicado. Nenhum dado de cliente é renderizado como HTML.
 
 Telefone usa a variante compartilhada de máscara brasileira em `forms.js`, sem alterar o visual dos campos: exemplo `(11) 90000-0000`, DDD, limite de 11 dígitos, suporte a fixos de 10 dígitos e teclado telefônico no celular. A máscara preserva edição/seleção e a colagem com código 55. Erros seguem o mesmo componente dos demais campos.
 
@@ -109,3 +109,7 @@ Carrinho e Pedidos compartilham indicadores discretos de 9px no canto superior d
 - Não usar lavanda clara como texto sobre branco, alertas nativos ou estilos locais duplicados.
 
 Pagamento mantém os componentes de formulário, carregamento, botões e feedback existentes. O iframe 3DS usa largura do contêiner, altura limitada e os tokens de borda/raio; o quadro não provoca navegação externa. Estados de Pix vencido, ausência de cobrança real e conferência usam texto explícito na mesma região, com consulta manual preservada. Contrato em UX-CONTRACT.md e roteiro em docs/payment-production.md.
+
+### Imagens dos pedidos e ação de compra
+
+Cards de pedidos mostram até três miniaturas de 64px com a foto principal atual dos produtos, também usada no catálogo. Nos detalhes, cada item usa uma miniatura de 52px. O carregamento opcional mantém a área reservada e usa o placeholder Lucide Package se a foto estiver indisponível; dados históricos do pedido permanecem intactos. A consulta preserva a paginação e as permissões existentes. A área de compra do produto tem preço, quantidade e botão centralizados, sem aviso positivo Disponível nem espaço de alerta vazio abaixo da ação; indisponibilidade e erros continuam visíveis quando necessários.

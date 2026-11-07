@@ -1,8 +1,9 @@
-import { el, button } from './dom.js';
+import { el } from './dom.js';
 import { ValidationError } from '../modules/auth/validation.js';
 import {startLoading} from './loading.js';
 import { toAppError } from '../utils/errors.js';
 import {attachPhoneMask} from './phone-input.js';
+import {passwordToggle} from './password-toggle.js';
 
 let sequence = 0;
 export function field({ name, label, type = 'text', value = '', required = false, hint = '', options, autocomplete, maxLength, inputmode, rows=5, accept, multiple=false,mask }) {
@@ -16,18 +17,12 @@ export function field({ name, label, type = 'text', value = '', required = false
     control = el('select', attributes, options.map(([key, text]) => el('option', { value: key, selected: key === value }, text)));
   } else control = el('input', { ...attributes, type, value: type === 'checkbox' ? 'accepted' : value, checked: type === 'checkbox' && value === true, accept, multiple });
   if(mask==='phone')attachPhoneMask(control);
+  if(type==='password')control.dataset.passwordField='true';
   const labelNode = el('label', { for: id }, [label, required ? el('span', { 'aria-hidden': 'true' }, ' *') : null]);
   const inputRow = el('div', { className: type === 'password' ? 'password-row' : 'control-row' }, control);
   if (type === 'password') {
     const secretLabel = name === 'confirmation' ? 'confirmação de senha' : label.toLowerCase();
-    const reveal = button('Mostrar', () => {
-      const show = control.type === 'password'; control.type = show ? 'text' : 'password';
-      reveal.textContent = show ? 'Ocultar' : 'Mostrar';
-      reveal.setAttribute('aria-label', `${show ? 'Ocultar' : 'Mostrar'} ${secretLabel}`);
-      reveal.setAttribute('aria-pressed', String(show));
-    }, 'ghost');
-    reveal.setAttribute('aria-label', `Mostrar ${secretLabel}`); reveal.setAttribute('aria-pressed', 'false');
-    inputRow.append(reveal);
+    inputRow.append(passwordToggle(control,secretLabel));
   }
   const wrapper = el('div', { className: type === 'checkbox' ? 'field checkbox-field' : 'field','data-field':name },
     type === 'checkbox' ? [el('div', { className: 'checkbox-row' }, [control, labelNode])] : [labelNode, inputRow]);
@@ -93,7 +88,7 @@ export function makeForm({ name, fields, submitLabel, onSubmit, onBusy = () => {
         group.disabled = false; first?.focus();
       } else {
         if (error.code === 'SESSION_EXPIRED') document.dispatchEvent(new Event('pupi:session-expired'));
-        if (error.code === 'INVALID_CREDENTIALS') form.querySelectorAll('input[type="password"]').forEach(control => { control.value = ''; });
+        if (error.code === 'INVALID_CREDENTIALS') form.querySelectorAll('input[data-password-field]').forEach(control => { control.value = ''; });
         status.focus();
       }
     } finally { stopLoading();busy = false; group.disabled = false; form.removeAttribute('aria-busy'); onBusy(false); }

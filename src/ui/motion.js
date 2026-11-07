@@ -3,6 +3,10 @@ import {gsap} from 'gsap';
 const reduced=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 export function enter(node,{kind='surface'}={}) {
   if(reduced())return;
+  if(kind==='icon'){
+    gsap.fromTo(node,{opacity:0,scale:.75,rotation:-10},{opacity:1,scale:1,rotation:0,duration:.18,ease:'power2.out',clearProps:'opacity,transform',overwrite:true});
+    return;
+  }
   const toast=kind==='toast';
   gsap.fromTo(node,{opacity:0,x:toast?12:0,y:toast?-4:8,scale:toast?1:.97},{opacity:1,x:0,y:0,scale:1,duration:toast ? .28 : .22,ease:'power3.out',clearProps:'opacity,transform',overwrite:true});
 }

@@ -15,6 +15,8 @@ Botões roxos preenchidos usam `accent-ink` com texto e ícones brancos, incluin
 | Capability | Canonical owner | Source of truth | Allowed variants | Verification |
 |---|---|---|---|---|
 | Form | src/ui/forms.js | UX-CONTRACT.md | create / edit / auth | tests/e2e/account.spec.js |
+| Password Toggle | src/ui/password-toggle.js, src/ui/forms.js | DESIGN.md | login / cadastro / recuperação | tests/e2e/order-polish.spec.js, tests/e2e/account.spec.js |
+| Order Images | src/ui/order-images.js | DESIGN.md | cards / itens do pedido | tests/order-preview.test.js, tests/e2e/order-polish.spec.js |
 | Phone Input | src/ui/phone-input.js, src/utils/phone.js | UX-CONTRACT.md | Brazilian mobile / landline | tests/phone.test.js, tests/e2e/phone.spec.js |
 | Select/Listbox | src/ui/forms.js | DESIGN.md | native | tests/e2e/account.spec.js |
 | Scrollbar | src/styles/app.css | DESIGN.md | global | tests/e2e/account.spec.js |
@@ -152,3 +154,11 @@ O carrossel com um único banner omite os controles sem inserir texto substituto
 A navegação apresenta uma bolinha vermelha quando a conta tem produtos no carrinho ou pedidos com `payment_status=pending` e `status` diferente de `cancelled`. Consultas usam apenas identificadores, filtro explícito da conta e as políticas existentes descritas em `docs/security.md`, com limite de uma linha e timeout. Não há contadores fictícios, dados privados persistidos no navegador ou mudança das regras de pagamento.
 
 Os indicadores atualizam ao renderizar a navegação, incluir/remover produtos, confirmar pedido e concluir pagamento. Retornar à aba/janela ou reconectar solicita nova leitura, sem polling. A atualização não reconstrói o menu nem rouba foco. A descrição acessível explica o indicador, mantendo Carrinho/Pedidos como nomes dos links. Falha opcional não bloqueia a página e preserva o último estado conhecido da mesma conta; logout ou troca de conta apaga os sinais e descarta respostas anteriores.
+
+## Fotos nos pedidos e controle de senha
+
+Pedidos da conta continuam filtrados pelo usuário e paginados em dez registros; a prévia inclui até três itens ordenados. Fotos vêm da imagem principal atual do catálogo por URL assinada, respeitando as permissões existentes (docs/security.md). A leitura opcional não bloqueia o histórico ou o pagamento e ignora respostas após sair da rota. Falhas de consulta, assinatura ou imagem mantêm o placeholder com nome acessível. Produtos sem imagem acessível permanecem consultáveis; nomes, quantidades e valores continuam sendo os snapshots do pedido.
+
+O mesmo botão de olho atende login, cadastro, confirmação e recuperação de senha. Mantém máscara inicial, seleção, valor, foco por teclado e rótulo acessível dinâmico, sem salvar ou registrar o conteúdo. Credenciais rejeitadas limpam a senha mesmo quando revelada. A animação de 180ms respeita movimento reduzido.
+
+No detalhe do produto, disponibilidade positiva não ocupa espaço. Indisponibilidade permanece explícita. O alerta vazio do formulário de quantidade fica oculto; erros continuam aparecendo com texto e foco no campo inválido. Preço, quantidade e ação ficam centralizados.

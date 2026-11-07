@@ -50,6 +50,7 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
     }
     if (url.pathname === '/rest/v1/user_roles') return respond(object ? { role: data.role } : [{ role: data.role }]);
     if (url.pathname === '/rest/v1/home_banners') return respond([]);
+    if (url.pathname === '/rest/v1/product_images') return respond([]);
     if (url.pathname === '/rest/v1/carts') return respond(object?{id:'30000000-0000-4000-8000-000000000001'}:[{id:'30000000-0000-4000-8000-000000000001'}]);
     if (url.pathname === '/rest/v1/cart_items') return respond(data.cartItems.filter(item=>item.quantity>0));
     if (url.pathname === '/rest/v1/rpc/admin_access_status') return respond(data.role === 'admin');
@@ -106,7 +107,10 @@ export async function installApi(page, { signedIn = false, role = 'customer', no
       const list = data.orders.filter(order=>(!id||order.id===id)&&(!pending||order.payment_status==='pending')&&(!excludeCancelled||order.status!=='cancelled'));
       return respond(object ? list[0] || null : list);
     }
-    if (url.pathname === '/rest/v1/order_items') return respond(data.orders[0]?.items || []);
+    if (url.pathname === '/rest/v1/order_items') {
+      const orderId=url.searchParams.get('order_id')?.replace('eq.','');
+      return respond(data.orders.find(order=>!orderId||order.id===orderId)?.items || []);
+    }
     if (url.pathname === '/rest/v1/shipments') return respond([]);
     if (url.pathname === '/rest/v1/shipment_events') return respond([]);
     return respond({ message: `Unhandled test request ${method} ${url.pathname}` }, 500);

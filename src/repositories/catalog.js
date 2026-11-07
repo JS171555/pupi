@@ -35,12 +35,14 @@ export function createCatalogRepository(client) {
       return unwrap(query.order('id')
         .range((page - 1) * pageSize, page * pageSize - 1));
     },
-    listPrimaryImages(productIds) {
+    listPrimaryImages(productIds,signal) {
       if (!Array.isArray(productIds) || productIds.length > 100 || productIds.some(id => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))) {
         throw new AppError('INVALID_DATA', 'Produtos inválidos.');
       }
       if (!productIds.length) return Promise.resolve([]);
-      return unwrap(client.from('product_images').select('product_id,storage_path,alt_text').in('product_id', productIds).eq('is_primary', true));
+      let query=client.from('product_images').select('product_id,storage_path,alt_text').in('product_id', productIds).eq('is_primary', true);
+      if(signal)query=query.abortSignal(signal);
+      return unwrap(query);
     },
     listProductImages(productId, page = 1) {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId) || !Number.isSafeInteger(page) || page < 1 || page > 100000) {
