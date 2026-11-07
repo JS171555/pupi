@@ -23,9 +23,9 @@ body {min-height:100svh;display:flex;flex-direction:column;}
 .button {border-radius:var(--radius-default);transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease;}
 .button-primary {box-shadow:0 5px 14px color-mix(in srgb,var(--color-primary) 20%,transparent);}
 .button-primary:hover:not(:disabled) {box-shadow:0 7px 20px color-mix(in srgb,var(--color-primary) 26%,transparent);}
-input:not([type='checkbox']),select,textarea {border-color:var(--color-border);background:var(--color-surface);border-radius:14px;}
+input:not([type='checkbox']):not([type='radio']),select,textarea {border-color:var(--color-border);background:var(--color-surface);border-radius:14px;}
 input:focus,select:focus,textarea:focus {border-color:var(--color-accent-ink);}
-input:not([type="checkbox"]):focus-visible,select:focus-visible,textarea:focus-visible {outline:2px solid var(--color-accent-ink);outline-offset:2px;box-shadow:0 0 0 4px color-mix(in srgb,var(--color-brand) 16%,transparent);}
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,select:focus-visible,textarea:focus-visible {outline:2px solid var(--color-accent-ink);outline-offset:2px;box-shadow:0 0 0 4px color-mix(in srgb,var(--color-brand) 16%,transparent);}
 input[aria-invalid="true"],select[aria-invalid="true"],textarea[aria-invalid="true"] {border-color:var(--color-danger);}
 .field-help:empty {display:none;}
 .record-card {background:var(--color-surface);border-color:color-mix(in srgb,var(--color-primary) 14%,transparent);border-radius:20px;}

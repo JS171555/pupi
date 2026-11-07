@@ -89,6 +89,8 @@ Seleção de UF usa select nativo: popup e interação pertencem ao sistema oper
 
 O estado de carrinho vazio usa o ícone Lucide ShoppingCart, decorativo, no contêiner compartilhado de 68px com traço de 32px, preservando mensagem e ação Explorar produtos.
 
+Seletores radio preservam a geometria nativa ou definida pelo provedor, inclusive nos meios de pagamento do Mercado Pago. As regras globais de largura, altura mínima, preenchimento e cantos dos campos de texto excluem checkbox e radio; foco por teclado permanece visível pelo estilo compartilhado.
+
 Senhas são mascaradas com autocomplete apropriado e botão de olho Lucide de 22px em alvo de 44px. O controle compartilhado preserva seleção e valor, alterna rótulo acessível Mostrar/Ocultar e aria-pressed; a troca do ícone usa GSAP por 180ms, sem animação com movimento reduzido. Formulários usam novalidate, mensagens associadas aos campos, foco no primeiro erro e prevenção de envio duplicado. Nenhum dado de cliente é renderizado como HTML.
 
 Telefone usa a variante compartilhada de máscara brasileira em `forms.js`, sem alterar o visual dos campos: exemplo `(11) 90000-0000`, DDD, limite de 11 dígitos, suporte a fixos de 10 dígitos e teclado telefônico no celular. A máscara preserva edição/seleção e a colagem com código 55. Erros seguem o mesmo componente dos demais campos.

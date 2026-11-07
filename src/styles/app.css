@@ -11,7 +11,7 @@ h1[tabindex="-1"]:focus {outline:none;}
 *::-webkit-scrollbar-thumb:active { background: var(--color-text); }
 body { margin: 0; background: var(--color-background); color: var(--color-text); font-family: var(--font-body); font-size: 1rem; line-height: 1.6; }
 button, input, select { font: inherit; }
-button, a, select, input[type='checkbox'] { cursor: pointer; }
+button, a, select, input[type='checkbox'], input[type='radio'] { cursor: pointer; }
 a { color: var(--color-text); text-underline-offset: 3px; }
 a:hover { text-decoration-thickness: 2px; }
 a:active { opacity: .8; }
@@ -49,7 +49,7 @@ ul { padding-left: 1.25rem; }
 .form-fields { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: .3rem; }
 .field { min-width: 0; margin-bottom: .25rem; }
 label { display: block; font-size: .9375rem; font-weight: 600; margin-bottom: .35rem; }
-input:not([type='checkbox']), select { width: 100%; min-height: 44px; padding: .65rem .8rem; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-muted); border-radius: var(--radius-default); }
+input:not([type='checkbox']):not([type='radio']), select { width: 100%; min-height: 44px; padding: .65rem .8rem; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-muted); border-radius: var(--radius-default); }
 input:hover, select:hover { border-color: var(--color-muted); }
 input[aria-invalid='true'], select[aria-invalid='true'] { border-color: var(--color-danger); }
 .field-help { display: block; font-size: .8125rem; }
