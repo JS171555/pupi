@@ -3,7 +3,7 @@ import { makeForm, cleanForm } from '../../ui/forms.js';
 import {orderProductImage,hydrateOrderImages} from '../../ui/order-images.js';
 import { STATES } from '../auth/validation.js';
 import { confirmAction } from '../../ui/feedback.js';
-import { createElement, UserRound, Mail, CalendarDays, MapPin, ShoppingBag, ArrowUpRight, Package, ArrowLeft, ArrowRight, CreditCard, Truck, Plus, Pencil, Trash2, FileText } from 'lucide';
+import { createElement, UserRound, Mail, CalendarDays, MapPin, ShoppingBag, ArrowUpRight, Package, ArrowLeft, ArrowRight, CreditCard, Truck, Plus, Pencil, Trash2, FileText, Copy, Check, ExternalLink } from 'lucide';
 
 const statusLabels = {
   confirmed: 'Pedido confirmado', preparing: 'Preparando pedido', shipped: 'Enviado', in_transit: 'Em trânsito',
@@ -191,6 +191,26 @@ export function ordersView({ items, hasMore, page, go, catalogRepository, media,
   return view;
 }
 
+function trackingRow(code, icon) {
+  const trackingCode = (code || '').trim();
+  if (!trackingCode) return el('p', {}, ['Rastreamento ',el('strong', {}, 'Ainda não informado')]);
+  const copyLabel = el('span', {}, 'Copiar');
+  const copyButton = el('button', { type: 'button', className: 'button button-secondary order-tracking-action', 'aria-label': 'Copiar código de rastreamento', on: { click: async () => {
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(trackingCode);
+      else { const area = el('textarea', { readonly: true, className: 'sr-only' }); area.value = trackingCode; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); }
+      copyButton.replaceChildren(icon(Check), el('span', {}, 'Copiado'));
+      setTimeout(() => copyButton.replaceChildren(icon(Copy), copyLabel), 2000);
+    } catch { copyButton.replaceChildren(icon(Copy), el('span', {}, 'Não foi possível copiar')); setTimeout(() => copyButton.replaceChildren(icon(Copy), copyLabel), 2000); }
+  } } }, [icon(Copy), copyLabel]);
+  return el('div', { className: 'order-tracking-row' }, [
+    el('p', { className: 'order-tracking-code' }, ['Rastreamento ',el('strong', {}, trackingCode)]),
+    el('div', { className: 'order-tracking-actions' }, [copyButton,
+      el('a', { href: 'https://rastreamento.correios.com.br/', target: '_blank', rel: 'noopener noreferrer', className: 'button button-secondary order-tracking-action', 'aria-label': 'Rastrear nos Correios (abre em nova aba)' }, [icon(ExternalLink), el('span', {}, 'Rastrear nos Correios')]),
+    ]),
+  ]);
+}
+
 export function orderView(order,options={}) {
   const icon = definition => createElement(definition, { 'aria-hidden': 'true', 'stroke-width': 1.8 });
   const address = order.address_snapshot;
@@ -205,7 +225,7 @@ export function orderView(order,options={}) {
   const shippingDetails = order.shipment ? el('div', { className: 'order-shipment-details' }, [
     el('p', {}, ['Entrega ',el('strong', {}, statusLabel(order.shipment.status))]),
     el('p', {}, ['Transportadora ',el('strong', {}, order.shipment.carrier || 'Ainda não informada')]),
-    el('p', {}, ['Rastreamento ',el('strong', {}, order.shipment.tracking_code || 'Ainda não informado')]),
+    trackingRow(order.shipment.tracking_code, icon),
     order.events.length ? timeline : el('p', { className: 'muted' }, 'Nenhuma atualização de transporte registrada.'),
   ]) : el('p', { className: 'muted' }, 'Entrega ainda não registrada.');
   const addressCard = el('section', { className: 'order-info-card order-address-card' }, [

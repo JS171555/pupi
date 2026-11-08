@@ -370,6 +370,13 @@ input[aria-invalid="true"],select[aria-invalid="true"],textarea[aria-invalid="tr
 .order-address-content p:last-child {margin-bottom:0;}
 .order-shipment-details>p {margin:0 0 .45rem;color:var(--color-muted);font-size:.81rem;overflow-wrap:anywhere;}
 .order-shipment-details>p strong {color:var(--color-text);font-weight:650;}
+.order-tracking-row {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;margin:0 0 .45rem;}
+.order-tracking-code {margin:0;color:var(--color-muted);font-size:.81rem;overflow-wrap:anywhere;min-width:0;}
+.order-tracking-code strong {color:var(--color-text);font-weight:650;}
+.order-tracking-actions {display:flex;flex-wrap:wrap;gap:.5rem;}
+.order-tracking-action {min-height:36px;padding:.4rem .75rem;font-size:.8rem;}
+.order-tracking-action svg {width:16px;height:16px;flex:none;}
+@media (max-width:480px){.order-tracking-actions{width:100%;}.order-tracking-action{flex:1 1 auto;}}
 .order-timeline {display:grid;gap:.1rem;margin:.9rem 0 0;padding:0;list-style:none;}
 .order-timeline-entry {position:relative;display:grid;grid-template-columns:.75rem minmax(0,1fr);gap:.65rem;padding:0 0 .9rem;}
 .order-timeline-entry:not(:last-child)::after {position:absolute;top:.7rem;bottom:0;left:.31rem;width:1px;background:var(--color-border);content:'';}
